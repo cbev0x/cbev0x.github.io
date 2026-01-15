@@ -74,19 +74,19 @@ Logging in shows a message left by Root to a user named Gwendoline speaking of a
 
 ![nmap scan](../assets/img/2026-01-14-YearOfTheRabbit/ssheli.png)
 
-ssh loginI use find with that special spelling of secret and find a directory named s3cr3t under /usr/games.
+I use find with that special spelling of secret and find a directory named s3cr3t under /usr/games.
 
 ![nmap scan](../assets/img/2026-01-14-YearOfTheRabbit/secretdir.png)
 
-hidden directoryThis contains Gwendoline's password along with a message telling her it's way too weak.
+This contains Gwendoline's password along with a message telling her it's way too weak.
 
 ![nmap scan](../assets/img/2026-01-14-YearOfTheRabbit/gwenpassword.png)
 
-gwen's passwordFrom here we can switch users to Gwen and grab the user flag under her home directory. Next, I go about the typical routes for root privesc.
+From here we can switch users to Gwen and grab the user flag under her home directory. Next, I go about the typical routes for root privesc.
 
 ![nmap scan](../assets/img/2026-01-14-YearOfTheRabbit/sudoprivs.png)
 
-Gwen's sudo permissionsThe only thing of note was that we're allowed to run a Sudo command on the vi binary, but only on the /home/gwendoline/user.txt file and not as root. I spend some time researching into bypasses for this and discover CVE-2019–14287.
+The only thing of note was that we're allowed to run a Sudo command on the vi binary, but only on the /home/gwendoline/user.txt file and not as root. I spend some time researching into bypasses for this and discover CVE-2019–14287.
 There is a proof of concept which allows us to spawn a bash shell as root while bypassing these security controls. 
 
 We just need to specify the user as #-1 which tricks Sudo into running our command as root.
