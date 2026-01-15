@@ -7,6 +7,7 @@ tags: [Linux, Web]
 
 # TryHackMe: Year of the Rabbit Writeup
 This box is rated easy difficulty on THM. It involves us brute forcing an FTP login after finding a password list from hidden image data, decoding an obscure programming language, and exploiting Sudo permissions to grab a root shell.
+
 _Time to enter the warren…_
 
 
