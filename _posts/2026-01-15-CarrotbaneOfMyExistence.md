@@ -148,7 +148,7 @@ I use it to listen on port 25 (SMTP default). Next up, I switch to [swaks](https
 
 ![](../assets/img/2026-01-15-CarrotbaneOfMyExistence/15.png)
 
-We get responses from five of the addresses, one discloses another email at security@hopaitech.thm used for contacting the security team. However the response from ‘Violet Thumper’ was interesting as she can help us read mail by specifying the subject.
+We get responses from five of the addresses, one discloses another email at `security@hopaitech.thm` used for contacting the security team. However the response from ‘Violet Thumper’ was interesting as she can help us read mail by specifying the subject.
 
 After spending some time testing this request/response, I use swaks to send another email only to her asking to display emails in our inbox.
 
