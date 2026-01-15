@@ -93,7 +93,7 @@ This hacktheworld binary has a system call to bash, let’s dive a little deeper
 
 ![](../assets/img/2026-01-15-AnonymousPlayground/12.png)
 
-I use pdf@sym.call_bash to see all functions and find that it calls /bin/sh . This function seems to calls bash with another user’s UID. We have the function’s address so next I test for buffer overflow.
+I use `pdf@sym.call_bash` to see all functions and find that it calls /bin/sh . This function seems to calls bash with another user’s UID. We have the function’s address so next I test for buffer overflow.
 
 ![](../assets/img/2026-01-15-AnonymousPlayground/13.png)
 
@@ -123,12 +123,12 @@ We don’t have permissions to unzip that tar/gun zip archive but we can leverag
 
 First we make a .sh script that contains a command for copying /bin/bash to /tmp and giving it an SUID bit.
 
-Next, we make two malicious files using: touch -- '--checkpoint=1' &touch -- '--checkpoint-action=exec=sh runme.sh' .
+Next, we make two malicious files using: `touch -- '--checkpoint=1'` & `touch -- '--checkpoint-action=exec=sh runme.sh'`.
 
 This forces the system to interpret these files as flags and execute our malicious script. Now all we have to do is wait (1 minute) for the cronjob to run and check /tmp for our special bash binary.
 
 ![](../assets/img/2026-01-15-AnonymousPlayground/19.png)
 
-Running ./bash -p grants us a root shell and we can get the final flag to finish out the box.
+Running `./bash -p` grants us a root shell and we can get the final flag to finish out the box.
 
 Overall, this was one of the most fun & challenging boxes I’ve done so big thanks to Nameless0ne for making it. I hope this was helpful to anyone stuck or following along and happy hacking!
