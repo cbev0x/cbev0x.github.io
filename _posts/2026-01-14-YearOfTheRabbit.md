@@ -13,7 +13,7 @@ _Time to enter the warren…_
 ## Scanning & Enumeration
 I start with an Nmap scan on the given IP to find all running services.
 
-![nmap scan](../assets/img/2026-01-14-YearOfTheRabbit/nmapscan.png)
+![nmap scan](../assets/img/2026-01-14-YearOfTheRabbit/nmapscan-yotr.png)
 
 There's just three ports open:
 - FTP on port 21
