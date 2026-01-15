@@ -1,5 +1,5 @@
 ---
-title: "TryHackMe: Watcher"
+title: "TryHackMe: Decryptify"
 date: 2026-01-15
 categories: [TryHackMe]
 tags: [Linux, Web, Padding Oracle]
