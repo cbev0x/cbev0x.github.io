@@ -140,7 +140,7 @@ Type MX record:
 
 ![](../assets/img/2026-01-15-CarrotbaneOfMyExistence/13.png)
 
-I set the TTL to the absolute minimum as well. We’ll have to host an SMTP server for this to work, so I’ll be using the aiosmtpd tool. You can find it here.
+I set the TTL to the absolute minimum as well. We’ll have to host an SMTP server for this to work, so I’ll be using the aiosmtpd tool. You can find it [here](https://pypi.org/project/aiosmtpd/).
 
 ![](../assets/img/2026-01-15-CarrotbaneOfMyExistence/14.png)
 
