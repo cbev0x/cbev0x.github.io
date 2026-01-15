@@ -2,7 +2,7 @@
 title: "TryHackMe: BreachBlocker Unlocker"
 date: 2026-01-15
 categories: [TryHackMe]
-tags: [Linux, Web, API]
+tags: [Linux, Web, API, AOC 25]
 ---
 
 This box is the final side quest for THM’s Advent of Cyber ‘25, it is ranked hard difficulty and involves enumerating server files, pivoting through applications, and OTP auth bypass to grab all flags.
