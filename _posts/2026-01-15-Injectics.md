@@ -83,9 +83,9 @@ This one reflects that server side template injection is indeed possible via the
 
 ![](../assets/img/2026-01-15-Injectics/14.png)
 
-Now we need to find valid payloads in order to read files on the system. I came across a CVE for Twig which allowed for abritrary PHP code to be ran via the sort filter. While using `{{ [‘id’,’’]|sort(‘system’) }}` didn’t work directly for RCE, it still output “Array” which meant I was on the right path.
+Now we need to find valid payloads in order to read files on the system. I came across a CVE for Twig which allowed for abritrary PHP code to be ran via the sort filter. While using the system function to allow for commands didn’t work directly for RCE, it still output “Array” which meant I was on the right path.
 
-Checking some other functions we can use instead of system, I find that `{{[‘ls flags’,””]|sort(‘passthru’)}` works to display the flag filename.
+Checking some other functions we can use instead of system, I find that replacing system with passthru() works to display the flag filename.
 
 The passthru() function in PHP is for executing a system command and passing its raw output directly to the browser or standard output stream.
 
