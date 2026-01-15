@@ -12,10 +12,11 @@ Time to enter the warren…
 
 ## Scanning & Enumeration
 I start with an Nmap scan on the given IP to find all running services.
-Nmap scanThere's just three ports open:
-FTP on port 21
-SSH on port 22
-An Apache web server on port 80
+
+There's just three ports open:
+- FTP on port 21
+- SSH on port 22
+- An Apache web server on port 80
 
 Anonymous login is not enabled for FTP and this OpenSSH version is only prone to username enumeration, so I head over to the webpage.
 landing pageThis is the default boilerplate Apache landing page, which won't give us anything. Nothing on robots.txt either so I start a dirsearch to find hidden directories.
