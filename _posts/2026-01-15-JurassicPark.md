@@ -62,7 +62,7 @@ Since the @ character is blocked, I can’t use the typical @@version to find ou
 
 ![](../assets/img/2026-01-15-JurassicPark/10.png)
 
-Also, Port Swigger has a great article for enumerating databases with SQLi. Here’s a link.
+Also, Port Swigger has a great article for enumerating databases with SQLi. Here’s [a link](https://portswigger.net/web-security/sql-injection/examining-the-database).
 
 Now, I can grab the database name.
 
@@ -138,7 +138,7 @@ I check Dennis’ bash history and find the third flag.
 
 ![](../assets/img/2026-01-15-JurassicPark/20.png)
 
-GTFOBins has a great method of spawning a root shell with sudo via the scp binary.
+[GTFOBins](https://gtfobins.github.io/gtfobins/scp/#sudo) has a great method of spawning a root shell with sudo via the scp binary.
 
 ![](../assets/img/2026-01-15-JurassicPark/21.png)
 
