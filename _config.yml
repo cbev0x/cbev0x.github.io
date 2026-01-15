@@ -16,7 +16,7 @@ timezone:
 
 title: OffSec Writeups # the main title
 
-tagline: Hacking help # it will display as the subtitle
+tagline: The best defense is offense # it will display as the subtitle
 
 description: >- # used by seo meta and the atom feed
   This site is dedicated towards my offensive security writeups, although mainly TryHackMe and HackTheBox walkthroughs. I aim to help people understand these areas as I continue to learn all about cybersecurity. 
@@ -34,11 +34,11 @@ twitter:
 social:
   # Change to your full name.
   # It will be displayed as the default author of the posts and the copyright owner in the Footer
-  name: Chase Bevan-Thomas
+  name: cbev
   email: chasebt64@gmail.com # change to your email address
   links:
     # The first element serves as the copyright owner's link
-    - https://tryhackme.com/p/cbev # change to your Twitter homepage
+    - https://tryhackme.com/p/cbev # change to your THM homepage
     - https://github.com/cbev0x # change to your GitHub homepage
     # Uncomment below to add more social links
     # - https://www.facebook.com/username
