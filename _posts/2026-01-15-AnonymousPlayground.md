@@ -3,6 +3,7 @@ title: "TryHackMe: Anonymous Playground"
 date: 2026-01-15
 categories: [TryHackMe]
 tags: [Linux, Cryptography, Buffer Overflow, Binex]
+published: true
 ---
 
 This box is ranked hard difficulty on THM, it involves us decrypting a special string which grants us SSH creds to the system. Then, we exploit a custom binary using buffer overflow to get a shell as another user. Finally, we abuse a cronjob to escalate privileges to root.
