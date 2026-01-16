@@ -3,6 +3,7 @@ title: "TryHackMe: Year Of The Dog"
 date: 2026-01-15
 categories: [TryHackMe]
 tags: [Linux, Web, SQLi, Git, Networking]
+published: true
 ---
 
 This box is ranked hard difficulty on THM, it involves us using SQLi to get a webshell on the system, a good bit of internal enumeration, and an interesting Git privilege escalation to catch a root shell.
