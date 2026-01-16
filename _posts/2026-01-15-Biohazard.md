@@ -3,6 +3,7 @@ title: "TryHackMe: Biohazard"
 date: 2026-01-15
 categories: [TryHackMe]
 tags: [Linux, Puzzle, Cryptography]
+published: true
 ---
 
 This box is ranked medium difficulty on THM and is centered around the Resident Evil game. The overarching challenge of this box is cryptography and enumeration to find valid keys.
