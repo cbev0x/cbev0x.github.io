@@ -3,6 +3,7 @@ title: "TryHackMe: Anonymous"
 date: 2026-01-15
 categories: [TryHackMe]
 tags: [Linux, FTP]
+published: true
 ---
 
 This box is ranked medium difficulty on THM, it involves us uploading a reverse shell using FTP anonymous login and then abusing a SUID bit set on an important binary to grab a root shell.
