@@ -3,6 +3,7 @@ title: "TryHackMe: Year Of The Pig"
 date: 2026-01-15
 categories: [TryHackMe]
 tags: [Linux, Web, Brute Force]
+published: true
 ---
 
 This box is ranked hard difficulty on THM, it involves us brute forcing the login page with a custom wordlist, enumerating a sqlite database for user credentials, and abusing the sudoedit binary to change /etc/sudoers.
