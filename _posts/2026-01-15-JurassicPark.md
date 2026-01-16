@@ -3,6 +3,7 @@ title: "TryHackMe: Jurassic Park"
 date: 2026-01-15
 categories: [TryHackMe]
 tags: [Linux, Web]
+published: true
 ---
 
 This box is rated hard difficulty on THM, it involves us using SQL injection to dump passwords, using a known binary exploit with Sudo to grab root privileges on the system, and searching for hidden flags.
