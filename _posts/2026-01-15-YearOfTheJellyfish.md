@@ -217,7 +217,7 @@ Finally, at `monitorr.robyns-petshop.thm` we have a monitor panel with things li
 
 ![](../assets/img/2026-01-15-YearOfTheJellyfish/9.png)
 
-Looking at the bottom gives us what looks to be a version for Monitorr, let’s find some vulnerabilities to be exploited with exploit-db. There is an unathenticated RCE vuln available with our version that uses an auth bypass to upload a shell on the system.
+Looking at the bottom gives us what looks to be a version for Monitorr, let’s find some vulnerabilities to be exploited with exploit-db. There is an [unauthenticated RCE](https://www.exploit-db.com/exploits/48980) vuln available with our version that uses an auth bypass to upload a shell on the system.
 
 ![](../assets/img/2026-01-15-YearOfTheJellyfish/10.png)
 
@@ -263,7 +263,7 @@ Honestly I only looked at this library because I kept seeing it on boxes and onl
 
 Turns out there is a dirty_sock local privilege escalation we can use to gain a root shell on the system.
 
-Funny that google only returns writeups for this box when searching for snap 2.32.5+18.04 exploits :)
+_Funny that google only returns writeups for this box when searching for snap 2.32.5+18.04 exploits :)_
 
 ![](../assets/img/2026-01-15-YearOfTheJellyfish/19.png)
 
