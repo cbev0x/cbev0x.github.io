@@ -3,6 +3,7 @@ title: "TryHackMe: Carrotbane of My Existence"
 date: 2026-01-15
 categories: [TryHackMe]
 tags: [Linux, Web, AOC 25, Prompt Injection, LFI]
+published: true
 ---
 
 This box is the third side quest for THM’s Advent of Cyber ’25 and is ranked medium difficulty.
