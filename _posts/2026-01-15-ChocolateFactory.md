@@ -3,6 +3,7 @@ title: "TryHackMe: Chocolate Factory"
 date: 2026-01-15
 categories: [TryHackMe]
 tags: [Linux, Web, Cryptography]
+published: true
 ---
 
 This box is ranked easy difficulty on THM, it involves us getting a hash via steganography on a jpg, grabbing a shell with RCE on a webpage, using sudo to escalate privileges to root, and a bit of cryptography to read the final flag.
