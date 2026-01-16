@@ -3,6 +3,7 @@ title: "TryHackMe: Year Of The Fox"
 date: 2026-01-15
 categories: [TryHackMe]
 tags: [Linux, Web, Brute Force, Netoworking, BinEx]
+published: true
 ---
 
 This box is ranked hard difficulty on THM, it involves us brute forcing a webpage login, getting a reverse shell via RCE, port forwarding SSH for a login, and abusing sudo privileges without a secure path to catch a root shell.
