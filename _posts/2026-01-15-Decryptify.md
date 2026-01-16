@@ -3,6 +3,7 @@ title: "TryHackMe: Decryptify"
 date: 2026-01-15
 categories: [TryHackMe]
 tags: [Linux, Web, Padding Oracle]
+published: true
 ---
 
 This box is ranked medium difficulty on THM, it involves us reversing a cryptographic API to generate a valid invite code so we can login to a webpage. Then, we look for RCE on the system by means of a very interesting method with OpenSSL padding.
