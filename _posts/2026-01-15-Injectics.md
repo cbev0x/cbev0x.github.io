@@ -3,6 +3,7 @@ title: "TryHackMe: Injectics"
 date: 2026-01-15
 categories: [TryHackMe]
 tags: [Linux, SQLi, SSTI]
+published: true
 ---
 
 This box is ranked medium difficulty on THM and is a sort of capstone challenge to the Injection Attacks module, so all methods will be of that nature.
