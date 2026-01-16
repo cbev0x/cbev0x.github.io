@@ -3,6 +3,7 @@ title: "TryHackMe: Year of the Rabbit"
 date: 2026-01-14
 categories: [TryHackMe]
 tags: [Linux, Web]
+published: true
 ---
 
 This box is rated easy difficulty on THM. It involves us brute forcing an FTP login after finding a password list from hidden image data, decoding an obscure programming language, and exploiting Sudo permissions to grab a root shell.
