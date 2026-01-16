@@ -3,6 +3,7 @@ title: "TryHackMe: The Great Disappearing Act"
 date: 2026-01-15
 categories: [TryHackMe]
 tags: [Linux, Web, OSINT, API, Docker, Scada, AOC 25]
+published: true
 ---
 
 This box is the first of five side quest challenges in THM’s Advent of Cyber ’25. It’s ranked hard difficulty and is easily the most time consuming of all. It involves us gathering OSINT to brute force a password, a ton of network enumeration to find auth tokens/endpoints, and a Docker privilege escalation to find a gate code.
