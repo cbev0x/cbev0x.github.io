@@ -3,5 +3,13 @@
 @forward 'layout';
 @forward 'pages';
 
-@import 'layout/styles';   // default Chirpy styles
-@import 'layout/custom';   // your custom overrides
+// _sass/main.scss
+@import 'layout/footer';
+@import 'layout/index';
+@import 'layout/panel';
+@import 'layout/sidebar';
+@import 'layout/topbar';
+
+// your custom overrides last
+@import 'layout/custom';
+
