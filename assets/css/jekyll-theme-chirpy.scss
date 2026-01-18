@@ -62,11 +62,32 @@ html[mode=dark] {
 
 .post-content a:hover,
 .post-meta a:hover,
-.post-preview a:hover {
-  color: #d2603a !important;
-  border-bottom-color: #d2603a;
-  text-decoration: none;
+/* === Fix post hover box offset (Chirpy) === */
+
+/* Normalize the actual clickable post container */
+.post-preview {
+  position: relative;
+  padding: 1.25rem 1.25rem;
+  margin: 0 0 1.5rem 0;
+  border-radius: 12px;
+  box-sizing: border-box;
 }
+
+/* Remove inherited spacing that causes offset */
+.post-preview > * {
+  box-sizing: border-box;
+}
+
+/* Hover highlight matches full visible card */
+.post-preview:hover {
+  background-color: rgba(210, 96, 58, 0.06);
+}
+
+/* Dark mode */
+html[mode=dark] .post-preview:hover {
+  background-color: rgba(138, 180, 248, 0.10);
+}
+
 
 /* === Tags === */
 .post-tag {
@@ -101,3 +122,4 @@ html[mode=dark] {
 html[mode=dark] .post-content img {
   filter: brightness(90%);
 }
+
