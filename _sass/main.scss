@@ -3,13 +3,6 @@
 @forward 'layout';
 @forward 'pages';
 
-// _sass/main.scss
-@import 'layout/footer';
-@import 'layout/index';
-@import 'layout/panel';
-@import 'layout/sidebar';
-@import 'layout/topbar';
-
-// your custom overrides last
-@import 'layout/custom';
+@import "jekyll-theme-chirpy";
+@import "layout/custom";
 
