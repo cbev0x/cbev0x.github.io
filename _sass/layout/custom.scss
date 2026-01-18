@@ -1,45 +1,69 @@
-// Import Google Font
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+// ================================
+// Custom Dark Blue Theme for Chirpy
+// ================================
 
-// Set base font and background
+// Import Google Fonts
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css');
+
+// Base font and background
 body {
   font-family: 'Inter', sans-serif;
-  background-color: #0a1e3b; // dark blue
-  color: #ffffff;           // white text
+  background-color: #0a1e3b; // Dark blue background
+  color: #ffffff;           // White text
 }
 
 // Links
 a {
-  color: #4fc3f7; // bright cyan-ish blue
+  color: #5F7FFF; // Bright accent blue
   text-decoration: none;
   transition: color 0.3s ease;
 }
 
 a:hover {
-  color: #80d8ff; // lighter blue on hover
+  color: #80aaff;
 }
 
-// Headers
-h1, h2, h3, h4, h5, h6 {
-  font-weight: 700;
+// Sidebar
+#sidebar {
+  background-color: #112748; // Slightly lighter dark blue
+  color: #ffffff;
+}
+
+#sidebar .nav-link {
+  color: #ffffff;
+}
+
+#sidebar .nav-link.active {
+  background-color: #1a2d5c; // Highlight active menu
+  color: #ffffff;
+}
+
+// Top bar
+#topbar-wrapper, #topbar {
+  background-color: #0f1b36;
   color: #ffffff;
 }
 
 // Cards / post previews
-.card, .post-card {
-  background-color: #112748; // slightly lighter dark blue
-  border: none;
+.card, .post-card, .post-preview {
+  background-color: #112748;
   border-radius: 12px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.3);
   padding: 1rem;
   margin-bottom: 1.5rem;
 }
 
+// Post images
+.post-img {
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
 // Buttons
 button, .btn {
   background-color: #1e3a6f;
   color: #ffffff;
-  border: none;
   border-radius: 8px;
   padding: 0.5rem 1rem;
   font-weight: 500;
@@ -49,6 +73,14 @@ button, .btn {
 
 button:hover, .btn:hover {
   background-color: #29509e;
+}
+
+// Blockquotes
+blockquote {
+  border-left: 4px solid #5F7FFF;
+  padding-left: 1rem;
+  color: #cfd8dc;
+  font-style: italic;
 }
 
 // Code blocks
@@ -61,21 +93,33 @@ pre, code {
   font-size: 0.95rem;
 }
 
-// Blockquotes
-blockquote {
-  border-left: 4px solid #4fc3f7;
-  padding-left: 1rem;
-  color: #cfd8dc;
-  font-style: italic;
+// Sidebar social icons
+.sidebar-bottom a {
+  color: #5F7FFF;
+  font-size: 1.2rem;
+  margin: 0 0.25rem;
+  transition: color 0.3s ease;
 }
 
-// Optional: subtle scroll bar styling
+.sidebar-bottom a:hover {
+  color: #80aaff;
+}
+
+// Footer
+footer {
+  background-color: #0f1b36;
+  color: #ffffff;
+  padding: 1rem 0;
+  font-size: 0.9rem;
+}
+
+// Scrollbar styling (optional)
 ::-webkit-scrollbar {
   width: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: #4fc3f7;
+  background-color: #5F7FFF;
   border-radius: 5px;
 }
 
