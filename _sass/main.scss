@@ -2,3 +2,6 @@
 @forward 'components';
 @forward 'layout';
 @forward 'pages';
+
+@import 'layout/styles';   // default Chirpy styles
+@import 'layout/custom';   // your custom overrides
