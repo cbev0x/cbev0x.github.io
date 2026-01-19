@@ -13,7 +13,7 @@ _interesting room, you can shoot the sun_
 ## Scanning & Enumeration
 Let's kick things off with an Nmap scan to find all running services for the given IP. I scan common UDP ports as well but get nothing returned.
 
-![](../assets/img/2026-01-18-DifferentCTF/.png)
+![](../assets/img/2026-01-18-DifferentCTF/1.png)
 
 We see just two ports open:
 - FTP on port 21
@@ -21,13 +21,13 @@ We see just two ports open:
 
 This vsftpd version is not prone to anything other than a DoS attack so I'll focus on the web server. Before heading over there I leave a directory and subdomain search running in the background to save on time.
 
-![](../assets/img/2026-01-18-DifferentCTF/.png)
+![](../assets/img/2026-01-18-DifferentCTF/2.png)
 
 We already know it's Wordpress so WPScan will be of great help here to enumerate users and vulnerable plugins/themes. I also get redirected towards adana.thm so I add that to my /etc/hosts file.
 
 There looks to be an 'announcements' directory exposed to us, inside is a wordlist of what looks like passwords as well as an ant.jpg. I use wget to download both files and start enumerating the WP site.
 
-![](../assets/img/2026-01-18-DifferentCTF/.png)
+![](../assets/img/2026-01-18-DifferentCTF/3.png)
 
 ```
 $ wpscan --url http://adana.thm/ -e u,vp,vt
@@ -142,17 +142,17 @@ WPScan gives us a single user by the name of 'hakanbey01' and also shows that XM
 
 That returned nothing so I turned to Stegcracker to extract hidden data on the ant.jpg using the same wordlist.
 
-![](../assets/img/2026-01-18-DifferentCTF/.png)
+![](../assets/img/2026-01-18-DifferentCTF/4.png)
 
 One of the last passwords works and we get base64 encoded creds for FTP. Let's login and have a look around.
 
-![](../assets/img/2026-01-18-DifferentCTF/.png)
+![](../assets/img/2026-01-18-DifferentCTF/5.png)
 
 Awesome, we struck gold here! This seems to be the website's content folder which will let us read files and grab hakan's password. I also try to upload a PHP shell here in the wp-includes folder which is publicly facing but it doesn't update the site.
 
 I end up downloading the wp-config.php file and find credentials for the phpmyadmin page.
 
-![](../assets/img/2026-01-18-DifferentCTF/.png)
+![](../assets/img/2026-01-18-DifferentCTF/6.png)
 
 Once logged in, we have a few options to grab a shell. [This](https://medium.com/@toon.commander/uploading-a-shell-in-phpmyadmin-61b066b481a7) is an article about how we can use SQL to write into a file and execute it from our browser.
 
@@ -160,14 +160,14 @@ However, I find a subdomain for adana.thm which is actually the site we were upl
 
 _Realistically, my subdomain search at the beginning should've picked this up so I'll have to debug that later._
 
-![](../assets/img/2026-01-18-DifferentCTF/.png)
+![](../assets/img/2026-01-18-DifferentCTF/7.png)
 
 ## Initial Foothold
 Adding that to my /etc/hosts file let me navigate to the shell.php I uploaded earlier. I made sure to `chmod 777 shell.php` and execute it via firefox. Now we have a low priv shell on the box.
 
 Here we can grab the web flag under /var/www/html/ and start looking for ways to switch users to hakanbey. 
 
-![](../assets/img/2026-01-18-DifferentCTF/.png)
+![](../assets/img/2026-01-18-DifferentCTF/8.png)
 
 We don't have access to much at all with our current permissions. In fact the find binary is disabled so I'll have to enumerate manually. There were no creds in the website's config files or /var/backups and seeing as we don't have access to any binaries or SSH, I resort to using [sucrack](https://github.com/ascemama/tools/blob/master/local/sucrack) to brute force hakanbey's account password.
 
@@ -179,33 +179,33 @@ Note: Use the `-w` flag to add threads as this could take a while.
 
 After uploading both sucrack and the wordlist from /announcements/ to /tmp, I get nothing. I thought back to all the other passwords and noticed they all contain 123adana at the beginning, so I prepend that string to all lines in the list and rerun sucrack.
 
-![](../assets/img/2026-01-18-DifferentCTF/.png)
+![](../assets/img/2026-01-18-DifferentCTF/9.png)
 
 This grants us his password and we can switch users to start looking for routes to gain root privileges.
 
-![](../assets/img/2026-01-18-DifferentCTF/.png)
+![](../assets/img/2026-01-18-DifferentCTF/10.png)
 
 ## Privilege Escalation
 We can grab the user flag under hakan's home directory at this point. I come across an interesting binary owned by root when searching for files with an SUID bit set. 
 
-![](../assets/img/2026-01-18-DifferentCTF/.png)
+![](../assets/img/2026-01-18-DifferentCTF/11.png)
 
 Running it prompts us to "enter the correct string". I was stuck for a bit here until realizing we can just use `ltrace` to discover calls to any shared libraries it may be using.
 
 This outputs a `strcat()` function which gives us a few strings to use as the binary answer. Doing so copies a root.jpg file to our home directory and we can start finding ways to extract the hidden data.
 
-![](../assets/img/2026-01-18-DifferentCTF/.png)
+![](../assets/img/2026-01-18-DifferentCTF/12.png)
 
 I transfer the .jpg to my local machine for more access to more tools. At this point I tried using exiftool, steghide, strings, etc. Opening the image just displayed the box's cover photo but I figured there had to be some data encrypted inside of it.
 
 Looking back at the binary output, there's a hint saying "Hexeditor 00000020 => ????". After a while of messing around with it in CyberChef, I find the correct recipe is: `From Hex -> To Base 85`
 
-![](../assets/img/2026-01-18-DifferentCTF/.png)
+![](../assets/img/2026-01-18-DifferentCTF/13.png)
 
 Decoding the third hex row in root.jpg grants us the credentials for root user. Only thing left is to sign in and grab the final flag to complete the box. 
 
-![](../assets/img/2026-01-18-DifferentCTF/.png)
+![](../assets/img/2026-01-18-DifferentCTF/14.png)
 
-![](../assets/img/2026-01-18-DifferentCTF/.png)
+![](../assets/img/2026-01-18-DifferentCTF/15.png)
 
 Overall, this was a unique box; I hardly use sucrack because system passwords are usually hard to brute force (as seen here) and the custom binary was a nice touch. I hope this was helpful to anyone following along or stuck like I was and happy hacking!
