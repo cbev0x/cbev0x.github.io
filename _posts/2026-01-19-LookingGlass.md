@@ -147,15 +147,17 @@ Entering this at the prompt gives us SSH creds for a user named Jabberwock. Afte
 ## Privilege Escalation
 I start looking for ways to pivot through other accounts before root. I find an active cronjob where tweedledum executes a script owned by us on reboot. We can echo a reverse shell into the twasBrillig.sh script and setup a listener before rebooting the system.
 
-_Bug Found: I spent a while trying to find ways to reboot the box and bypass permission checks for this part until reading other writeups which shows that Jabberwock should have access to run 'sudo /sbin/reboot' on the box. However, I couldn't get this to work whatsoever even after restarting the machine twice._
+![](../assets/img/2026-01-19-LookingGlass/7.png)
 
-![](../assets/img/2026-01-19-LookingGlass/4.png)
+Here we see a file named humptydumpty.txt which contains a list of hashes. Cracking them gives us 6 potential passwords, however none of them work. I found it strange that the last line didn't decode so I sent it to CyberChef and discovered that it was his password hex encoded.
 
-I've reported this to the box creator, so if this happens to you as well skip this part for now and use humptydumpty's password to switch users:
+![](../assets/img/2026-01-19-LookingGlass/8.png)
 
-The intended way is to grab a shell as tweedledum and then crack hashes in a text file called humptydumpty.txt. One of the lines is actually hex encoded and converting that to ASCII gives us the password for that account.
+```
+The password is zyxwvutsrqponmlk
+```
 
-After switching users, we need to pivot one last time to Alice's account before gaining root access. Looking at general permissions shows that we only have executable rights over her home directory which is odd.
+After switching users, we need to pivot one last time to Alice's account before gaining root access. Looking at general permissions shows that we have only executable rights over her home directory, which is odd.
 
 I was a bit stuck at this point until trying to her .bashrc file to check if we actually didn't have perms over it. For some reason, it blocks us from listing them but reading them directly works.
 
@@ -167,6 +169,8 @@ Using the find command to search for all readable files by us doesn't work eithe
 
 Logging into alice's account doesn't give us a whole lot to go off of, so I upload LinPEAS to the machine and find a few vulnerabilities with PoCs that didn't pan out.
 
-Once again the intended way was to check the /etc/suoders.d/ directory and see that Alice actually has permissions to run /bin/bash on the box by specifying a hostname of ssalg-gnikool which grants a root shell.
+Eventually, I checked the /etc/sudoers.d/ files and found that Alice actually had access to run sudo /bin/bash on the system, but we had to specify a hostname of ssalg-gnikool for it to run. That will spawn a root shell and we can grab the final flag under the root dir.
 
-I'm not sure if this is specific to my machine or if the box itself is broken but that's a bummer. I hope this was still helpful to anyone stuck like I was or gave you clarity if this bug happened to you as well and happy hacking!
+![](../assets/img/2026-01-19-LookingGlass/9.png)
+
+I hope this was still helpful to anyone stuck like I was or gave you clarity if this bug happened to you as well and happy hacking!
