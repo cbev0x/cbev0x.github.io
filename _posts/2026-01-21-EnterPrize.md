@@ -192,7 +192,7 @@ Test...
 +++ exited (status 0) +++
 ```
 
-Let's dig into how this works exactly. Checking what libraries are loaded points toward.
+Let's dig into how this works exactly. Checking what libraries are loaded points toward `libc.so.6` and `libcustom.so`.
 
 ```
 $ ldd /home/john/develop/myapp
@@ -202,7 +202,7 @@ $ ldd /home/john/develop/myapp
         /lib64/ld-linux-x86-64.so.2 (0x00007eff32be9000)
 ```
 
-Next, I look at ld.so.conf to see how the libraries are loaded and find a link between x86_64-libc.conf and a file in john's home directory /develop/test.conf .
+Next, I look at ld.so.conf to see how the libraries are loaded and find a link between `x86_64-libc.conf` and a file in john's home directory `/develop/test.conf`.
 
 ```
 $ cat /etc/ld.so.conf
