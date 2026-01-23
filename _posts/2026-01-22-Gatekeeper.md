@@ -2,7 +2,7 @@
 title: "TryHackMe: Gatekeeper"
 date: 2026-01-22
 categories: [TryHackMe]
-tags: [Linux, SMB, BinEx, Buffer Overflow, Cryptography]
+tags: [Windows, SMB, BinEx, Buffer Overflow, Cryptography]
 published: true
 ---
 
