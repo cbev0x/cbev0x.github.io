@@ -2,6 +2,7 @@
 
 - type: GitHub
   icon: "fab fa-github"
+  url: https://github.com/cbev0x
 
 - type: TryHackMe
   icon: fas fa-cloud
