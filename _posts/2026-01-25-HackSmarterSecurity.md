@@ -112,7 +112,7 @@ Looking at the scan results shows Nmap's default scripts disclose that FTP is al
 
 ![](../assets/img/2026-01-25-HackSmarterSecurity/1.png)
 
-Inside is a list of stolen credit cards and a PNG of another stolen passport (which is just Tyler's face lol). This doesn't' really seem like much to help our goal for now so I move onto the web servers.
+Inside is a list of stolen credit cards and a PNG of another stolen passport (which is just Tyler's face lol). This doesn't really seem like much to help our goal for now so I move onto the web servers.
 
 Checking the landing page on port 80 returns a website for their hacking group which sponsors some less than ethical services.
 
