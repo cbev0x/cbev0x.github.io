@@ -58,6 +58,7 @@ Another feature of the site is to report any listings to an admin for the page's
 
 ![](../assets/img/2026-01-28-TheMarketplace/2.png)
 
+## Grabbing Cookie with XSS
 Things are starting to look bad for the marketplace. Let's create a new listing with an XSS payload that will capture the user's cookie and send it to our own HTTP server.
 
 I make a new listing with our payload in the description. This is the one I default to using as it almost always bypasses firewalls and works quite well.
@@ -82,6 +83,7 @@ There is an administration panel that allows us to manage posts being made on th
 
 ![](../assets/img/2026-01-28-TheMarketplace/5.png)
 
+## SQL Injection
 As reflected in the URL, it takes in a 'user' parameter and displays all results from the query to the database onto the page. Let's test for SQL injection with a few special characters and see about enumerating a database.
 
 ![](../assets/img/2026-01-28-TheMarketplace/6.png)
@@ -110,7 +112,7 @@ We probably want the marketplace one, so let's grab all the table names from it.
 
 ![](../assets/img/2026-01-28-TheMarketplace/9.png)
 
-Lastly, let's dump all columns in the users table to potentially grab any hashes from the DB.
+Now let's dump all columns in the users table to potentially grab any hashes from the DB.
 
 ```
 /admin?user=0 union select group_concat(column_name,'\n'),2,3,4 from information_schema. columns where table_name='users' -- -
@@ -134,6 +136,7 @@ We get a few hashes for system, jake, and michael, but sending them over to hash
 
 ![](../assets/img/2026-01-28-TheMarketplace/12.png)
 
+## Initial Foothold
 Displaying message_content to the page gives us a paragraph saying that an unnamed user has a weak SSH password and that it has been changed to a new temporary one for the time being.
 
 ```
@@ -157,6 +160,7 @@ We'll probably have to pivot to Michael's account before root user, so I start l
 
 ![](../assets/img/2026-01-28-TheMarketplace/14.png)
 
+## Privilege Escalation
 Turns out we also have access to run this script using sudo as Michael. There is an exploit where we create malicious filenames and have the tar binary execute those as flags to then run a script owned by us.
 
 [This article](https://www.hackingarticles.in/exploiting-wildcard-for-privilege-escalation/) goes a bit further in depth on exploiting wildcards for escalation. While in /opt/backups/, I echo a netcat mkfifo shell in a file named `shell.sh`, then I create two empty files which will serve as flags to redirect tar in order to execute our reverse shell.
