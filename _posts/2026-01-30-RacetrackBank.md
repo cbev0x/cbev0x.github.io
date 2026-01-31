@@ -52,7 +52,7 @@ There's still one problem, we don't have enough gold to buy it. Luckily we have 
 ## Exploiting Race Condition
 As the name of the box implies, we'll be testing for race condition vulnerabilities here; This is also very common in banking applications as the funds transfer process can be prone to this if no security measures are taken.
 
-If you don't know what a race condition is, it's a type of vulnerability that occurs when the outcome of an operation depends on the timing or order of concurrent actions, allowing multiple processes to access or modify shared state inconsistently. So, in a security context, this can let an attacker (us) manipulate execution timing to produce unintended or unauthorized results.
+If you don't know what a race condition is, it's a type of vulnerability that occurs when the outcome of an operation depends on the timing or order of concurrent actions, allowing multiple processes to access or modify the shared state inconsistently. So, in a security context, this can let an attacker (us) manipulate execution timing to produce unintended or unauthorized results.
 
 Usually we would need to gain access over another user's account as normal app would start us with zero funds, however the bank has generously given us something to work with. 
 
@@ -60,7 +60,7 @@ To exploit this, I first make two accounts so we're able to send funds between t
 
 ![](../assets/img/2026-01-30-RacetrackBank/3.png)
 
-Then, I capture a request to send the gold to that second account, send that to the Repeater tab to add it to a group, and duplicate the request 30 times (you can duplicate it more but it could cause server overload issues).
+Then, I capture a request to give the gold to that second account, send that to the Repeater tab, add it to a group, and duplicate the request 30 times (you can duplicate it more but it could cause server overload issues).
 
 ![](../assets/img/2026-01-30-RacetrackBank/4.png)
 
