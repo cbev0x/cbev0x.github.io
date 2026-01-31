@@ -41,7 +41,7 @@ There are just two ports open:
 
 We won't be able to do much on SSH without credentials so I head over to enumerate HTTP. Checking the landing page shows that of a typical banking service website. We have the ability to create accounts and there is a message warning that their servers are slow (hint hint).
 
-![](../assets/img/2026-01-30-RacetrackBank/1  .png)
+![](../assets/img/2026-01-30-RacetrackBank/1.png)
 
 Logging in shows that we have been granted a singular gold to spend. There are also functions to purchase premium features for 10,000 gold and give gold to another account. I'm guessing that the premium features will let us upload or change something on the site which may be great for our goal.
 
@@ -136,7 +136,7 @@ brian::1000:1000:brian:/:/bin/sh
 pwnd:$1$pwnd$rAGRVf5p2jYTqtqOW5cPu/:0:0:/root:/bin/bash
 ```
 
-Note: I had to add the line for our current account as it would overwrite the preexisting one and cause major problems switching between the two.
+_Note: I had to add the line for our current account as it would overwrite the preexisting one and cause major problems switching between the two._
 
 After doing so, we can check `/etc/passwd` to see if it succeeded and switch users to our new account to grab root privs. This works because most newer versions of Linux still allow us to write hashed passwords to `/etc/passwd` instead of `/etc/shadow` to add new accounts, and we specified the `uid/gid` to be 0 (matching root users).
 
