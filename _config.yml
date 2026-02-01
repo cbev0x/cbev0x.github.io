@@ -25,6 +25,11 @@ description: >- # used by seo meta and the atom feed
 # E.g. 'https://username.github.io', note that it does not end with a '/'.
 url: "https://cbev0x.github.io"
 
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+  - jekyll-robots.txt
+
 github:
   username: cbev0x # change to your GitHub username
 
@@ -225,5 +230,8 @@ jekyll-archives:
     tag: /tags/:name/
     category: /categories/:name/
 
-plugins:
-  - jekyll-sitemap
+robots:
+  enabled: true
+  sitemap: true
+  disallow: []   # empty array = allow everything
+
