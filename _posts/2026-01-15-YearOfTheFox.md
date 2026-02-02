@@ -2,7 +2,7 @@
 title: "TryHackMe: Year Of The Fox"
 date: 2026-01-15
 categories: [TryHackMe]
-tags: [Linux, Web, Brute Force, Netoworking, BinEx]
+tags: [Linux, Web, Brute Force, Networking, BinEx]
 published: true
 ---
 
