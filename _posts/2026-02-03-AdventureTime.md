@@ -118,7 +118,7 @@ Inside are six photos of the Adventure Time show. I tested each one for hidden d
 
 Next up is the mystery port on 31337. I connect to it using Netcat and it prompts us to enter a magic word.
 
-![](../assets/img2026-02-03-/AdventureTime/2.png)
+![](../assets/img/2026-02-03-AdventureTime/2.png)
 
 I test for a few common command injections and find that it just checks our input to the correct one and does nothing else with it. We won't be able to access this port until we find that so let's go over to the web pages.
 
