@@ -211,6 +211,8 @@ Logging in at the website using Orville's credentials grants us access to a file
 
 Capturing an upload request shows that we are sending a POST request to dashboard.php using `multipart/form-data` as our content type. I upload a simple .png file to play around with extension names/magic numbers and find that appending `.php` to the filename works. 
 
+_Note: Use Burp Suite's built-in browser if you're having trouble capturing requests on localhost._
+
 ![](../assets/img/2026-02-06-Backtrack/12.png)
 
 These get stored in the /uploads directory, so it's pretty easy to have the server execute whatever we want. I use Pentestmonkey's PHP reverse shell and name it so that it contains `.png` within the extension. This will allow our file to bypass the filter but maintain functionality.
