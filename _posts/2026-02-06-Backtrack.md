@@ -13,6 +13,7 @@ _Daring to set foot where no one has._
 ## Scanning & Enumeration
 I begin with an Nmap scan against the target IP to find all running services on the host.
 
+{% raw %}
 ```
 $ sudo nmap -p22,6800,8080,8888 -sCV 10.64.169.192 -oN fullscan-tcp
 
@@ -60,6 +61,7 @@ Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
 Nmap done: 1 IP address (1 host up) scanned in 16.26 seconds
 ```
+{% endraw %}
 
 There are four ports open:
 - SSH on port 22
@@ -90,6 +92,7 @@ At this point I find a [PoC](https://security.snyk.io/vuln/SNYK-JS-WEBUIARIA2-63
 
 Awesome, we can read files directly from the webserver. This exploit works because of improper validation of user-supplied input, below is a snippet from the [Aria2 GitHub repository](https://github.com/ziahamza/webui-aria2/blob/109903f0e2774cf948698cd95a01f77f33d7dd2c/node-server.js#L10) that contains the vulnerable code (line 4):
 
+{% raw %}
 ```
 http
   .createServer(function(request, response) {
@@ -113,6 +116,7 @@ http
         break;
     }
 ```
+{% endraw %}
 
 As we can see, an attacker can supply path traversal characters to break out of the current working directory and read all files that are readable by the www-data user. From the output of `/etc/passwd`, I find two other users on the system named Orville and Wilbur. I check both of their home directories for SSH keys or credentials with common filenames but get nothing in return.
 
