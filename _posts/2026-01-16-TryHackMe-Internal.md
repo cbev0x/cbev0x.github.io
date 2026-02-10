@@ -17,7 +17,7 @@ This challenge is a simulation of a real black box penetration test. We are prov
 - Locate and note all vulnerabilities found
 - Submit the flags discovered to the dashboard
 - Only the IP address assigned to your machine is in scope
-- 
+
 Starting with an Nmap scan to find all services on our live host:
 
 ![](../assets/img/2026-01-16-Internal/1.png)
