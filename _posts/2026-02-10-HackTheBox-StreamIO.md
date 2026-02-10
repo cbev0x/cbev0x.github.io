@@ -374,7 +374,7 @@ echo(" ---- ERROR ---- ");
 
 At the very end, I find that the code takes the contents of whatever file is supplied with the include parameter and reads it to the output. So by creating a POST request to `/admin/?debug=master.php` and pointing that parameter towards our machine to host a reverse shell, we can get the server to execute it.
 
-Awesome, Let's try it out! In my first few attempts, I tried a few basic powershell payloads but none seemed to work. Swapping to something more interactive like [ConPtyShell](http://github.com/antonioCoco/ConPtyShell), which seems to be getting more popular for Windows, worked quite well.
+Awesome, Let's try it out! In my first few attempts, I tried a few basic powershell payloads but none seemed to work. Swapping to something more interactive like [ConPtyShell](https://github.com/antonioCoco/ConPtyShell), which seems to be getting more popular for Windows, worked quite well.
 
 For this to execute, we can host a PHP file containing a system command that will grab and invoke the ps1 shell also on our machine.
 
