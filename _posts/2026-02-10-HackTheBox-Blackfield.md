@@ -44,15 +44,15 @@ Service detection performed. Please report any incorrect results at https://nmap
 Nmap done: 1 IP address (1 host up) scanned in 55.49 seconds
 ```
 
-Looks like we're dealing with a Windows machine with Active Directory components. There doesn't appear to be a web server, even when scanning all 60k+ ports, which tells me to focus on services like LDAP, Kerberos, and SMB specifically. Another thing is that LDAP is leaking the domain name of blackfield.local so I'll add that to my `/etc/hosts` file.
+Looks like we're dealing with a Windows machine with Active Directory components. There doesn't appear to be a web server, even when scanning all 60k+ ports, which tells me to focus on services like LDAP, Kerberos, and SMB specifically. Another thing is that LDAP is leaking the domain name of `blackfield.local` so I'll add that to my `/etc/hosts` file.
 
-I'll use Netexec to test for guest authentication on SMB, looking for any files in readable shares and to enumerate  users. We can indeed login as Guest user and there's a profiles$ share that we have read permissions for.
+I'll use Netexec to test for guest authentication on SMB, looking for any files in readable shares and to enumerate  users. We can indeed login as Guest user and there's a `profiles$` share that we have read permissions for.
 
 ![](../assets/img/2026-02-10-Blackfield/1.png)
 
-We're able to brute force user accounts with RID using the `--rid-brute` flag, this works better than `--users` because it directly supplies a range of RIDs to forcefully show accounts. This ends up only showing the SID number after the blackfield domain which doesn't really give us names, so I take a peak inside the profiles$ share.
+We're able to brute force user accounts with RID using the `--rid-brute` flag, this works better than `--users` because it directly supplies a range of RIDs to forcefully show accounts. This ends up only showing the SID number after the blackfield domain which doesn't really give us names, so I take a peak inside the `profiles$` share.
 
-Note that when a share has a special character like a '$', we need to encase the entire location with single quotes or it will fail to reach it and throw an internal error.
+_Note that when a share has a special character like a '$', we need to encase the entire location with single quotes or it will fail to reach it and throw an internal error._
 
 ![](../assets/img/2026-02-10-Blackfield/2.png)
 
