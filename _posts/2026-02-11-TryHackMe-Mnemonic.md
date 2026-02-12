@@ -1,6 +1,6 @@
 ---
 title: "TryHackMe: Mnemonic"
-date: 2026-02-011
+date: 2026-02-11
 categories: [TryHackMe]
 tags: [Linux, Web, Brute Force, Cryptography, Privilege Escalation]
 published: true
