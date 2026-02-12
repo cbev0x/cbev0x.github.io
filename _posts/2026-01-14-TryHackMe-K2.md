@@ -5,6 +5,8 @@ categories: [TryHackMe]
 tags: [Linux, Windows, Web, Active Directory, SQLi, XSS]
 published: true
 ---
+**Box link:**
+https://tryhackme.com/room/k2room
 
 ## K2 Base Camp
 This is the first installment of a three part box. It is rated hard difficulty on THM and includes both Linux and Windows/AD components.
