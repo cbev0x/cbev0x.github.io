@@ -6,6 +6,9 @@ tags: [Linux, Web]
 published: true
 ---
 
+Box link:
+https://tryhackme.com/room/yearofthejellyfish
+
 This box is ranked hard-difficulty on THM, it involves us enumerating subdomains on a webserver, leading to a known RCE vulnerability on Monitorr, and finally leveraging an SGID bit set on snap-confine to grab a root shell on the system.
 
 _Some boxes sting..._
