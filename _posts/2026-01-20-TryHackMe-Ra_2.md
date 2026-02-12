@@ -6,6 +6,9 @@ tags: [Windows, Cryptography, DNS Poisoning, Privilege Escalation]
 published: true
 ---
 
+Box link:
+https://tryhackme.com/room/ra2
+
 This box is rated hard difficulty on THM and is the second installation of the Windcorp series. It involves us enumerating a backup folder which holds a cert.pfx file, leading to us poisoning the DNS server to capture a low level user's NTLM hash, and abusing a known Windows privilege to get Administrator rights over the box.
 
 _Just when they thought their hashes were safe… Ra 2 - The sequel!_
