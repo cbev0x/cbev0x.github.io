@@ -6,6 +6,9 @@ tags: [Windows, Active Directory, OSINT]
 published: true
 ---
 
+Box link:
+https://tryhackme.com/room/ra
+
 This box is rated hard difficulty on THM. It involves us using information gathered to reset a password, capturing a user's hash with a lesser known exploit, and uploading a malicious file to add a new account with Administrator privileges.
 
 _You have found WindCorp's internal network and their Domain Controller. Can you pwn their network?_
