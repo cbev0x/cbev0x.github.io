@@ -6,6 +6,9 @@ tags: [Linux, Web, Brute Force]
 published: true
 ---
 
+Box link:
+https://tryhackme.com/room/yearofthepig
+
 This box is ranked hard difficulty on THM, it involves us brute forcing the login page with a custom wordlist, enumerating a sqlite database for user credentials, and abusing the sudoedit binary to change /etc/sudoers.
 
 _Some pigs do fly…_
