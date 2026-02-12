@@ -6,6 +6,9 @@ tags: [Windows, OSINT, Brute Force]
 published: true
 ---
 
+Box link:
+https://tryhackme.com/room/yearoftheowl
+
 This box is ranked hard difficulty on THM, it involves heaps of enumeration on both TCP/UDP, exploiting WINRM to get a foothold on the system, and escalating privileges by grabbing an admin hash from sam.bak/system.bak files.
 
 _The foolish owl sits on his throne…_
