@@ -6,6 +6,9 @@ tags: [Linux, Web, SQLi, Git, Networking]
 published: true
 ---
 
+Box link:
+https://tryhackme.com/room/yearofthedog
+
 This box is ranked hard difficulty on THM, it involves us using SQLi to get a webshell on the system, a good bit of internal enumeration, and an interesting Git privilege escalation to catch a root shell.
 
 _Always so polite…_
