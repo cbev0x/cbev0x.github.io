@@ -6,7 +6,7 @@ tags: [Linux, Web, Brute Force, Networking, BinEx]
 published: true
 ---
 
-Box link:
+Box link--
 https://tryhackme.com/room/yotf
 
 This box is ranked hard difficulty on THM, it involves us brute forcing a webpage login, getting a reverse shell via RCE, port forwarding SSH for a login, and abusing sudo privileges without a secure path to catch a root shell.
