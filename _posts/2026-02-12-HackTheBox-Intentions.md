@@ -104,7 +104,7 @@ gobuster dir -u http://10.129.3.210/api/v1/ -w /opt/SecLists/Discovery/Web-Conte
 
 I setup my testing environment by capturing a POST request to the update function and a GET request to our personal feed, so that we can easily check which payloads work.
 
-I notice that when we update our favorite genres and refresh the profile page, it filters out spaces as the application expects comma separated values. This means we we'll have to be pretty specific in our payloads which includes commenting out the rest of the original query with # instead of the usual -- - .
+I notice that when we update our favorite genres and refresh the profile page, it filters out spaces as the application expects comma separated values. This means we we'll have to be pretty specific in our payloads which includes commenting out the rest of the original query with `#` instead of the usual `-- -`.
 
 A bit of messing around with these tabs show that our original query is something like:
 
@@ -118,9 +118,9 @@ The only payload I got to return a 200 on the personal feed page was the followi
 nature')#
 ```
 
-That will return a valid genre for all nature related images, as well as complete the the rest of that query in order to make it valid. Without being able to use spaces in our query, we're limited to the current database/table as we won't be able to supply things like UNION SELECT * FROM … . 
+That will return a valid genre for all nature related images, as well as complete the the rest of that query in order to make it valid. Without being able to use spaces in our query, we're limited to the current database/table as we won't be able to supply things like `UNION SELECT * FROM ... `. 
 
-I start researching some methods to bypass this via Unicode or other forms and discover that by inputting inline comments (/*this is a comment*/) where the spaces should be, MySQL interprets these as separators effectively acting as space characters. This is intended to be used to make queries look neater by splitting them up and allowing for text to describe what each query is being utilized for.
+I start researching some methods to bypass this via Unicode or other forms and discover that by inputting inline comments (`/*this is a comment*/`) where the spaces should be, MySQL interprets these as separators effectively acting as space characters. This is intended to be used to make queries look neater by splitting them up and allowing for text to describe what each query is being utilized for.
 
 ## Dumping Application's Database
 [This article](https://portswigger.net/web-security/sql-injection) and [PayloadAllTheThings SQLi cheat sheet](https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/SQL%20Injection/README.md) are both good references for manually enumerating databases in MySQL.
@@ -174,7 +174,7 @@ These all seem to be bootstrap javascript files but I quickly parse them anyways
 
 ![](../assets/img/2026-02-12-Intentions/12.png)
 
-This makes it seem like we can literally supply our enumerated hashes on those /api/v2/ endpoints. I'll test this by capturing a normal login request to the original panel and changing v1 to v2 while providing a Bcrypt hash.
+This makes it seem like we can literally supply our enumerated hashes on those `/api/v2/` endpoints. I'll test this by capturing a normal login request to the original panel and changing v1 to v2 while providing a Bcrypt hash.
 
 ![](../assets/img/2026-02-12-Intentions/13.png)
 
@@ -226,7 +226,7 @@ We also need to add the path and effect parameters to our URL for Imagick to fun
 
 ![](../assets/img/2026-02-12-Intentions/18.png)
 
-The server responds with a 502 Bad Gateway code which is to be expected since it technically can't reach the read file, however this still writes the contents to our shell. When trying to execute commands, I just could not get the file to be read by the server, even inside of the storage folder. After a LOT of tinkering, I found that by placing our shell inside the public directory, we're able to navigate to the page in order to load the file.
+The server responds with a `502 Bad Gateway` code which is to be expected since it technically can't reach the read file, however this still writes the contents to our shell. When trying to execute commands, I just could not get the file to be read by the server, even inside of the storage folder. After a LOT of tinkering, I found that by placing our shell inside the public directory, we're able to navigate to the page in order to load the file.
 
 {% raw %}
 ```
