@@ -5,7 +5,7 @@ categories: [TryHackMe]
 tags: [Linux, Windows, Web, Active Directory, SQLi, XSS]
 published: true
 ---
-**Box link:**
+**Box link--**
 https://tryhackme.com/room/k2room
 
 ## K2 Base Camp
