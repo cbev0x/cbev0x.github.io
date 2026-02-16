@@ -11,7 +11,7 @@ https://tryhackme.com/room/rocket
 
 This box is rated hard difficulty on THM. It involves us finding a subdomain used as a chatting platform, exploting a known NoSQL injection vulnerability to reset the administrator's password, and getting a shell on the Docker container via RCE. Once on the box, we port forward a MongoDB Web Interface to a local machine in order to exploit it using another RCE vulnerability to get a reverse shell on the box and dump a backup file in order to crack a user hash. Finally, we get a shell via BoltCMS using those credentials and escalate privileges to root by abusing a capability set on the Ruby binary.
 
-Get ready for blast off!
+_Get ready for blast off!_
 
 ## Scanning & Enumeration
 As always, I begin with an Nmap scan against the target IP to find all running services on the host.
