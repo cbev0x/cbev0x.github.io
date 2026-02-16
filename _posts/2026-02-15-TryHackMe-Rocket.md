@@ -9,7 +9,7 @@ published: true
 Box link-- 
 https://tryhackme.com/room/rocket
 
-This box is rated hard difficulty on THM. It involves us 
+This box is rated hard difficulty on THM. It involves us finding a subdomain used as a chatting platform, exploting a known NoSQL injection vulnerability to reset the administrator's password, and getting a shell on the Docker container via RCE. Once on the box, we port forward a MongoDB Web Interface to a local machine in order to exploit it using another RCE vulnerability to get a reverse shell on the box and dump a backup file in order to crack a user hash. Finally, we get a shell via BoltCMS using those credentials and escalate privileges to root by abusing a capability set on the Ruby binary.
 
 Get ready for blast off!
 
@@ -82,7 +82,7 @@ chat                    [Status: 200, Size: 224515, Words: 12566, Lines: 490, Du
 ```
 
 ### Chat subdomain
-After adding that to my hosts file, I navigate to it and find a login panel for the rocket.chat application. This is actually a real open-source platform, not their own proprietary platform.
+After adding that to my hosts file, I navigate to it and find a login panel for the `rocket.chat` application. This is actually a real open-source platform, not their own proprietary platform.
 
 ![](../assets/img/2026-02-15-Rocket/3.png)
 
