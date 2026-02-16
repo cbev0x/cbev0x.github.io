@@ -106,7 +106,7 @@ Attempting to capture another user's token via XSS payloads yielded no results, 
 
 ![](../assets/img/2026-02-15-Rocket/4.png)
 
-## Changing Admin pass via NoSQL Injection
+## NoSQL Injection
 The second is [CVE-2021-22911](https://nvd.nist.gov/vuln/detail/CVE-2021-22911), unauthenticated NoSQL injection leading to remote code execution via the administrative privileges over the site. This exploit works due to unsanitized user-input in the Reset Password Token field. Attackers can inject NoSQL payloads using the $regex operator to expose the full token and reset account properties without authentication. 
 
 Now we technically could do this manually, but I'm not sure if the site has a time limit on reset tokens and it would honestly be a bit painful. A bit of digging exposed this [GitHub repository](https://github.com/CsEnox/CVE-2021-22911) containing a PoC to replicate steps for this vulnerability. I had a bit of trouble getting it to run because of the outdated oauthtool module, so here's the revised python exploit script (spoiler, this one doesn't fully work):
