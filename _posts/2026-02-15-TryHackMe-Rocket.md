@@ -6,6 +6,9 @@ tags: [Linux, Web, Networking, NoSQLi, Privilege Escalation, Docker]
 published: true
 ---
 
+Box link-- 
+https://tryhackme.com/room/rocket
+
 This box is rated hard difficulty on THM. It involves us 
 
 Get ready for blast off!
