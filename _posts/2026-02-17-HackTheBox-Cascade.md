@@ -269,7 +269,7 @@ Ok, we know what the key to decrypt the password is, now we just need to find ou
 
 ![](../assets/img/2026-02-17-Cascade/13.png)
 
-Looks like it's using AES in the CBC cipher mode as the method to encrypt passwords. We can use CyberChef to reverse this process along with the key gathered from the executable to get the plaintext version. The correct recipe is From Base64 -> AES Decrypt (Key= c4scadek3y654321, IV= 1tdyjCbY1Ix49842, Mode= CBC).
+Looks like it's using AES in the CBC cipher mode as the method to encrypt passwords. We can use CyberChef to reverse this process along with the key gathered from the executable to get the plaintext version. The correct recipe is `From Base64` -> `AES Decrypt (Key= c4scadek3y654321, IV= 1tdyjCbY1Ix49842, Mode= CBC)`.
 
 ![](../assets/img/2026-02-17-Cascade/14.png)
 
