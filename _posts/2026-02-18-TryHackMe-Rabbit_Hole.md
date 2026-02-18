@@ -261,7 +261,7 @@ SELECT INFO_BINARY from information_schema.PROCESSLIST WHERE INFO_BINARY NOT LIK
 
 ![](../assets/img/2026-02-18-RabbitHole/12.png)
 
-It's far from perfect but it still works to grab the plaintext string from the statement. As suspected, the site itself does not handle the hashing process which leaves this susceptible to our attack. All that's left is to SSH onto the box as the admin user and grab our well-earned flag to complete this challenge.
+Running this a few times until getting the response we're looking for shows that it's a success. It's far from perfect but it still works to grab the plaintext string from the statement. As suspected, the site itself does not handle the hashing process which leaves this susceptible to our attack. All that's left is to SSH onto the box as the admin user and grab our well-earned flag to complete this challenge.
 
 ![](../assets/img/2026-02-18-RabbitHole/13.png)
 
