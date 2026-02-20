@@ -1,8 +1,8 @@
 ---
-title: "TryHackMe: K2"
-date: 2026-01-14
-categories: [TryHackMe]
-tags: [Linux, Windows, Web, Active Directory, SQLi, XSS]
+title: "HackTheBox: Networked"
+date: 2026-02-20
+categories: [HackTheBox]
+tags: [Linux, Web, Networking, Privilege Escalation, RCE]
 published: true
 ---
 
@@ -151,7 +151,7 @@ I upload a valid JPG as a baseline so I can see what happens to it and find that
 
 At first I attempted to stack multiple extensions by uploading shell.jpg.php, however  this was blocked upon submission which meant that we really needed a valid image. I also tried playing with the shell's magic bytes in order to trick the site in accepting our PHP code as a JPG file, but that didn't pan out either.
 
-## Injecting PHP Code into Image Files
+### Injecting PHP Code into Image Files
 The only real possibility I thought of left, was to inject PHP code into an image that we know will be accepted and hope that the site will execute it when we navigate to the full upload URL. I use Pentestmonkey's infamous PHP reverse shell inside of a random JPG pulled off the internet.
 
 ![](../assets/img/2026-02-20-Networked/3.png)
