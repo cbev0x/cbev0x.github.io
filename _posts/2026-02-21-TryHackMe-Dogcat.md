@@ -1,8 +1,8 @@
 ---
-title: "TryHackMe: K2"
-date: 2026-01-14
+title: "TryHackMe: Dogcat"
+date: 2026-02-21
 categories: [TryHackMe]
-tags: [Linux, Windows, Web, Active Directory, SQLi, XSS]
+tags: [Linux, Web, LFI, RCE, Privilege Escalation, Docker, Log Poisoning]
 published: true
 ---
 
