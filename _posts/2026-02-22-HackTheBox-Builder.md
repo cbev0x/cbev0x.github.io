@@ -2,7 +2,7 @@
 title: "HackTheBox: Builder"
 date: 2026-02-22
 categories: [HackTheBox]
-tags: [Linux, Web, ]
+tags: [Linux, Web, Cryptography, LFI]
 published: true
 ---
 
