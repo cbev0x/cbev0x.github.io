@@ -1,7 +1,7 @@
 ---
-title: "TryHackMe: Masterpiece"
+title: "Masterpiece"
 date: 2026-02-25
-categories: [TryHackMe]
+categories: [Personal]
 tags: [Linux, Web, Cookies, Python, Privilege Escalation, BinEx]
 published: true
 ---
