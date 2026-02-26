@@ -6,6 +6,8 @@ tags: [Linux, Web, Cookies, Python, Privilege Escalation, BinEx]
 published: true
 ---
 
+This is vulnerable machine was a side project of mine that also served as great practice for Python, web exploitation, and Linux privilege escalation techniques as I went about studying those areas. Hopefully it will be accepted and y'all will get to hack it as well.
+
 ## Overview
 
 This box simulates a curated online gallery where players explore a collection of artworks. The primary objective is to uncover hidden secrets and escalate privileges, ultimately retrieving both the user and root flags. The environment is built on Ubuntu, with a Flask web application, MySQL, Nginx, and a few custom binaries designed to hopefully create semi-realistic privilege escalation paths.
