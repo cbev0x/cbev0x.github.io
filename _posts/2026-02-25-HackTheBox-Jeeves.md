@@ -2,7 +2,7 @@
 title: "HackTheBox: Jeeves"
 date: 2026-02-25
 categories: [HackTheBox]
-tags: [Windows, Web, Privilege Escalation, Cryptography, ADS]
+tags: [Windows, Web, Privilege Escalation, Cryptography]
 published: true
 ---
 
