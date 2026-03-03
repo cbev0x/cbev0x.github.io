@@ -1,6 +1,6 @@
 ---
 title: "TryHackMe: Wekor"
-date: 2026-03-01
+date: 2026-03-03
 categories: [TryHackMe]
 tags: [Linux, Web, SQLi, Wordpress, Privilege Escalation, BinEx, Networking]
 published: true
