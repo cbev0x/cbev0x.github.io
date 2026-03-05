@@ -94,6 +94,7 @@ Attempting to reach the page with HTTP redirects us to its secure counterpart wh
 
 Moving on to the landing page only prompts us with a login for the Nagios instance. The default credentials of root:nagiosxi doesn't work and it seems that verbose errors aren't enabled either. Searchsploit returns quite a few results for this service, however I can't seem to find a version for it which would leave us guessing what to try.
 
+## Gathering Creds over SNMP
 Since my scans only returned forbidden directories, I'm going to enumerate SNMP in hopes that someone is sending plaintext credentials over the network. I use [snmp-check](https://www.kali.org/tools/snmpcheck/) to capture data into a file and parse the output for anything interesting.
 
 ```
@@ -108,7 +109,8 @@ Attempting to login with these at the Nagios panel returns a different error tha
 
 ![](../assets/img/2026-03-05-Monitored/3.png)
 
-We can either find a way to enumerate users and try credential stuffing with the same password (which seems unlikely), or see about getting a way to undo our disability with this account. Some quick research on Nagios API documentation led me to [this PDF](https://assets.nagios.com/downloads/nagiosxi/docs/Accessing-and-Using-the-XI-REST-API.pdf) which disclosed the common path at /nagiosxi/api . With that in mind, I'll begin fuzzing for any useful endpoints which can grant us a valid login.
+## API Hacking
+We can either find a way to enumerate users and try credential stuffing with the same password (which seems unlikely), or see about getting a way to undo our disability with this account. Some quick research on Nagios API documentation led me to [this PDF](https://assets.nagios.com/downloads/nagiosxi/docs/Accessing-and-Using-the-XI-REST-API.pdf) which disclosed the common path at `/nagiosxi/api`. With that in mind, I'll begin fuzzing for any useful endpoints which can grant us a valid login.
 
 ```
 $ ffuf -u https://nagios.monitored.htb/nagiosxi/api/v1/FUZZ -w /opt/SecLists/Discovery/Web-Content/raft-small-words.txt --fl 2       
@@ -137,6 +139,7 @@ ________________________________________________
 authenticate            [Status: 200, Size: 49, Words: 6, Lines: 1, Duration: 82ms]
 ```
 
+### Site Authentication
 The authenticate API looks promising and navigating to it in my browser returns an error with my HTTP request method instead of one for no API key supplied.
 
 ![](../assets/img/2026-03-05-Monitored/4.png)
@@ -149,6 +152,7 @@ In order to use this, we can simply navigate to the directory and provide it in 
 
 ![](../assets/img/2026-03-05-Monitored/6.png)
 
+### SQL Injection
 Research on this service shows that Nagios XI is an enterprise-grade IT infrastructure monitoring solution built on Nagios Core, designed to track server, network, and application performance. Our particular service is prone to [CVE-2023–40931](https://nvd.nist.gov/vuln/detail/CVE-2023-40931) which explains that a SQL Injection vulnerability allows authenticated attackers to execute arbitrary SQL commands via the ID parameter in a POST request to the `/nagiosxi/admin/banner_message-ajaxhelper.php` page.
 
 With this we may be able to leak sensitive information from the database in order to get admin access on the site. I'll paste the POST request template as it was a bit hard to find.
@@ -217,6 +221,7 @@ Table: xi_users
 +---------+---------------------+----------------------+------------------------------------------------------------------+---------+--------------------------------------------------------------+-------------+------------+------------+-------------+-------------+--------------+--------------+------------------------------------------------------------------+----------------+----------------+----------------------+
 ```
 
+### Admin User Creation
 Referring back to the API docs PDF, there's an example to the `/nagiosxi/api/v1/system/status` endpoint which will confirm if our new API key will work.
 
 ![](../assets/img/2026-03-05-Monitored/10.png)
@@ -323,6 +328,7 @@ Awesome, now after logging out of the svc account and into our newly created use
 
 ![](../assets/img/2026-03-05-Monitored/14.png)
 
+## Initial Foothold
 After a while of searching around, I discover an interesting section under **Configure -> Core Config Manager -> Commands**, that lists a bunch of shell commands to be used from the site.
 
 ![](../assets/img/2026-03-05-Monitored/15.png)
@@ -339,6 +345,7 @@ Heading back to the Core Config Manager tab shows a hosts folder that reveals a 
 
 ![](../assets/img/2026-03-05-Monitored/16.png)
 
+## Privilege Escalation
 I also upgrade and stabilize my shell with the typical `Python3 import pty` method. At this point we can grab the user flag under our home directory and start internal enumeration to escalate privileges towards root.
 
 ![](../assets/img/2026-03-05-Monitored/17.png)
@@ -347,6 +354,7 @@ Listing the `/home` directory shows only one other user named `svc`, however the
 
 ![](../assets/img/2026-03-05-Monitored/18.png)
 
+### Binary Hijacking w/ Sudo
 Seeing as we have full access over the Nagios service, if we we're able to write to a script or binary that one of the service control commands uses, we may be able to execute commands on behalf of root. One of the more interesting scripts that we allowed to execute with Sudo is `manage_services.sh`.
 
 In essence, it prompts the user to specify an action as well as for what service it should be performing it on. Once validated that both arguments are okay, then it will call systemctl.
@@ -394,7 +402,7 @@ chown root:root /tmp/bash
 chmod +s /tmp/bash
 ```
 
-Lastly, let's run the manage_services.sh script in order to restart Nagios and check /tmp for the bash clone.
+Lastly, let's run the manage_services.sh script in order to restart Nagios and check `/tmp` for the bash clone.
 
 ```
 sudo /usr/local/nagiosxi/scripts/manage_services.sh restart nagios
