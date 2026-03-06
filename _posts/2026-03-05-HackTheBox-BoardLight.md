@@ -139,7 +139,7 @@ Supplying the same password for SSH on Larissa's account works and we get a prop
 
 Research shows that Enlightenment is a lightweight, fast, and highly customizable window manager and desktop shell for Linux/Unix systems. Simply put, the fact that it's owned by root and we have access to run it as them may prove very useful. 
 
-I do some digging and discover an [security disclosure](https://www.elastic.co/docs/reference/security/prebuilt-rules/rules/linux/privilege_escalation_enlightenment_window_manager) for the `enlightenment_sys` utility that is prone to a local privilege escalation due to the system library function mishandling pathnames that begin with a `/dev/..` substring. Turns out this is [CVE-2022–37706](https://nvd.nist.gov/vuln/detail/CVE-2022-37706) and MaherAzzouzi has created a [PoC script](https://github.com/MaherAzzouzi/CVE-2022-37706-LPE-exploit) that we can utilize to pop a root shell with it.
+I do some digging and discover a [security disclosure](https://www.elastic.co/docs/reference/security/prebuilt-rules/rules/linux/privilege_escalation_enlightenment_window_manager) for the `enlightenment_sys` utility that is prone to a local privilege escalation due to the system library function mishandling pathnames that begin with a `/dev/..` substring. Turns out this is [CVE-2022–37706](https://nvd.nist.gov/vuln/detail/CVE-2022-37706) and MaherAzzouzi has created a [PoC script](https://github.com/MaherAzzouzi/CVE-2022-37706-LPE-exploit) that we can utilize to pop a root shell with it.
 
 ```
 #!/bin/bash
