@@ -165,7 +165,7 @@ Hopping over to port 5000, making sure to specify that it's HTTPS, shows that it
 ## API Hacking
 The only thing left is the dev virtual host found in the pcap, so that'll be our next destination. The landing page just displays a message saying that this Vhost is solely meant for the site's developers. 
 
-5![](../assets/img/2026-03-07-Motunui/5.png)
+![](../assets/img/2026-03-07-Motunui/5.png)
 
 Checking my scans shows one key difference from the previous one, the presence of `/docs` looks interesting considering developers store stuff here.
 
