@@ -86,7 +86,11 @@ $ nxc smb 10.65.129.69 -u 'Guest' -p '' --rid-brute > users.txt
 
 #Extracting usernames from users file
 $ sed -n 's/.*THM\\\([^ ]*\).*/\1/p' users.txt > validnames.txt
+```
+
 I quickly check if any of these accounts are valid on the domain using a tool called [Kerbrute](https://github.com/ropnop/kerbrute). 
+
+```
 $ kerbrute userenum -d thm.local --dc 10.65.129.69 ../validnames.txt
 ```
 
