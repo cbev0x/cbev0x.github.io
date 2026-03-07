@@ -119,7 +119,7 @@ That returns just one TGS for `CODY_ROY`'s account and sending it over to JTR to
 This opens up a lot of doors for us, but I'm going to use these credentials for LDAP authentication so I can get data to send to Bloodhound. I use [bloodhound-python](https://github.com/dirkjanm/BloodHound.py) for this step as we don't have a shell to use RustHound just yet.
 
 ```
-$ bloodhound-python -u 'CODY_ROY' -p 'MKO)mko0' -dc ad.thm.local -d thm.local -ns 10.65.175.20 -c all
+$ bloodhound-python -u 'CODY_ROY' -p '[REDACTED]' -dc ad.thm.local -d thm.local -ns 10.65.175.20 -c all
 ```
 
 Giving it a minute to ingest those JSON files allows us to map out the domain in order to find any interesting privileges that our account may have over other users/groups. Checking what Cody has permission to do only shows that I was mistaken and that he's allowed to RDP and WinRM onto the box, however there was nothing under the outbound object control, meaning that we'd have to enumerate the filesystem to find things to leverage.
