@@ -16,7 +16,6 @@ As always, I begin with an Nmap scan against the target IP to find all running s
 ```
 $ sudo nmap -sCV 10.65.129.69 -oN fullscan-tcp
 
-[sudo] password for cbev: 
 Starting Nmap 7.95 ( https://nmap.org ) at 2026-02-27 19:41 CST
 Nmap scan report for 10.65.129.69
 Host is up (0.045s latency).
