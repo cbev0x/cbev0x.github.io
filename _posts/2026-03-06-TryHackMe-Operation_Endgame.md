@@ -6,7 +6,7 @@ tags: [Windows, Active Directory, SMB, RBCD, Privilege Escalation]
 published: true
 ---
 
-This box is rated hard difficulty on THM. It involves us Kerberoasting a user who's SPN we can modify, and abusing Guest permissions to perform an RBCD attack on the DC.
+This box is rated hard difficulty on THM. It involves us Kerberoasting a user who's SPN we can modify and abusing Guest permissions to perform an RBCD attack on the DC in order to grab a shell as SYSTEM.
 
 _This challenge will focus on exploiting an Active Directory environment._
 
