@@ -147,7 +147,7 @@ As we can see, Guest authentication is enabled on the Samba shares and we have r
 
 We can infer that these are probably meant for the IT team, however we can parse the network traffic in hopes of finding credentials sent whenever someone was authenticating. Netexec also gives us a name of Motunui for the box which we can add to our `/etc/hosts` file to prevent any errors down the line.
 
-## Finding Vhost in PNG
+### Finding Vhost in PNG
 Interestingly, opening up the pcaps in Wireshark show that only the `ticket_6746.pcapng` file from the `/maui` directory on the share has any packets at all. Looking through it shows a bunch of requests made over TLS, so a lot of it will be useless and the only thing that seemed interesting was a GET request to `/dashboard.png` on port 8000. Since this was transported without encryption, we can save the object to our own system and take a look at it. I do this by choosing **File -> Export Objects -> HTTP** and saving the `dashboard.png` object to my home directory.
 
 Once we have it locally, displaying it with `xdg-open` shows a screenshot of someone's browser. Checking the URL discloses a development subdomain for the site which we can add to our `/etc/hosts` file to start enumeration.
@@ -204,7 +204,7 @@ Navigating to that directory automatically redirects us to the README.md file wh
 
 Opening the file gives us two APIs for the service on port 3000 under the `/v2/` directory. The base URL for these are at `api.motunui.thm`, so I go ahead and add that to my hosts file as well.
 
-## Brute Forcing User Login
+### Brute Forcing User Login
 The first is to handle logins which just hash the supplied credentials and check if they are valid, returning the standard responses. The second and third pertain to cronjobs for the current user, using a GET request to display them and a POST to add new jobs.
 
 ````
