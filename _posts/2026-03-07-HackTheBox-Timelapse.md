@@ -54,7 +54,7 @@ Service detection performed. Please report any incorrect results at https://nmap
 Nmap done: 1 IP address (1 host up) scanned in 93.93 seconds
 ```
 
-Looks like a Windows machine with Active Directory components installed on it. LDAP is leaking the domain of timelapse.htb, which we can add to our `/etc/hosts` file. Due to there not being any web services present, I'll focus on SMB, Kerberos, and LDAP in order to get a foothold on the box.
+Looks like a Windows machine with Active Directory components installed on it. LDAP is leaking the domain of `timelapse.htb`, which we can add to our `/etc/hosts` file. Due to there not being any web services present, I'll focus on SMB, Kerberos, and LDAP in order to get a foothold on the box.
 
 ## SMB Shares
 Using Netexec shows that Guest authentication is enabled on SMB and that we have read permissions to a non-standard share. Inside are two directories for the Development and HelpDesk roles.
