@@ -103,7 +103,7 @@ msf> run
 ```
 
 ## Privilege Escalation
-Now that we're on the box, we can start internal enumeration in order to pivot between users and escalate privileges. At this point we can display both the chat.py and flag.txt files to answer the provided questions. Listing the `/home` directory shows no real users on the system other than root, so I'll zero in on files owned by them or if our account has the capability to execute things as them.
+Now that we're on the box, we can start internal enumeration in order to pivot between users and escalate privileges. At this point we can display both the `chat.py` and `flag.txt` files to answer the provided questions. Listing the `/home` directory shows no real users on the system other than root, so I'll zero in on files owned by them or if our account has the capability to execute things as them.
 
 ### Abusing Sudo Permissions
 There are no SUID bits set on any interesting binaries or hardcoded credentials in config files, however our current user has the ability to run a Python script as root user without a password. Checking that file also shows that we have write permissions over it.
