@@ -1,10 +1,11 @@
 ---
+
 ---
 
 /* prettier-ignore */
 @use 'main
 {%- if jekyll.environment == 'production' -%}
-  .bundle
+.bundle
 {%- endif -%}
 ';
 
@@ -15,105 +16,114 @@
 
 /* === Base Typography === */
 body {
-  font-family: 'Source Sans Pro', 'Microsoft Yahei', sans-serif;
-  line-height: 1.75rem;
+font-family: 'Source Sans Pro', 'Microsoft Yahei', sans-serif;
+line-height: 1.75rem;
 }
 
 h1, h2, h3, h4, h5 {
-  font-family: 'Lato', 'Microsoft Yahei', sans-serif;
-  font-weight: 400;
+font-family: 'Lato', 'Microsoft Yahei', sans-serif;
+font-weight: 400;
 }
 
 /* === Light Mode Variables === */
 html[mode=light], html:not([mode]) {
-  --link-color: #2a408e;
-  --link-underline-color: #dee2e6;
-  --sidebar-bg: radial-gradient(circle, rgba(42,30,107,1) 0%, rgba(35,37,46,1) 100%);
-  --tag-bg: rgba(0,0,0,0.075);
-  --tag-hover: rgb(222,226,230);
+--link-color: #2a408e;
+--link-underline-color: #dee2e6;
+--sidebar-bg: radial-gradient(circle, rgba(42,30,107,1) 0%, rgba(35,37,46,1) 100%);
+--tag-bg: rgba(0,0,0,0.075);
+--tag-hover: rgb(222,226,230);
 }
 
 /* === Dark Mode Variables === */
 html[mode=dark] {
-  --link-color: rgb(138,180,248);
-  --link-underline-color: rgb(82,108,150);
-  --sidebar-bg: radial-gradient(circle, #0a1223 70%, #050d1a 100%);
-  --tag-bg: rgb(10,18,35);
-  --tag-hover: rgb(43,56,62);
+--link-color: rgb(138,180,248);
+--link-underline-color: rgb(82,108,150);
+--sidebar-bg: radial-gradient(circle, #0a1223 70%, #050d1a 100%);
+--tag-bg: rgb(10,18,35);
+--tag-hover: rgb(43,56,62);
 }
 
 /* === Sidebar === */
 #sidebar {
-  background: var(--sidebar-bg);
+background: var(--sidebar-bg);
 }
 
 #sidebar .site-title a {
-  font-weight: 900;
-  letter-spacing: .5px;
+font-weight: 900;
+letter-spacing: .5px;
 }
 
 /* === Links === */
 .post-content a,
 .post-meta a,
 .post-preview a {
-  color: var(--link-color);
-  border-bottom: 1px solid var(--link-underline-color);
+color: var(--link-color);
+border-bottom: 1px solid var(--link-underline-color);
 }
 
 .post-content a:hover,
 .post-meta a:hover,
-.post-preview a:hover
+.post-preview a:hover {
+opacity: 0.9;
+}
 
 /* === Tags === */
 .post-tag {
-  background: var(--tag-bg);
-  border-radius: .3rem;
-  padding: 0 .4rem;
+background: var(--tag-bg);
+border-radius: .3rem;
+padding: 0 .4rem;
 }
 
 .post-tag:hover {
-  background: var(--tag-hover);
-  color: #d2603a;
+background: var(--tag-hover);
+color: #d2603a;
 }
 
-/* === Post cards === */
-/* === Full-card hover fix === */
+/* === Post cards (FIXED HOVER) === */
+
+/* Outer container */
 .post-preview {
-  display: block;          /* ensures width = container */
-  width: 100%;
-  padding: 1.25rem;        /* match your content spacing */
-  margin-bottom: 1.5rem;   /* spacing between posts */
-  border-radius: 12px;
-  box-sizing: border-box;   /* includes padding in width */
-  overflow: hidden;        /* prevents hover bleed */
-  position: relative;
+border-radius: 12px;
+margin-bottom: 1.5rem;
+overflow: hidden;
 }
 
-/* Make hover background cover entire box */
-.post-preview:hover {
-  background-color: rgba(210, 96, 58, 0.06);
+/* Make the anchor behave like the card itself */
+.post-preview > a {
+display: block;
+width: 100%;
+padding: 1.25rem;
+border-radius: 12px;
+box-sizing: border-box;
+text-decoration: none;
+transition: background-color 0.2s ease, transform 0.15s ease;
 }
 
-/* Dark mode version */
-html[mode=dark] .post-preview:hover {
-  background-color: rgba(138, 180, 248, 0.10);
+/* Light mode hover */
+.post-preview > a:hover {
+background-color: rgba(210, 96, 58, 0.06);
+transform: translateY(-2px);
 }
 
-/* Ensure children don’t push hover background outside the card */
-.post-preview > * {
-  margin: 0;
-  box-sizing: border-box;
+/* Dark mode hover */
+html[mode=dark] .post-preview > a:hover {
+background-color: rgba(138, 180, 248, 0.10);
+}
+
+/* Ensure child elements behave properly */
+.post-preview > a > * {
+margin: 0;
+box-sizing: border-box;
 }
 
 /* === Tables === */
 .post-content table th,
 .post-content table td {
-  padding: 0.4rem 1rem;
-  font-size: 95%;
+padding: 0.4rem 1rem;
+font-size: 95%;
 }
 
 /* === Images in dark mode === */
 html[mode=dark] .post-content img {
-  filter: brightness(90%);
+filter: brightness(90%);
 }
-
