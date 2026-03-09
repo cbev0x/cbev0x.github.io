@@ -141,7 +141,7 @@ We get a hit back from the `www` parameter. Let's try to use this to enumerate i
 
 Supplying the parameter with `localhost` or `127.0.0.1` returns a 403 Forbidden code, however other valid URLs respond with the normal 200 OK that we've seen. It looks like there's a filter in place, however there are more ways to point locally and since other requests work, it's most likely using a blacklist instead of whitelisting all possible other ones.
 
-I find [this SSRF CheatSheet](https://www.cobalt.io/learning-center/server-side-request-forgery-ssrf-overview) from Cobalt Offensive Security that lists a few ways to work around this.
+I find this [SSRF CheatSheet](https://www.cobalt.io/learning-center/server-side-request-forgery-ssrf-overview) from Cobalt Offensive Security that lists a few ways to work around this.
 
 ```
 __Basic localhost Payloads:__
