@@ -359,6 +359,10 @@ Certipy v5.0.3 - by Oliver Lyak (ly4k)
 
 Finally, we can grab a shell with Impacket's WMIExec or SMBExec in a Pass-The-Hash which rewards us with the root flag under the administrator's desktop folder.
 
+```
+impacket-smbexec -k -hashes ':[REDACTED]' THM.LOCAL/Administrator@labyrinth.thm.local
+```
+
 ![](../assets/img/2026-03-09-Ledger/11.png)
 
 A bit of post-exploitation enumeration revealed that another way to own this box is by a Resource Based Constraint Delegation attack since users in the Guests group have GenericWrite over the `LABYRINTH.THM.LOCAL` computer object. This would've been my preferred way of escalating privileges had I used BloodHound, but I've been too reliant on it as of late, so I decided not to. This [RedFoxSec article](https://redfoxsec.com/blog/rbcd-resource-based-constrained-delegation-abuse/) explains the basics as well as how to go about exploiting this vector if you're interested.
