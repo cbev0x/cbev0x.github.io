@@ -9,12 +9,16 @@
 {%- endif -%}
 ';
 
-/* append your custom style below */
+/* ======================================================
+FONTS
+====================================================== */
 
-/* === Fonts === */
 @import url("https://fonts.googleapis.com/css2?family=Lato&family=Roboto+Condensed:wght@400;700&family=Source+Sans+Pro:wght@400;600;700;900&display=swap");
 
-/* === Base Typography === */
+/* ======================================================
+BASE TYPOGRAPHY
+====================================================== */
+
 body {
 font-family: 'Source Sans Pro', 'Microsoft Yahei', sans-serif;
 line-height: 1.75rem;
@@ -25,35 +29,55 @@ font-family: 'Lato', 'Microsoft Yahei', sans-serif;
 font-weight: 400;
 }
 
-/* === Light Mode Variables === */
+/* ======================================================
+COLOR VARIABLES
+====================================================== */
+
+/* Light Mode */
+
 html[mode=light], html:not([mode]) {
 --link-color: #2a408e;
 --link-underline-color: #dee2e6;
---sidebar-bg: radial-gradient(circle, rgba(42,30,107,1) 0%, rgba(35,37,46,1) 100%);
+
+--sidebar-bg: radial-gradient(circle,
+rgba(42,30,107,1) 0%,
+rgba(35,37,46,1) 100%);
+
 --tag-bg: rgba(0,0,0,0.075);
 --tag-hover: rgb(222,226,230);
 }
 
-/* === Dark Mode Variables === */
+/* Dark Mode */
+
 html[mode=dark] {
 --link-color: rgb(138,180,248);
 --link-underline-color: rgb(82,108,150);
---sidebar-bg: radial-gradient(circle, #0a1223 70%, #050d1a 100%);
+
+--sidebar-bg: radial-gradient(circle,
+#0a1223 70%,
+#050d1a 100%);
+
 --tag-bg: rgb(10,18,35);
 --tag-hover: rgb(43,56,62);
 }
 
-/* === Sidebar === */
+/* ======================================================
+SIDEBAR
+====================================================== */
+
 #sidebar {
 background: var(--sidebar-bg);
 }
 
 #sidebar .site-title a {
 font-weight: 900;
-letter-spacing: .5px;
+letter-spacing: 0.5px;
 }
 
-/* === Links === */
+/* ======================================================
+LINKS
+====================================================== */
+
 .post-content a,
 .post-meta a,
 .post-preview a {
@@ -67,11 +91,14 @@ border-bottom: 1px solid var(--link-underline-color);
 opacity: 0.9;
 }
 
-/* === Tags === */
+/* ======================================================
+TAGS
+====================================================== */
+
 .post-tag {
 background: var(--tag-bg);
-border-radius: .3rem;
-padding: 0 .4rem;
+border-radius: 0.3rem;
+padding: 0 0.4rem;
 }
 
 .post-tag:hover {
@@ -79,51 +106,56 @@ background: var(--tag-hover);
 color: #d2603a;
 }
 
-/* === Post cards (FIXED HOVER) === */
+/* ======================================================
+POST CARDS (CLEAN HOVER FIX)
+====================================================== */
 
-/* Outer container */
 .post-preview {
 border-radius: 12px;
 margin-bottom: 1.5rem;
 overflow: hidden;
+
+transition: transform 0.18s ease,
+box-shadow 0.18s ease;
+
+will-change: transform;
 }
 
-/* Make the anchor behave like the card itself */
+/* Modern lift + glow */
+
+.post-preview:hover {
+transform: translateY(-3px);
+box-shadow: 0 10px 28px rgba(0,0,0,0.35);
+}
+
+/* Slightly stronger glow in dark mode */
+
+html[mode=dark] .post-preview:hover {
+box-shadow: 0 10px 28px rgba(0,0,0,0.55);
+}
+
+/* Make anchor fill the card */
+
 .post-preview > a {
 display: block;
-width: 100%;
-padding: 1.25rem;
-border-radius: 12px;
-box-sizing: border-box;
+padding: 1rem 1.25rem;
 text-decoration: none;
-transition: background-color 0.2s ease, transform 0.15s ease;
 }
 
-/* Light mode hover */
-.post-preview > a:hover {
-background-color: rgba(210, 96, 58, 0.06);
-transform: translateY(-2px);
-}
+/* ======================================================
+TABLES
+====================================================== */
 
-/* Dark mode hover */
-html[mode=dark] .post-preview > a:hover {
-background-color: rgba(138, 180, 248, 0.10);
-}
-
-/* Ensure child elements behave properly */
-.post-preview > a > * {
-margin: 0;
-box-sizing: border-box;
-}
-
-/* === Tables === */
 .post-content table th,
 .post-content table td {
 padding: 0.4rem 1rem;
 font-size: 95%;
 }
 
-/* === Images in dark mode === */
+/* ======================================================
+IMAGES
+====================================================== */
+
 html[mode=dark] .post-content img {
 filter: brightness(90%);
 }
