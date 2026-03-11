@@ -256,6 +256,6 @@ Listing Sudo privileges shows that Josh has the capability to run the SSH binary
 
 Attempting to just SSH on localhost and spawn a Bash shell won't work as we still need to provide a password. [GTFOBins](https://gtfobins.org/gtfobins/ssh/#shell) has a great method of escalating privileges by using the `ProxyCommand` option, which allows us to execute commands as root user and create a new shell.
 
-18
+![](../assets/img/2026-03-10-CozyHosting/18.png)
 
 Grabbing the final flag under `/root/root.txt` completes this challenge. This box was relatively easy, but if your enumeration was lacking, it could prove quite a challenge trying to exploit the webapp. I hope this was helpful to anyone following along or stuck and happy hacking!
