@@ -194,6 +194,7 @@ Listing our account information with `whoami /all` shows that we are in the Cert
 
 ![](../assets/img/2026-03-11-Manager/10.png)
 
+### Enumerating AD CS
 I'll  use [Certipy-AD](https://github.com/ly4k/Certipy) to test if Raven has the capability to issue certificates or manage the CA.
 
 ```
@@ -256,7 +257,7 @@ Certificate Templates                   : [!] Could not find any certificate tem
 
 Towards the bottom, the tool lists any potential vulnerabilities that can be utilized in our goal to escalate privileges. In this case, it shows that Raven has dangerous permissions and we can perform an ESC7 attack.
 
-## ESC7 Attack
+### ESC7 Attack
 An AD CS ESC7 attack is an escalation path that occurs when a user has dangerous management permissions over the Certification Authority (CA) in Active Directory Certificate Services (AD CS). Specifically, the user has rights such as Manage CA or Manage Certificates, which allow them to modify CA settings and issue certificates. This can lead to a full domain compromise, as an attacker can use it to issue authentication certificates for any domain user, including Domain Admins.
 
 To exploit this, we must verify that we have Manage CA permissions, Enable the SubCA template, request a cert using the SubCA template (which should fail), issue the failed cert, retrieve it with an administrator UPN, and authenticate with the PFX. I'll refer to this [Red & Blue Team Security article](https://www.rbtsec.com/blog/active-directory-certificate-attack-esc7/) throughout this process.
