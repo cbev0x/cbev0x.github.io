@@ -264,14 +264,11 @@ To exploit this, we must verify that we have Manage CA permissions, Enable the S
 
 ```
 [Low Privileged Domain User]
-            ↓ - Has "Manage CA" permission
-
+            ↓ -- Has "Manage CA" permission
 [Certification Authority (AD CS)]
-            ↓ - Enable / modify certificate template
-
+            ↓ -- Enable / modify certificate template
 [Issue Certificate for Admin]
-            ↓ - PKINIT Authentication
-
+            ↓ -- PKINIT Authentication
 [Domain Admin Access]            
             ↓
 [Full Domain Compromise]
@@ -318,13 +315,13 @@ $ certipy-ad req -ca manager-DC01-CA -dc-ip 10.129.5.12 \
 Before using that `.pfx` file, we need to fix the Clock Skew error since this is Kerberos related. If you can get away with just using an ntpdate command, then go for it, but my VMWare machine overrides the clock settings, so I have to manually disabled them first.
 
 ```
-#Stopping my machine's timsyncd processes
+--Stopping my machine's timsyncd processes--
 $ sudo systemctl stop systemd-timesyncd
 $ sudo systemctl disable systemd-timesyncd
 $ sudo systemctl stop chronyd 2>/dev/null
 $ sudo systemctl disable chronyd 2>/dev/null
 
-#Set Clock skew to match the DC's
+--Set Clock skew to match the DC's--
 $ sudo rdate -n dc01.manager.htb
 ```
 
