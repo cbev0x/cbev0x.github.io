@@ -6,7 +6,7 @@ tags: [Windows, Active Directory, Privilege Escalation, SMB, Kerberos]
 published: true
 ---
 
-This box is rated hard difficulty on THM. It involves us discovering an employee spreadsheet in a backup directory on the web server that leads to AS-REP roasting a user account. They have WinRM access which lets us get a shell and after some enumeration, we find another user's password in their description attribute that allows us to pivot. Since that user is in the Backup Operators group, we can abuse their SeBackup and SeRestore privileges to clone the C:\ drive and download the NTDS.dit file. Once on our local machine, an Impacket script is used to extract the Administrator's NTLM hash to grab a shell.
+This box is rated hard difficulty on THM. It involves us discovering an employee spreadsheet in a backup directory on the web server that leads to AS-REP roasting a user account. They have WinRM access which lets us get a shell and after some enumeration, we find another user's password in their description attribute that allows us to pivot. Since that user is in the Backup Operators group, we can abuse their SeBackup and SeRestore privileges to clone the `C:\` drive and download the NTDS.dit file. Once on our local machine, an Impacket script is used to extract the Administrator's NTLM hash to grab a shell.
 
 _Fusion Corp said they got everything patched... did they?_
 
