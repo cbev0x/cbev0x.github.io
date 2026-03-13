@@ -130,14 +130,14 @@ wiki                    [Status: 302, Size: 0, Words: 1, Lines: 1, Duration: 65m
 
 Heading over there shows an Xwiki application for the site that holds a bunch of information on their code editor. This is also what's running on port 8080, just to clear some things up.
 
-## Version Disclosure
+### Version Disclosure
 A bit of research shows that Xwiki is an open-source enterprise wiki platform used to create collaborative documentation, knowledge bases, and internal tools within organizations. It runs on Java and allows users to build dynamic web applications using wiki pages, scripts, and extensions.
 
 ![](../assets/img/2026-03-13-Editor/2.png)
 
 Off the bat, by scrolling down we can see that this site discloses the version in the footer, being `Xwiki Debian v15.10.8`. I take to Google and Searchsploit to find any known vulnerabilities in this implementation, which led me to [CVE-2025–24893](https://nvd.nist.gov/vuln/detail/CVE-2025-24893).
 
-## CVE-2025–24893 Exploitation
+### CVE-2025–24893 Exploitation
 This is a critical vulnerability in the Xwiki Platform that allows unauthenticated remote code execution. The flaw exists because the `SolrSearch` macro improperly sanitizes user-supplied input, allowing attackers to inject and execute Groovy code via crafted requests to the `/xwiki/bin/get/Main/SolrSearch` endpoint.
 
 An attacker can exploit this by sending a malicious request containing injected Groovy code in parameters such as text, which the server evaluates and executes. Because this endpoint is accessible to guest users, it enables unauthenticated RCE and full compromise of the Xwiki server; Affected Xwiki versions are (< 15.10.11, 16.4.1, and 16.5.0RC1).
