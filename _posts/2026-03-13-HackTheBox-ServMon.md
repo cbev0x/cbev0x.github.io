@@ -6,7 +6,7 @@ tags: [Windows, Web, LFI, Privilege Escalation, Networking]
 published: true
 ---
 
-This box is rated easy difficulty on HTB. It involves us discovering the location of a password list over anonymous FTP login, and utilizing a vulnerable NVMS-1000 instance to read that file. Spraying those credentials for two users previously enumerated gives us a shell on the box via SSH. Gathering credentials for the NSCLient++ user in a .ini file allows us to port forward the internal web server and authenticate as that account. Finally, we upload a malicious batch script that will be executed by the server which is running as the LocalAdmin, giving us a  shell as NT AUTHORITY\SYSTEM.
+This box is rated easy difficulty on HTB. It involves us discovering the location of a password list over anonymous FTP login, and utilizing a vulnerable NVMS-1000 instance to read that file. Spraying those credentials for two users previously enumerated gives us a shell on the box via SSH. Gathering credentials for the NSCLient++ user in a `.ini` file allows us to port forward the internal web server and authenticate as that account. Finally, we upload a malicious batch script that will be executed by the server which is running as the LocalAdmin, giving us a  shell as `NT AUTHORITY\SYSTEM`.
 
 ## Scanning & Enumeration
 As always I begin with an Nmap scan against the target IP to find all running services on the host; Repeating the same for UDP returns nothing.
