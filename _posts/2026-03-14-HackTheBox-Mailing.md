@@ -6,7 +6,7 @@ tags: [Windows, Privilege Escalation, SMTP, SMB, RCE, LFI]
 published: true
 ---
 
-This box is rated easy difficulty on HTB. It involves us discovering an LFI vulnerability in the website, which allows us to get the hMailServer's Administrator email password. We can then utilize a MonikerLink exploit over SMTP to capture another user's NTLM hash, therefore letting us grab a shell with WinRM access. Once on the box, we find an outdated version of LibreOffice that's prone to automatic execution of embedded links in specially crafted .odt files, allowing us to get a reverse shell as the LocalAdmin.
+This box is rated easy difficulty on HTB. It involves us discovering an LFI vulnerability in the website, which allows us to get the hMailServer's Administrator email password. We can then utilize a MonikerLink exploit over SMTP to capture another user's NTLM hash, therefore letting us grab a shell with WinRM access. Once on the box, we find an outdated version of LibreOffice that's prone to automatic execution of embedded links in specially crafted `.odt` files, allowing us to get a reverse shell as the LocalAdmin.
 
 ## Scanning & Enumeration
 I begin with an Nmap scan against the target IP to find all running services on the host; Repeating the same for UDP returns nothing.
