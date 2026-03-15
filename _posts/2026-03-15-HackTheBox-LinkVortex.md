@@ -227,7 +227,7 @@ This script is a bunch of nested if statements that eventually prints the conten
 First, it will do nothing if the file provided is not a valid symlink. If it is, the script will then check if it contains the strings etc or root, if true it will warn us and remove the link. Upon passing those checks, it moves the link file to `/var/quarantined` and if the `CHECK_CONTENT` variable is true, prints the contents of such link.
 
 ### Double Symlink Exploit
-To exploit this, we just need to provide a file that passes these checks to read arbitrary files with elevated permissions. I found that by giving it a double symlink, we could still bypass everything in place to have it read files in /root.
+To exploit this, we just need to provide a file that passes these checks to read arbitrary files with elevated permissions. I found that by giving it a double symlink, we could still bypass everything in place to have it read files in `/root`.
 
 ```
      1.png       ->       2.png        -> /root/.shh/id_rsa
