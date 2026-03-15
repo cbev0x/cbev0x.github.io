@@ -112,7 +112,7 @@ ________________________________________________
 :: Progress: [43007/43007] :: Job [1/1] :: 749 req/sec :: Duration: [0:01:05] :: Errors: 0 ::
 ```
 
-## Exposed Git Directory
+### Exposed Git Directory
 After filtering out all the 403 codes, we can see that the .git directory is exposed. This will allow us to go through all previous commits which may contain hardcoded credentials in an early development phase or useful information like the versions of technology in place.
 
 I use a tool called [Gitdumper](https://github.com/arthaud/git-dumper) to transfer all files to my local machine.
