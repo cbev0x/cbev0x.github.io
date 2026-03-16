@@ -100,7 +100,7 @@ Unable to find the version internally, I grep for it in the Git source files and
 This discloses that the site is running version 1.27.1 of BackdropCMS, which I start researching for any known vulnerabilities in hopes to get RCE or something critical.  
 
 ## Malicious Theme Upload
-That brings me to finding [CVE-2022–42092](http://nvd.nist.gov/vuln/detail/CVE-2022-42092), which explains that the themes tab allows for unrestricted file uploads, with the only stipulation being that we need admin access.
+That brings me to finding [CVE-2022–42092](https://nvd.nist.gov/vuln/detail/CVE-2022-42092), which explains that the themes tab allows for unrestricted file uploads, with the only stipulation being that we need admin access.
 
 To exploit this, we need to download a random theme from their [themes contribution repository](https://github.com/orgs/backdrop-contrib/repositories?q=theme) and place a PHP reverse shell within it; I copy and pasted Pentestmonkey's rendition from [revshells.com](https://www.revshells.com/). I should note that `.zip` archives are not allowed on the site, so we must create a `.tar` instead.
 
