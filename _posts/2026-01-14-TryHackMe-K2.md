@@ -91,11 +91,11 @@ I gather a few more usernames with this and test for more injection attacks in t
 
 ![](../assets/img/2026-01-14-K2/16.png)
 
-This confirms that we can use SQLi to leak some info in the database. However, using a simple payload like ‘ OR 1=1-- - shows that there is another firewall detecting possible attacks and terminates our session if so.
+This confirms that we can use SQLi to leak some info in the database. However, using a simple payload like `‘ OR 1=1-- -` shows that there is another firewall detecting possible attacks and terminates our session if so.
 
 ![](../assets/img/2026-01-14-K2/17.png)
 
-Same thing happens when I send the captured request to SQLmap, so I’ll have to test manually. It seems like OR is a bad operator so we can swap it for || which is the same thing, also UNION is allowed.
+Same thing happens when I send the captured request to SQLmap, so I’ll have to test manually. It seems like OR is a bad operator so we can swap it for `||` which is the same thing, also `UNION` is allowed.
 
 [PortSwigger](https://portswigger.net/web-security/sql-injection/examining-the-database) has a great article on how to enumerate databases via SQLi. This is where I refer to when finding a vulnerability like this.
 
