@@ -88,7 +88,7 @@ After letting it ingest the JSON files for a bit, I start by enumerating any out
 
 ![](../assets/img/2026-03-17-Certified/2.png)
 
-By following this pattern of who what user or groups have permissions under outbound object control, we find a path towards the CA_Operator user, who should have enrollment rights for AD CS.
+By following this pattern of which users or groups have permissions under outbound object control, I find a path towards the CA_Operator user, who should have enrollment rights for AD CS.
 
 ![](../assets/img/2026-03-17-Certified/3.png)
 
