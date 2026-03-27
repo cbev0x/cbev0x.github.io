@@ -2,7 +2,7 @@
 title: "HackTheBox: Certified"
 date: 2026-03-17
 categories: [HackTheBox]
-tags: [Windows, Privilege Escalation, ADCS, SMB, Bloodhound]
+tags: [Windows, Privilege Escalation, ADCS, SMB, BloodHound]
 published: true
 ---
 
