@@ -193,7 +193,7 @@ I capture this header's value in Burp Suite, which now allows us to decrypt the 
 
 It seems like the application decrypts the archives using AES-CBC along which uses the Key and IV from the response header. Knowing this, we can create a simple script that takes in the necessary parameters to get the unciphered files back.
 
-```
+```python
 #!/usr/bin/env python3
 
 import argparse
