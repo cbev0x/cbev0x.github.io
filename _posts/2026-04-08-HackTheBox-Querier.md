@@ -96,14 +96,14 @@ I swap to using SMBclient to list available shares to avoid connecting to NetBIO
 
 ![](../assets/img/2026-04-08-Querier/2.png)
 
-After grabbing that file, I open the document using Gnumeric (a lightweight, open-source spreadsheet application built for Unix/Linux systems). You can install this tool with sudo apt install gnumeric on Kali since there isn't a default tool that supports this archive.
+After grabbing that file, I open the document using Gnumeric (a lightweight, open-source spreadsheet application built for Unix/Linux systems). You can install this tool with `sudo apt install gnumeric` on Kali since there isn't a default tool that supports this archive.
 
 ![](../assets/img/2026-04-08-Querier/3.png)
 
 There seems to be nothing inside of it at first glance, but upon inspecting the metadata, we discover the author's name is Luis and the MIME type shows that macros have been enabled for this doc.
 
 ### Investigating VBA Macro
-Gnumeric doesn't support Visual Basic for Applications (VBA) which is the language these macros use, so I swap to using [olevba](https://github.com/decalage2/oletools/wiki/olevba) (apart of the oletools package) so that I don't have to start up a Windows VM just for this step. We can install this with pipx install oletools.
+Gnumeric doesn't support Visual Basic for Applications (VBA) which is the language these macros use, so I swap to using [olevba](https://github.com/decalage2/oletools/wiki/olevba) (apart of the oletools package) so that I don't have to start up a Windows VM just for this step. We can install this with `pipx install oletools`.
 
 ```
 $ olevba Currency\ Volume\ Report.xlsm 
