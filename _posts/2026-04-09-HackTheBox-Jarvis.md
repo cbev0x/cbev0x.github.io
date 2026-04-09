@@ -146,7 +146,7 @@ Knowing this, I begin enumerating the amount of columns used in the statement vi
 
 ![](../assets/img/2026-04-09-Jarvis/6.png)
 
-Specifying a page that shouldn't exist (e.g. `cod=20`) and supplying seven columns shows that numbers 5,2,3, and 4 are reflected to the page. We can use these to enumerate databases and potentially grab password hashes.
+Specifying a page that shouldn't exist (e.g. `cod=20`) and supplying seven columns shows that numbers 5, 2, 3, and 4 are reflected to the page. We can use these to enumerate databases and potentially grab password hashes.
 
 Next, I check to see which database we're in and what SQL version is in use.
 
