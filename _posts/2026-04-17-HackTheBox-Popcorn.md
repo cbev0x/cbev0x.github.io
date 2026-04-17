@@ -150,7 +150,7 @@ Connecting to the MySQL server and dumping the users table in the TorrentHoster 
 ![](../assets/img/2026-04-17-Popcorn/14.png)
 
 ### DirtyCow Exploit
-Displaying the Linux Kernel version reveals that it is extremely old (around September, 2009), making it vulnerable to quite a few dangerous privilege escalation exploits. I proceed with using [DirtyCow](https://github.com/FireFart/dirtycow/blob/master/dirty.c), aka. CVE-2016–5195, which is a Linux privilege escalation vulnerability that exploits a race condition in the copy-on-write (COW) mechanism of memory management. It allows a local attacker to gain write access to read-only files, potentially modifying system binaries and escalating privileges to root.
+Displaying the Linux Kernel version reveals that it is extremely old (around September, 2009), making it vulnerable to quite a few dangerous privilege escalation exploits. I proceed with using [DirtyCow](https://github.com/FireFart/dirtycow/blob/master/dirty.c), aka. [CVE-2016–5195](https://nvd.nist.gov/vuln/detail/cve-2016-5195), which is a Linux privilege escalation vulnerability that exploits a race condition in the copy-on-write (COW) mechanism of memory management. It allows a local attacker to gain write access to read-only files, potentially modifying system binaries and escalating privileges to root.
 
 ![](../assets/img/2026-04-17-Popcorn/15.png)
 
