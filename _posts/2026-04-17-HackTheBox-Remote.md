@@ -130,7 +130,7 @@ Heading over to the landing page on port 80 shows standard business content for 
 ![](../assets/img/2026-04-17-Remote/5.png)
 
 ## Umbraco Exploitation
-We can head straight to `/Umbraco` to sign in as the credentials found should validate to give us control over it anyways. The password fails for the username admin, but a few others were listed in the .sdf file and _admin@htb.local_ eventually succeeds.
+We can head straight to `/Umbraco` to sign in as the credentials found should validate to give us control over it anyways. The password fails for the username admin, but a few others were listed in the .sdf file and `admin@htb.local` eventually succeeds.
 
 A quick look around the Admin dashboard discloses the version in use, which is v7.12.4.
 
