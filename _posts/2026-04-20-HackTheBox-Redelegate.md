@@ -382,9 +382,9 @@ I do find that Helen has `SeEnableDelegationPrivilege` on the domain, meaning th
 ![](../assets/img/2026-04-20-Redelegate/11.png)
 
 In case this is getting a bit confusing, allow me to explain the different types of delegation in Active Directory. 
-- Unconstrained delegation: Allows a service to impersonate a user to any service once the user authenticates to it, by storing the user's TGT in memory. It's highly permissive and dangerous because compromise of the service effectively exposes all delegated user credentials.
-- Constrained delegation: Restricts impersonation to specific services defined in the `msDS-AllowedToDelegateTo` attribute. This limits blast radius, but if the service is compromised, an attacker can still act as users to those predefined services.
-- Resource-Based Constrained Delegation (RBCD): Shifts control to the target service, which specifies which accounts are allowed to delegate to it via `msDS-AllowedToActOnBehalfOfOtherIdentity`. This makes it easier to abuse in practice since control over the target object's ACLs (e.g., GenericWrite) can be enough to set up delegation abuse.
+- **Unconstrained delegation**: Allows a service to impersonate a user to any service once the user authenticates to it, by storing the user's TGT in memory. It's highly permissive and dangerous because compromise of the service effectively exposes all delegated user credentials.
+- **Constrained delegation**: Restricts impersonation to specific services defined in the `msDS-AllowedToDelegateTo` attribute. This limits blast radius, but if the service is compromised, an attacker can still act as users to those predefined services.
+- **Resource-Based Constrained Delegation (RBCD)**: Shifts control to the target service, which specifies which accounts are allowed to delegate to it via `msDS-AllowedToActOnBehalfOfOtherIdentity`. This makes it easier to abuse in practice since control over the target object's ACLs (e.g., GenericWrite) can be enough to set up delegation abuse.
 
 ### Constrained Delegation
 We will be exploiting Constrained Delegation by abusing our SeEnableDelegationPrivilege on the domain as well as _GenericAll_ permissions over FS01$. First, I configure the machine account to act as the LDAP service on the Domain Controller within my WinRM session.
