@@ -356,7 +356,7 @@ This means that once we have assumed control of Helen's account, we can perform 
 
 If you're unfamiliar with this vector - Resource-Based Constrained Delegation (RBCD) is a Kerberos feature where a target resource (like a server) defines which principals are allowed to impersonate users to it, via the `msDS-AllowedToActOnBehalfOfOtherIdentity` attribute. If an attacker can modify that attribute, they can add a controlled account and then use Kerberos (S4U2Self + S4U2Proxy) to impersonate any user-including admins-to that service. This effectively gives them code execution or access as that user on the target system.
 
-Being able to write SPNs (Service Principal Names) can lead to domain compromise because it enables attacks like Kerberoasting and targeted delegation abuse. An attacker can register an SPN on an account they control or modify, request a service ticket for it, and extract a crackable hash of the account's password; if that account is highly privileged, cracking it can lead to full domain takeover. This portion is relevant as we have GenericAll over the FS01$ machine account and can therefore write its SPN.
+Being able to write SPNs (Service Principal Names) can lead to domain compromise because it enables attacks like Kerberoasting and targeted delegation abuse. An attacker can register an SPN on an account they control or modify, request a service ticket for it, and extract a crackable hash of the account's password; if that account is highly privileged, cracking it can lead to full domain takeover. This portion is relevant as we have _GenericAll_ over the FS01$ machine account and can therefore write its SPN.
 
 ## Privilege Escalation
 Getting started, we first need to change Helen.Frost's password. I carry out this step using RPCClient because it's what I'm used to, however there are plenty of options out there.
@@ -387,7 +387,7 @@ In case this is getting a bit confusing, allow me to explain the different types
 - Resource-Based Constrained Delegation (RBCD): Shifts control to the target service, which specifies which accounts are allowed to delegate to it via `msDS-AllowedToActOnBehalfOfOtherIdentity`. This makes it easier to abuse in practice since control over the target object's ACLs (e.g., GenericWrite) can be enough to set up delegation abuse.
 
 ### Constrained Delegation
-We will be exploiting Constrained Delegation by abusing our SeEnableDelegationPrivilege on the domain as well as GenericAll permissions over FS01$. First, I configure the machine account to act as the LDAP service on the Domain Controller within my WinRM session.
+We will be exploiting Constrained Delegation by abusing our SeEnableDelegationPrivilege on the domain as well as _GenericAll_ permissions over FS01$. First, I configure the machine account to act as the LDAP service on the Domain Controller within my WinRM session.
 
 ```
 *Evil-WinRM* > Set-ADAccountControl -Identity "FS01$" -TrustedToAuthForDelegation $True
