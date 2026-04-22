@@ -309,7 +309,7 @@ Unknown     : [REDACTED]
 ```
 
 ### WSL Backup Privileges
-This rewards us with domain credentials for Jeremy.Combs and We can generate another Kerberos ticket to get WinRM access, similar to the _svc_winrm_ account earlier. BloodHound shows that this user is in the Third-Line Technicians group, giving him access to that directory on the SMB share.
+This rewards us with domain credentials for _Jeremy.Combs_ and We can generate another Kerberos ticket to get WinRM access, similar to the _svc_winrm_ account earlier. BloodHound shows that this user is in the Third-Line Technicians group, giving him access to that directory on the SMB share.
 
 ![](../assets/img/2026-04-22-Voleur/17.png)
 
