@@ -146,7 +146,7 @@ That cracks relatively quick, giving us access to the file's contents. Inside we
 Apart from that dead user account, we now have a ton of information on the domain, including two service account passwords which opens up a few doors for us. This also reveals that Ryan's account does not have Kerberos Pre-Authentication enabled which could've allowed us to AS-REP Roast his account if we hadn't started with credentials.
 
 ## Mapping AD with BloodHound
-After confirming that these service account creds are valid, I fire up BloodHound to start mapping the domain because usually these accounts have special permissions that will help us pivot between users. I use BloodHound-Python instead of SharpHound to collect the data due to our lack of terminal access.
+After confirming that these service account creds are valid, I fire up BloodHound to start mapping the domain because usually these accounts have special permissions that will help us pivot between users. I use [BloodHound-Python](https://github.com/dirkjanm/bloodhound.py) instead of SharpHound to collect the data due to our lack of terminal access.
 
 ```
 $ nxc smb dc.voleur.htb -u svc_ldap -p '[REDACTED]' -k
