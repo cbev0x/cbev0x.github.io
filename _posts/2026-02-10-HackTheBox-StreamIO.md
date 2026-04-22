@@ -392,7 +392,7 @@ The flow will be:
 ## Privilege Escalation
 Checking inside C:\Users shows that we do not have an account, so I'll start by dumping the database since we already have the db_admin password from the SQLi attack. This didn't yield much until I realized that there was a backup database as well, which holds a few password hashes. One of them being a local user on the system.
 
-![](../assets/img/2026-02-10-StreamIO/1.png)
+![](../assets/img/2026-02-10-StreamIO/17.png)
 
 Throwing that hash into [crackstation.net](https://crackstation.net/) or [hashes.com](https://hashes.com/en/decrypt/hash) gives us the plaintext password, in turn letting us [Evil-WinRM](https://github.com/Hackplayers/evil-winrm) onto the box.
 
