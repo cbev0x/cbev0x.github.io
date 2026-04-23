@@ -6,7 +6,7 @@ tags: [Windows, Privilege Escalation, Active Directory, SMB, Kerberos, Web, LFI,
 published: true
 ---
 
-This box is rated hard difficulty on HTB. It involves LFI, SMB relay, password spraying, uploading reverse shells, plenty of enumeration, port forwarding, and a DCSync attack to top it off. This is one of my favorite AD machines and I recommend trying it yourself before reading any spoilers.
+This box is rated hard difficulty on HTB. It involves LFI, NTLM theft, password spraying, uploading reverse shells, plenty of enumeration, port forwarding, and a DCSync attack to top it off. This is one of my favorite AD machines and I recommend trying it yourself before reading any spoilers.
 
 ## Scanning & Enumeration
 As always, I begin with an Nmap scan against the target IP to find all running services on the host; Repeating the same for UDP just returns the typical expected services for AD.
@@ -237,7 +237,7 @@ After setting up a listener and navigating to the file on the website, we are gr
 ![](../assets/img/2026-03-01-Flight/21.png)
 
 ### DCSync Attack
-Our current account is a Microsoft Virtual Account, meaning that if it were to attempt to authenticate over a network, it has no choice other than to fall back to the computer account. In our case it's named `G0$`, however these machine accounts aren't meant to be accessed by people and therefore have incredibly long and complex passwords, so we won't be able to crack it after an SMB relay attack. 
+Our current account is a Microsoft Virtual Account, meaning that if it were to attempt to authenticate over a network, it has no choice other than to fall back to the computer account. In our case it's named `G0$`, however these machine accounts aren't meant to be accessed by people and therefore have incredibly long and complex passwords, so we won't be able to crack it. 
 
 ![](../assets/img/2026-03-01-Flight/22.png)
 
