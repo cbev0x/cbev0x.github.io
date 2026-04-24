@@ -213,7 +213,7 @@ That will automatically add a shadow credential for each account and attempt to 
 ![](../assets/img/2026-04-24-Fluffy/7.png)
 
 ## Privilege Escalation
-Using the _CA_SVC_ account to search for vulnerable AD CS templates reveals that 
+We can use the _CA_SVC_ account to search for vulnerable AD CS templates and any misconfigurations in the domain.
 
 ```
 $ certipy-ad find -u ca_svc -hashes [REDACTED] -target dc01.fluffy.htb -stdout -vulnerable 
