@@ -138,6 +138,7 @@ $ net rpc group addmem 'Service Accounts' 'p.agila' -U 'fluffy.htb'/'p.agila'%'[
 ```
 
 Next, I want to take over any of these accounts by abusing our _GenericWrite_ permissions. We have two main routes to go about here:
+
 **Shadow credentials:**
 - Abuse the msDS-KeyCredentialLink attribute to add an attacker-controlled key to a target account, allowing certificate-based authentication as that user. This lets an attacker obtain a TGT without knowing the password and impersonate the account. With _GenericWrite_, an attacker can modify this attribute on a target object, enabling them to plant their own key and take over the account.
 
