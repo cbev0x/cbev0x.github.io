@@ -314,7 +314,7 @@ Now that we have confirmed RCE via this endpoint, I standup a Netcat listener an
 ## Docker Container
 Right away, we land on the box as root, however the hostname indicates that this is a Docker container. A bit of light enumeration on the filesystem confirms this and I discover a _db.py_ script under an application's directory that reveals a postgresql server running on another machine.
 
-This `DATABASE_UR`L line contains the default credentials to login there.
+This `DATABASE_URL` line contains the default credentials to login there.
 
 ![](../assets/img/2026-04-14-Mentor/10.png)
 
