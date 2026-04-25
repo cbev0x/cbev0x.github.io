@@ -397,6 +397,6 @@ $ impacket-smbexec -hashes ':[REDACTED]' COOCTUS.CORP/administrator@DC.COOCTUS.C
 
 ![](../assets/img/2026-04-25-Crocc_Crew/9.png)
 
-Grabbing the root flag under `C:\Perflogs\Admin` as well as the other flags under `C:\Shares\Home` will complete this box. It seems like we may have missed a few steps with the delegation abuse, but I'll take any shortcut to Domain Admin.
+Grabbing the root flag under `C:\Perflogs\Admin` as well as the other flags under `C:\Shares\Home` will complete this box. It seems like we may have skipped a few steps with the delegation abuse, but I'll take any shortcut to Domain Admin.
 
 Overall, this box's difficulty lays in the amount of rabbit holes, rather than overly complicated AD abuse. I hope this was helpful to anyone following along or stuck and happy hacking!
