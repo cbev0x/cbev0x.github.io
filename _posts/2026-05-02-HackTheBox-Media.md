@@ -6,7 +6,7 @@ tags: [Windows, Web, Privilege Escalation]
 published: true
 ---
 
-This box is rated medium difficulty on HTB. It involves us exploiting a file upload feature on a website in order to capture a user's NTLMv2 hash and crack it offline. After using those credentials to grab a shell, we can create an NTFS junction between the file uploads directory and the webroot to get a reverse shell in the context of the web service. We can use public tools to recover this account's default privileges and gain access to the SeImpersonatePrivilege. This is then abused to escalate privileges with one of the Potato exploits, granting a shell as NT AUTHORITY\SYSTEM.
+This box is rated medium difficulty on HTB. It involves us exploiting a file upload feature on a website in order to capture a user's NTLMv2 hash and crack it offline. After using those credentials to grab a shell, we can create an NTFS junction between the file uploads directory and the webroot to get a reverse shell in the context of the web service. We can use public tools to recover this account's default privileges and gain access to the SeImpersonatePrivilege. This is then abused to escalate privileges with one of the Potato exploits, granting a shell as **NT AUTHORITY\SYSTEM**.
 
 ## Host Scanning
 I begin with an Nmap scan against the target IP to find all running services on the host; Repeating the same for UDP yields no results.
