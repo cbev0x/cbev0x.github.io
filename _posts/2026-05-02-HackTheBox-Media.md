@@ -158,7 +158,7 @@ Now, I create a junction between the uploads directory and the htdocs folder ins
 > cmd /c mklink /J C:\Windows\Tasks\uploads\09ccaad643b5378761bfeaca70689da3 C:\xampp\htdocs
 ```
 
-Note that we must reuse the random string as the uploads directory name, since it's really just an MD5 hash of the user's firstname, lastname, and email.
+_Note that we must reuse the random string as the uploads directory name, since it's really just an MD5 hash of the user's firstname, lastname, and email._
 
 ![](../assets/img/2026-05-02-Media/14.png)
 
