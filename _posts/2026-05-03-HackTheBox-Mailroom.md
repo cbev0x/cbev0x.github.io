@@ -412,7 +412,7 @@ Knowing that one of the sites was using Gitea, I figured that one of the directo
 
 ![](../assets/img/2026-05-03-Mailroom/22.png)
 
-This is reused for the machine as well, allowing us to switch users from our previous SSH session as Tristan. Note that password login for Matthew is disabled and apart of the password from the URL line is percent-encoded, so we must convert it back to ASCII for a valid login.
+This is reused for the machine as well, allowing us to switch users from our previous SSH session as Tristan. Note that password login for Matthew over SSH is disabled and apart of the password from the URL line is percent-encoded, so we must convert it back to ASCII for a valid login.
 
 ### KeePass Database File
 At this point we can grab the user flag under his home directory and see about grabbing root privileges.
