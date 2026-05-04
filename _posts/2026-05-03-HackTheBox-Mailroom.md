@@ -396,6 +396,10 @@ After a bit of research and messing around with it, I found that we could use ba
 ### Creds in Web Container
 After standing up a Netcat listener, all that's left is to execute the shell and get a session as www-data.
 
+```
+`bash /tmp/shelly.sh`
+```
+
 ![](../assets/img/2026-05-03-Mailroom/20.png)
 
 This may seem like a step down since we already have CLI access as Tristan, but the hostname indicates that we are in a container. My earlier enumeration also found a containerd directory that enforces this idea.
