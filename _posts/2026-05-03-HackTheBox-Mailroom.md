@@ -476,6 +476,12 @@ Interpreting this correctly shows that the user deletes the character before `\1
 
 Finally, I install Keepass2 on my Kali machine to dump the database, giving us the machine's root password.
 
+```
+└─$ sudo apt install keepass2
+
+└─$ keepass2 personal.kdbx
+```
+
 ![](../assets/img/2026-05-03-Mailroom/31.png)
 
 Switching users lets us grab the final flag under the root directory, completing this challenge.
