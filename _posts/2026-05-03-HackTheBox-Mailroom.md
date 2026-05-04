@@ -1,5 +1,5 @@
 ---
-title: "HackTheBox: CrimeStoppers"
+title: "HackTheBox: Mailroom"
 date: 2026-05-03
 categories: [HackTheBox]
 tags: [Linux, Web, XSS, XSRF, NoSQLi, Memory Dump, Privilege Escalation]
