@@ -145,7 +145,7 @@ I try a few payloads to see if the page will store it Unsanitized, however it se
 
 We can use this to steal the administrator's cookie and escalate privileges on the site. Attempting to use the standard document cookie payload for this fails due to the site filtering out single and double quotes. Referring to [PayloadAllTheThings' XSS cheatsheet](https://github.com/swisskyrepo/PayloadsAllTheThings/tree/master/XSS%20Injection) shows that we can bypass this by decoding it from CharCode.
 
-I'll convert just the part between the <script> tags which include the bad characters, which could be done through Python or tools like CyberChef. This payload will execute our JavaScript hosted on our local machine, which will eventually capture their cookie.
+I'll convert just the part between the `<script>` tags which include the bad characters, which could be done through Python or tools like CyberChef. This payload will execute our JavaScript hosted on our local machine, which will eventually capture their cookie.
 
 ```
 └─$ python3
