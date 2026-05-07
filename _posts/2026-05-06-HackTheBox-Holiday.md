@@ -241,4 +241,4 @@ By creating a new package with this option enabled, we can execute commands on b
 
 ![](../assets/img/2026-05-06-Holiday/21.png)
 
-Finally, we can grab the root flag under their home directory to complete this challenge. Overall, I'd say this box's difficulty laid in troubleshooting the many payloads to get our exploits to actually work, rather than discovering them. I hope this was helpful to anyone following along or stuck like I was and happy hacking!
+Finally, we can grab the root flag under their home directory to complete this challenge. Overall, this was an amazing box and I'd say this box's difficulty laid in troubleshooting the many payloads to get our exploits to actually work, rather than discovering them. I hope this was helpful to anyone following along or stuck like I was and happy hacking!
