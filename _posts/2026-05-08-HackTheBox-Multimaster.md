@@ -452,7 +452,7 @@ Since they are apart of the Server Operators group, we now have access to plenty
 
 I've covered **SeBackup** and **SeRestore** in other writeups, so I'll exploit the **SeShutdownPrivilege** to overwrite a service binary and have it execute a reverse shell instead. A bit of research on this group discloses the following information:
 
-_A built-in group that exists only on domain controllers. By default, the group has no members. Server Operators can log on to a server interactively; create and delete network shares; start and stop services; back up and restore files; format the hard disk of the computer; and shut down the computer._ -[Microsoft](https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/understand-security-groups#server-operators)
+_A built-in group that exists only on domain controllers. By default, the group has no members. Server Operators can log on to a server interactively; create and delete network shares; start and stop services; back up and restore files; format the hard disk of the computer; and shut down the computer. -[Microsoft](https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/understand-security-groups#server-operators)_
 
 Looks pretty powerful, I'll utilize their ability to configure services to change the binary path of one to execute a Netcat reverse shell headed towards my machine. Enumerating service names was tricky but I eventually found that we had access to change the Browser's.
 
