@@ -1,3 +1,11 @@
+---
+title: "HackTheBox: Multimaster"
+date: 2026-05-08
+categories: [HackTheBox]
+tags: [Windows, Active Directory, AD CS, SQLi, Networking, Privilege Escalation]
+published: false
+---
+
 This box is rated insane difficulty on HTB. It involves us discovering a search function on the website that is prone to SQL injection, which requires encoding our payloads to bypass a WAF in place. 
 Host Scanning
 As always, I begin with an Nmap scan against the target IP to find all running services on the host; Repeating the same for UDP yields the typical AD ports.
