@@ -407,7 +407,7 @@ A quick glance over the file reveals that it makes a query to the SQL database, 
 
 ![](../assets/img/2026-05-08-Multimaster/28.png)
 
-By performing another password spray, including all the users listed on the C:\ drive, we get valid authentication for _sbauer_.
+By performing another password spray, including all the users listed on the `C:\` drive, we get valid authentication for _sbauer_.
 
 ![](../assets/img/2026-05-08-Multimaster/29.png)
 
