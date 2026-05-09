@@ -318,11 +318,11 @@ BloodHound didn't reveal anything else too crazy and we still didn't have a shel
 
 ![](../assets/img/2026-05-08-Scepter/11.png)
 
-This reveals an unfamiliar attribute for the H.Brown user that intrigued me because none of the others had it assigned. Googling about it shows that it's a type of security mapping used to associate certificates with users. It's also stated that the use of X509:<RFC822> is considered weak as it relies on user-related identifiers.
+This reveals an unfamiliar attribute for the H.Brown user that intrigued me because none of the others had it assigned. Googling about it shows that it's a type of security mapping used to associate certificates with users. It's also stated that the use of `X509:<RFC822>` is considered weak as it relies on user-related identifiers.
 
 ![](../assets/img/2026-05-08-Scepter/12.png)
 
-Essentially, if we control another (potentially higher-privileged) account to have the mail attribute set to h.brown@scepter.htb , we can impersonate them. 
+Essentially, if we control another (potentially higher-privileged) account to have the mail attribute set to `h.brown@scepter.htb`, we can impersonate them. 
 
 ### ESC14
 Since A.Carter has _GenericAll_ over the Staff Access Certificate OU and D.Baker is apart of it, we can give ourselves _FullControl_ over the OU using a tool like [BloodyAD](https://github.com/CravateRouge/bloodyAD), and therefore D.Baker. From there we can change the mail attribute to match H.Brown and impersonate them via requesting a certificate. This is also a technique known as [ESC14](https://docs.specterops.io/ghostpack-docs/Certify.wik-mdx/esc14-explicit-certificate-mapping).
