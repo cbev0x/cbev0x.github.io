@@ -205,7 +205,7 @@ The only thing discovered was a string under the _svc_smb_ account's description
 ![](../assets/img/2026-05-15-Absolute/11.png)
 
 ### Dynamic Binary Analysis
-We can use Impacket's [smbclient.py](/home/kali/.nxc/modules/nxc_spider_plus) script to connect, seeing as we require Kerberos authentication.
+We can use Impacket's [smbclient.py](https://github.com/fortra/impacket/blob/master/examples/smbclient.py) script to connect, seeing as we require Kerberos authentication.
 
 ```
 └─$ impacket-smbclient absolute.htb/'svc_smb':'[REDACTED]'@dc.absolute.htb -k -no-pass
