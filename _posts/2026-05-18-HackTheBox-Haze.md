@@ -285,7 +285,7 @@ Following this pattern shows a path to takeover Edward.Martin's account by force
 
 ![](../assets/img/2026-05-18-Haze/17.png)
 
-We can start by making ourselves the owner of the Support Services group and then grant GenericAll privileges over it too. After that, we can add ourselves to the Support Services group.
+We can start by making ourselves the owner of the Support Services group and then grant GenericAll privileges over it too. After that, we can add ourselves to the Support Services group. I'll use [BloodyAD](https://github.com/CravateRouge/bloodyAD) to perform these but there are plenty of tools thast will accomplish this.
 
 ```
 └─$ bloodyAD --host DC01.haze.htb -d haze.htb -u 'Haze-IT-Backup$' -p ':[REDACTED]' set owner Support_Services 'Haze-IT-Backup$'
