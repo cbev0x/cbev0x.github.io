@@ -361,7 +361,7 @@ This holds a PowerShell script which we must edit in order to match our IP addre
 Once everything is altered to our liking, we can compress it into a TAR archive to prepare it for upload.
 
 ```
-└─$ tar -cvzf rev.tgz reverse_shell_splunk
+└─$ tar -cvzf rev.tgz reverse_shell_splunk/
 ```
 
 On the Splunk Dashboard, we navigate to **Apps > Manage Apps** and click the Install Apps from File in the top right corner.
