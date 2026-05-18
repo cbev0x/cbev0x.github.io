@@ -138,7 +138,7 @@ Incrementing once more to the next web server shows a Splunk Atom Feed for their
 ## Exploitation
 
 ### Path Traversal Vulnerability
-Googling for known vulnerabilities in this particular version of Splunk led me to discovering [CVE-2024–36991](https://nvd.nist.gov/vuln/detail/cve-2024-36991), which allows an unauthenticated attacker to traverse directories in order to get file disclosure. This is possible due to improper filtering on the `/modules/messaging/` API endpoint 
+Googling for known vulnerabilities in this particular version of Splunk led me to discovering [CVE-2024–36991](https://nvd.nist.gov/vuln/detail/cve-2024-36991), which allows an unauthenticated attacker to traverse directories in order to get file disclosure. This is possible due to improper filtering on the `/modules/messaging/` API endpoint allowing attackers to use `../` or `..\` traversal sequences to escape the intended directory. The issue is tied to Windows path handling and Python’s `os.path.join()` behavior, which can incorrectly normalize paths and let unauthenticated users read arbitrary files on the server.
 
 Whilst doing research on it, I came across [this PoC](https://github.com/jaytiwari05/CVE-2024-36991/blob/main/exploit.py) script made by Jaytiwari that automates the discovery of common Splunk files. I'll use the tool's section 1 option to grab any secrets and credentials from the filesystem.
 
