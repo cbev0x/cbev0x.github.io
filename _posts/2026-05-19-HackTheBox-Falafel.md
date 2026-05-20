@@ -306,7 +306,7 @@ We'll also need to find the screen's resolution so it isn't distorted, which can
 1176,885
 ```
 
-With that in hand, we can use the [Gnu Image Manipulation Program] (GIMP)(https://www.gimp.org/) tool to open this file as raw image data. First we can install it with `sudo apt install gimp -y`, navigate to the file open dialog, select our file and then specify the file type to match it.
+With that in hand, we can use the [Gnu Image Manipulation Program](https://www.gimp.org/) (GIMP) tool to open this file as raw image data. First we can install it with `sudo apt install gimp -y`, navigate to the file open dialog, select our file and then specify the file type to match it.
 
 ![](../assets/img/2026-05-19-Falafel/26.png)
 
