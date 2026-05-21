@@ -365,7 +365,7 @@ Looks like we are allowed to perform Constrained Delegation without Protocol Tra
 - Constrained delegation: Restricts impersonation to specific services defined in the `msDS-AllowedToDelegateTo` attribute. This limits blast radius, but if the service is compromised, an attacker can still act as users to those predefined services.
 - Resource-Based Constrained Delegation (RBCD): Shifts control to the target service, which specifies which accounts are allowed to delegate to it via `msDS-AllowedToActOnBehalfOfOtherIdentity`. This makes it easier to abuse in practice since control over the target object's ACLs (e.g., _GenericWrite_) can be enough to set up delegation abuse.
 
-RBCD Attack
+### RBCD and CD Attack
 Whilst researching how to abuse Constrained Delegation w/o Protocol Transition, I came across this [Hacker Recipes page](https://www.thehacker.recipes/ad/movement/kerberos/delegations/constrained#without-protocol-transition) which notes that we can either proceed by executing an RBCD attack on the service or forcing/waiting for a user to authenticate to the service while a Kerberos listener is running. I'll go with the former since it's unlikely that an Administrator will log on during my attempts.
 
 Honestly this is confusing to me even though I've done these types of attacks a dozen times, but we're essentially using RBCD to configure another account to have full delegation rights over the DC and then perform Constrained Delegation, giving us a ticket with DCSync capabilities.
