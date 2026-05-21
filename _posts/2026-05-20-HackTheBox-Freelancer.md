@@ -256,6 +256,11 @@ RECONFIGURE;
 
 A simple test with `whoami` confirms this and we can move to grabbing a reverse shell on the system.
 
+```
+EXEC AS LOGIN = 'sa';
+EXEC xp_cmdshell 'whoami';
+```
+
 ![](../assets/img/2026-05-20-Freelancer/27.png)
 
 Attempting to use something like a base64-encoded PowerShell one liner will get blocked by Windows Defender, so we need to be a bit more discreet. 
