@@ -230,7 +230,7 @@ select * from sys.server_permissions where permission_name = 'IMPERSONATE';
 
 ![](../assets/img/2026-05-20-Freelancer/24.png)
 
-As I was unfamiliar with this option, I did a bit of research and came across this [Hacktricks article](http://hacktricks.wiki/en/network-services-pentesting/pentesting-mssql-microsoft-sql-server/index.html#impersonation-of-other-users) that explains we can effectively select a new user to act as.
+As I was unfamiliar with this option, I did a bit of research and came across this [Hacktricks article](https://hacktricks.wiki/en/network-services-pentesting/pentesting-mssql-microsoft-sql-server/index.html#impersonation-of-other-users) that explains we can effectively select a new user to act as.
 
 A good one would be sa (System Administrator) as they have unrestricted access to the server.
 
