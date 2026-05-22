@@ -620,7 +620,7 @@ Reviewing the code once more shows that our file's name is sent to the `/uploads
 At this point we can grab the user flag from their Desktop folder and begin looking at routes to escalate privileges to Administrator.
 
 ## Privilege Escalation
-Listing our group memberships and token permissions shows that we are apart of the source.cereal.htb group, prompting me to check out the local source code for both web apps.
+Listing our group memberships and token permissions shows that we are apart of the `source.cereal.htb` group, prompting me to check out the local source code for both web apps.
 
 ![](../assets/img/2026-05-22-Cereal/19.png)
 
