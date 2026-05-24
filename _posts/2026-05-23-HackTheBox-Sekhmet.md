@@ -114,7 +114,7 @@ The first I'm positive is some Node.js magic, but the second is base64 encoded. 
 
 I spent some time playing around with the role to see if there was a hidden developer value or something like it, but nothing came from it. So far, the only real thing we can do on either site is control what the application uses from this profile cookie.
 
-A bit of research on Node.js vulnerabilities in stored cookies led me to finding this [OpSecX article](https://opsecx.com/index.php/2017/02/08/exploiting-node-js-deserialization-bug-for-remote-code-execution/) about a deserialization bug that could be leveraged to get RCE on affected systems. This stems from a cookie that comes from a client request being passed into the unserialize() function, ultimately making it possible for attackers to execute arbitrary code on the server. By all means, the user should not be able to supply any input that will reach this function but here we are.
+A bit of research on Node.js vulnerabilities in stored cookies led me to finding this [OpSecX article](https://opsecx.com/index.php/2017/02/08/exploiting-node-js-deserialization-bug-for-remote-code-execution/) about a deserialization bug that could be leveraged to get RCE on affected systems. This stems from a cookie that comes from a client request being passed into the `unserialize()` function, ultimately making it possible for attackers to execute arbitrary code on the server. By all means, the user should not be able to supply any input that will reach this function but here we are.
 
 The author provides a PoC for getting code execution as well, and after base64-encoding it we're left with a cookie that can be set via our browser's developer tools.
 
