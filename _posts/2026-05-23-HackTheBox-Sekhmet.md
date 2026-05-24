@@ -75,7 +75,7 @@ portal                  [Status: 403, Size: 2436, Words: 234, Lines: 44, Duratio
 :: Progress: [114442/114442] :: Job [1/1] :: 418 req/sec :: Duration: [0:05:26] :: Errors: 0 ::
 ```
 
-Checking out the landing page at `www.wincorp.htb` shows a site that holds general information about the organization and their services, although it's mostly Latin filler content.
+Checking out the landing page at `www.windcorp.htb` shows a site that holds general information about the organization and their services, although it's mostly Latin filler content.
 
 ![](../assets/img/2026-05-23-Sekhmet/2.png)
 
