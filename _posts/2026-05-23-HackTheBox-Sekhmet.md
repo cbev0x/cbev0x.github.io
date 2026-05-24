@@ -388,13 +388,13 @@ With SSH all set up, I'll restablish a conection to configure a dynamic SOCKS pr
 └─$ ssh -i ~/.ssh/id_ed25519 root@windcorp.htb -D 1080
 ```
 
-I'll also edit my /etc/proxychains4.conf file to contain the following line at the very end:
+I'll also edit my `/etc/proxychains4.conf` file to contain the following line at the very end:
 
 ```
 socks5 127.0.0.1 1080
 ```
 
-Now I'll scan the internal subnet for live hosts using a bash command, which shows that 192.168.0.2 is alive and probably the IP for our DC.
+Now I'll scan the internal subnet for live hosts using a bash command, which shows that `192.168.0.2` is alive and probably the IP for our DC.
 
 ```
 root@webserver:~# for ip in 192.168.0.{1..254}; do ping -c 1 -W 1 $ip >/dev/null && echo "$ip is up"; done
@@ -520,9 +520,9 @@ if ($result -eq [System.Windows.Forms.DialogResult]::OK)
 }
 ```
 
-We can test this theory by Ray.Duncan's mobile attribute since he is both on the list and we have control over his account, note that we can grab Ray's distinguished name from the .ldb file from earlier.
+We can test this theory by Ray.Duncan's mobile attribute since he is both on the list and we have control over his account, note that we can grab Ray's distinguished name from the `.ldb` file from earlier.
 
-Attempting this from my local machine was difficult so I swapped back to the web server which had access to the ldapmodify command. We should make sure we have a valid ticket as Ray before doing this too.
+Attempting this from my local machine was difficult so I swapped back to the web server which had access to the `ldapmodify` command. We should make sure we have a valid ticket as Ray before doing this too.
 
 ```
 └─$ echo -e 'dn: CN=RAY DUNCAN,OU=DEVELOPMENT,DC=WINDCORP,DC=HTB\nchangetype: modify\nreplace: mobile\nmobile: 123456789' | ldapmodify -H ldap://hope.windcorp.htb
@@ -535,7 +535,7 @@ After a couple minutes and re-fetching the same file, Ray's mobile number is alt
 ![](../assets/img/2026-05-23-Sekhmet/27.png)
 
 ### Command Injection
-Knowing that this script is automated, if we update this attribute to contain a payload testing for command injection, it may be possible to execute arbitrary commands via this cronjob. We can use either backticks ` or wrap our command in $() to accomplish this.
+Knowing that this script is automated, if we update this attribute to contain a payload testing for command injection, it may be possible to execute arbitrary commands via this cronjob. We can use either backticks ``` or wrap our command in `$()` to accomplish this.
 
 I'll first just supply a simple whoami command to see if this works at all and who it's running as.
 
