@@ -2,7 +2,7 @@
 title: "HackTheBox: Sekhmet"
 date: 2026-05-24
 categories: [HackTheBox]
-tags: [Windows, Linux, Active Directory, Networking, Cryptography, Privilege Escalation]
+tags: [Windows, Linux, Active Directory, Web, Networking, Deserialization, Cryptography, Privilege Escalation]
 published: true
 ---
 
