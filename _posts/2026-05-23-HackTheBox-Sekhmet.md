@@ -3,7 +3,7 @@ title: "HackTheBox: Sekhmet"
 date: 2026-05-24
 categories: [HackTheBox]
 tags: [Windows, Linux, Active Directory, Networking, Cryptography, Privilege Escalation]
-published: false
+published: true
 ---
 
 This box is rated insane difficulty on HTB. It involves us getting a foothold on a domain-joined Linux web server through insecure deserialization. Then we discover ZipCrypto archive which has files we recover through a known plaintext attack, resulting in a domain user's password hash. After cracking the hash and getting the plaintext version, it's used to abuse Kerberos authentication to escalate privileges via the KSU program. After tunneling to the internal subnet, we write to an LDAP attribute that is used in a PowerShell script to perform command injection and force an NTLMv2 challenge/response to crack another user's hash. Password spraying gives us access to another account who has an administrator's passwords encrypted in their Microsoft Edge files.
