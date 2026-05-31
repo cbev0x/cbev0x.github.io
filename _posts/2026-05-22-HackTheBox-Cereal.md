@@ -6,7 +6,7 @@ tags: [Windows, Web, XSS, SSRF, Deserialization, Code Review, Privilege Escalati
 published: true
 ---
 
-This box is rated hard difficulty on HTB. It involves us finding a subdomain with an exposed code repository, leading us to forge a valid JWT with a secret key found in enumeration to get initial access to the site. From there analyze the source code, resulting in us chaining XSS and Deserialization vulnerabilities in order to upload a reverse shell to the site. Once on the machine, we port forward an internal web server using GraphQL which is prone to SSRF and abuse it alongside SeImpersonate to escalate privileges to SYSTEM.
+This box is rated hard difficulty on HTB. It involves us finding a subdomain with an exposed code repository, leading us to forge a valid JWT with a secret key found in enumeration to get initial access to the site. From there we analyze the source code, resulting in us chaining XSS and Deserialization vulnerabilities in order to upload a reverse shell to the site. Once on the machine, we port forward an internal web server using GraphQL which is prone to SSRF and abuse it alongside SeImpersonate to escalate privileges to SYSTEM.
 
 ## Host Scanning
 I begin with an Nmap scan against the target IP to find all running services on the host; Repeating the same for UDP yields no results.
