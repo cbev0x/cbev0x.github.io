@@ -6,8 +6,6 @@ tags: [Windows, Active Directory, Delegation, Privilege Escalation]
 published: true
 ---
 
-# DeleGator: Building and Testing a Linux-Native Kerberos Delegation Abuse Framework
-
 This writeup covers the development, architecture, and OPSEC testing of DeleGator — a Linux-native Active Directory delegation abuse framework. It is split into three parts: a technical overview of what the tool does and how it works, documentation of the lab environment built to test it, and measured OPSEC data from real test runs against that environment with Elastic SIEM detection in place.
 
 The tool is available at [github.com/cbev0x/DeleGator](https://github.com/cbev0x/DeleGator).
