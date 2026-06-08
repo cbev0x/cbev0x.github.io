@@ -109,13 +109,15 @@ div.highlight {
   #main {
     float: right;
     width: calc(100% - 230px) !important;
-    margin-right: 320px !important;
+  }
+
+  .page__content {
+    padding-right: 2em !important;
   }
 }
 
 @include breakpoint($x-large) {
   #main {
     max-width: calc(100% - 230px) !important;
-    margin-right: 320px !important;
   }
 }
