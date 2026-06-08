@@ -110,6 +110,7 @@ div.highlight {
   #main {
     float: right;
     width: 73% !important;
+    padding-left: 1em !important;
   }
 
   .toc {
@@ -122,6 +123,7 @@ div.highlight {
 @include breakpoint($x-large) {
   #main {
     max-width: 73% !important;
+    padding-left: 1em !important;
   }
 }
 
