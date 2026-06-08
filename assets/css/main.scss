@@ -101,25 +101,21 @@ div.highlight {
   opacity: 1 !important;
   clear: none !important;
   float: left !important;
+  position: sticky !important;
+  top: 2em !important;
 }
 
-@include breakpoint($large) {
-  .sidebar {
-    width: 200px !important;
-    clear: none !important;
-    float: left !important;
-  }
-
-  #main {
-    float: right !important;
-    width: calc(100% - 220px) !important;
-    clear: none !important;
-  }
+#main {
+  margin-left: 220px !important;
+  float: none !important;
+  width: auto !important;
+  max-width: none !important;
 }
 
 @include breakpoint($x-large) {
   #main {
-    max-width: calc(100% - 220px) !important;
+    margin-left: 220px !important;
+    max-width: none !important;
   }
 }
 
