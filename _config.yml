@@ -10,7 +10,7 @@ repository: "cbev0x/cbev0x.github.io"
 
 # Theme
 remote_theme: "mmistakes/minimal-mistakes@4.28.0"
-minimal_mistakes_skin: "dark"
+minimal_mistakes_skin: "contrast"
 
 # Plugins
 plugins:
