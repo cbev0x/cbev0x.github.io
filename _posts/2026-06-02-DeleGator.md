@@ -516,7 +516,7 @@ This fires on any computer account modification not initiated by the DC itself â
 |RBCD exploitation|Password/NTLM|4742, 4768, 4769, 4776, 4624, 4634|24|HIGH|
 |RBCD exploitation|ccache/Kerberos|4742, 4768, 4769|~10|MEDIUM*|
 
-*RBCD with ccache auth was not explicitly tested in this run. The estimate reflects elimination of the NTLM 4776/4624/4634 events, leaving only the unavoidable S4U Kerberos events and the 4742 computer account modification. This will be validated in a future test iteration.
+RBCD with ccache auth was not explicitly tested in this run. The estimate reflects elimination of the NTLM 4776/4624/4634 events, leaving only the unavoidable S4U Kerberos events and the 4742 computer account modification. This will be validated in a future test iteration.
 
 ---
 
