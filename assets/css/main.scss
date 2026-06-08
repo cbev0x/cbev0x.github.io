@@ -99,16 +99,21 @@ div.highlight {
 .sidebar {
   width: 200px !important;
   opacity: 1 !important;
+  clear: none !important;
+  float: left !important;
 }
 
 @include breakpoint($large) {
   .sidebar {
     width: 200px !important;
+    clear: none !important;
+    float: left !important;
   }
 
   #main {
-    float: right;
+    float: right !important;
     width: calc(100% - 220px) !important;
+    clear: none !important;
   }
 }
 
