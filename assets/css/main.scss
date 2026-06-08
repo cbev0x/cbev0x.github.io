@@ -93,23 +93,43 @@ div.highlight {
   font-size: 0.75rem !important;
   line-height: 1.5 !important;
 }
+
+
+
+
 .sidebar {
-  width: 200px !important;
+  width: 22% !important;
 }
 
 @include breakpoint($large) {
   .sidebar {
-    width: 200px !important;
+    width: 22% !important;
   }
 
   #main {
     float: right;
-    width: calc(100% - 210px) !important;
+    width: 74% !important;
+  }
+
+  .page {
+    width: 100% !important;
+    padding-right: 0 !important;
+  }
+
+  .page__content {
+    width: 72% !important;
+    float: left !important;
+  }
+
+  .page__sidebar-right,
+  nav.toc {
+    width: 24% !important;
+    float: right !important;
   }
 }
 
 @include breakpoint($x-large) {
   #main {
-    max-width: calc(100% - 210px) !important;
+    max-width: 74% !important;
   }
 }
