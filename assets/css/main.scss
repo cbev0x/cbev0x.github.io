@@ -97,28 +97,22 @@ div.highlight {
 
 
 .sidebar {
-  width: 200px !important;
-  opacity: 1 !important;
-  clear: none !important;
-  float: left !important;
-  position: sticky !important;
-  top: 2em !important;
+  width: 210px !important;
 }
 
-#main {
-  margin-left: 220px !important;
-  float: none !important;
-  width: auto !important;
-  max-width: none !important;
+@include breakpoint($large) {
+  .sidebar {
+    width: 210px !important;
+  }
+
+  #main {
+    float: right;
+    width: calc(100% - 240px) !important;
+  }
 }
 
 @include breakpoint($x-large) {
   #main {
-    margin-left: 220px !important;
-    max-width: none !important;
+    max-width: calc(100% - 240px) !important;
   }
-}
-
-.page {
-  width: 100% !important;
 }
