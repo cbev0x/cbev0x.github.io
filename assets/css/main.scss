@@ -96,25 +96,28 @@ div.highlight {
 
 
 
-
 .sidebar {
-  width: 180px !important;
+  width: 240px !important;
   opacity: 1 !important;
-  top: 5em !important;
 }
 
 @include breakpoint($large) {
-  .sidebar__left {
-    width: 180px !important;
+  .sidebar {
+    width: 240px !important;
   }
 
-  .page__content,
-  .page__footer,
-  .page__title,
-  .page__meta,
-  .page__share,
-  .page__comments {
-    float: right !important;
-    width: calc(100% - 230px) !important;
+  #main {
+    float: right;
+    width: calc(100% - 270px) !important;
   }
+}
+
+@include breakpoint($x-large) {
+  #main {
+    max-width: calc(100% - 270px) !important;
+  }
+}
+
+.page {
+  width: 100% !important;
 }
