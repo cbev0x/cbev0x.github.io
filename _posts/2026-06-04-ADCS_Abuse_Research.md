@@ -8,9 +8,7 @@ published: true
 
 ## PKI Internals, Certificate Enrollment, and Weak Mapping Exploitation (ESC9 / ESC10)
 
----
-
-## Table of Contents
+### Table of Contents
 
 1. [What AD CS Actually Is](#1-what-ad-cs-actually-is)
 2. [The PKI Trust Model in Active Directory](#2-the-pki-trust-model-in-active-directory)
