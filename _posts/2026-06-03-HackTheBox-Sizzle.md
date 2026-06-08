@@ -4,6 +4,7 @@ date: 2026-06-03
 categories: [HackTheBox]
 tags: [Windows, Active Directory, Web, AD CS, Certificates, Privilege Escalation]
 published: true
+difficulty: insane
 ---
 
 This box is rated insane difficulty on HTB. It involves finding a writeable directory in an SMB share that we mounted, leading to an NTLMv2 hash theft and then cracking it to get domain credentials. These creds can also be used to create a self-signed certificate via AD CS web enrollment and grab a shell on the machine over WinRM. Once on the system, we bypass Constrained Language Mode and AppLocker policies to enable a Kerberoast attack on another user. After repeating the prior bypass steps, we map the domain with BloodHound and discover that they have DCSync rights, allowing us to dump all domain hashes.
