@@ -1,0 +1,87 @@
+---
+---
+
+@charset "utf-8";
+
+@import "minimal-mistakes/skins/contrast";
+@import "minimal-mistakes";
+
+/* ============================================================
+   cbev — typography + badge additions only
+   Does not override any contrast skin colors
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap');
+
+/* Body copy → DM Sans */
+body {
+  font-family: 'DM Sans', sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Monospace elements → IBM Plex Mono */
+.site-title,
+.greedy-nav a,
+.page__meta,
+.page__date,
+time,
+code,
+pre,
+kbd,
+samp,
+.highlight,
+.author__bio,
+.toc__menu a {
+  font-family: 'IBM Plex Mono', monospace !important;
+}
+
+.author__bio {
+  font-size: 0.72rem !important;
+  letter-spacing: 0.02em !important;
+}
+
+.masthead__inner-wrap .site-title {
+  font-size: 1rem !important;
+  letter-spacing: 0.06em !important;
+}
+
+.page__meta,
+.page__date {
+  font-size: 0.72rem !important;
+  letter-spacing: 0.04em !important;
+}
+
+code.highlighter-rouge {
+  font-size: 0.82em !important;
+  padding: 1px 5px !important;
+  border-radius: 3px !important;
+}
+
+/* Difficulty badges */
+.badge {
+  display: inline-block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.6rem;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 3px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+.badge--easy   { color: #4ade80; background: rgba(74,222,128,0.12);  border-color: rgba(74,222,128,0.3);  }
+.badge--medium { color: #d4a017; background: rgba(212,160,23,0.12);  border-color: rgba(212,160,23,0.3);  }
+.badge--hard   { color: #fb923c; background: rgba(251,146,60,0.12);  border-color: rgba(251,146,60,0.3);  }
+.badge--insane { color: #f87171; background: rgba(248,113,113,0.12); border-color: rgba(248,113,113,0.3); }
+.badge--tool   { color: #a78bfa; background: rgba(167,139,250,0.12); border-color: rgba(167,139,250,0.3); }
+
+/* Footer disclaimer */
+.page__footer-copyright::before {
+  content: '// for educational purposes only — never test without explicit permission · ';
+  opacity: 0.5;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.7em;
+}
