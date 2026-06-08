@@ -97,12 +97,12 @@ div.highlight {
 
 
 .sidebar {
-  width: 210px !important;
+  width: 170px !important;
 }
 
 @include breakpoint($large) {
   .sidebar {
-    width: 210px !important;
+    width: 170px !important;
   }
 
   #main {
