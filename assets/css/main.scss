@@ -97,24 +97,24 @@ div.highlight {
 
 
 .sidebar {
-  width: 240px !important;
+  width: 200px !important;
   opacity: 1 !important;
 }
 
 @include breakpoint($large) {
   .sidebar {
-    width: 240px !important;
+    width: 200px !important;
   }
 
   #main {
     float: right;
-    width: calc(100% - 270px) !important;
+    width: calc(100% - 220px) !important;
   }
 }
 
 @include breakpoint($x-large) {
   #main {
-    max-width: calc(100% - 270px) !important;
+    max-width: calc(100% - 220px) !important;
   }
 }
 
