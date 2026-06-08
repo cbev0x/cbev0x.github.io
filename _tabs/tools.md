@@ -4,8 +4,6 @@ icon: fas fa-wrench
 order: 5
 ---
 
-## Tools & Projects
-
 Original tooling and research artifacts. Everything is Linux-native and built for real lab validation before release — OPSEC characteristics are measured, not estimated.
 
 ---
