@@ -85,3 +85,11 @@ code.highlighter-rouge {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 0.7em;
 }
+
+.highlight pre,
+.highlight code,
+pre.highlight,
+div.highlight {
+  font-size: 0.75rem !important;
+  line-height: 1.5 !important;
+}
