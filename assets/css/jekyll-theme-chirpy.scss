@@ -1,17 +1,15 @@
 ---
 ---
 
-@import "jekyll-theme-chirpy";
+@use "sass:color";
 
 /* ============================================================
    cbev — custom theme override
-   Drop this file at: assets/css/jekyll-theme-chirpy.scss
+   File location: assets/css/jekyll-theme-chirpy.scss
    ============================================================ */
 
-/* --- Google Fonts --- */
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Playfair+Display:wght@700&display=swap');
 
-/* ── Root variables ── */
 [data-mode="dark"],
 :root {
   --font-family-base: 'DM Sans', sans-serif;
@@ -56,7 +54,6 @@
   --categories-hover-bg: rgba(74, 222, 128, 0.08);
 }
 
-/* ── Base ── */
 body {
   font-family: var(--font-family-base) !important;
   background: var(--main-bg) !important;
@@ -64,7 +61,6 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ── Topbar ── */
 #topbar-wrapper,
 #topbar {
   background: var(--topbar-bg) !important;
@@ -72,7 +68,6 @@ body {
   box-shadow: none !important;
 }
 
-/* ── Sidebar ── */
 #sidebar {
   background: var(--sidebar-bg) !important;
   border-right: 1px solid var(--main-border-color) !important;
@@ -121,7 +116,6 @@ body {
   color: var(--text-muted-color) !important;
 }
 
-/* ── Post list / home page ── */
 #post-list .post-preview {
   background: var(--card-bg) !important;
   border: 1px solid var(--card-border-color) !important;
@@ -154,7 +148,6 @@ h1.post-title {
   color: var(--text-muted-highlight-color) !important;
 }
 
-/* ── Tags / categories ── */
 .post-tag,
 a.post-tag,
 .tag {
@@ -176,7 +169,6 @@ a.post-tag:hover,
   text-decoration: none !important;
 }
 
-/* ── Article body ── */
 #post-wrapper,
 article.post-content {
   font-family: var(--font-family-base) !important;
@@ -214,7 +206,6 @@ blockquote {
   border-radius: 0 4px 4px 0 !important;
 }
 
-/* ── Inline code ── */
 code:not([class*="language-"]) {
   font-family: var(--font-mono) !important;
   font-size: 0.82em !important;
@@ -225,7 +216,6 @@ code:not([class*="language-"]) {
   padding: 1px 5px !important;
 }
 
-/* ── Code blocks ── */
 div.highlight,
 pre.highlight,
 figure.highlight {
@@ -246,7 +236,6 @@ figure.highlight {
   letter-spacing: 0.08em !important;
 }
 
-/* ── Table of contents ── */
 #toc-wrapper {
   background: var(--card-bg) !important;
   border: 1px solid var(--main-border-color) !important;
@@ -264,7 +253,6 @@ figure.highlight {
   color: #4ade80 !important;
 }
 
-/* ── Search ── */
 #search-wrapper {
   background: var(--search-wrapper-bg) !important;
   border: 1px solid var(--main-border-color) !important;
@@ -278,7 +266,6 @@ figure.highlight {
   background: transparent !important;
 }
 
-/* ── Panel / right sidebar widgets ── */
 .panel-heading {
   font-family: var(--font-mono) !important;
   font-size: 0.65rem !important;
@@ -287,7 +274,6 @@ figure.highlight {
   color: var(--text-muted-highlight-color) !important;
 }
 
-/* ── Pagination ── */
 .pagination .page-item .page-link {
   font-family: var(--font-mono) !important;
   font-size: 0.72rem !important;
@@ -303,7 +289,6 @@ figure.highlight {
   color: #4ade80 !important;
 }
 
-/* ── Footer ── */
 footer {
   background: var(--topbar-bg) !important;
   border-top: 1px solid var(--main-border-color) !important;
@@ -320,7 +305,6 @@ footer a:hover {
   color: #4ade80 !important;
 }
 
-/* Disclaimer line injected into footer */
 footer::before {
   content: '// for educational purposes only — never test on systems without explicit permission';
   display: block;
@@ -333,7 +317,66 @@ footer::before {
   opacity: 0.7;
 }
 
-/* ── Scrollbar ── */
+.difficulty-badge {
+  font-family: var(--font-mono) !important;
+  font-size: 0.62rem !important;
+  font-weight: 500 !important;
+  padding: 2px 8px !important;
+  border-radius: 3px !important;
+  letter-spacing: 0.06em !important;
+  border: 1px solid !important;
+  text-transform: uppercase !important;
+}
+
+.difficulty-easy   { color: #4ade80; background: rgba(74,222,128,0.1);  border-color: rgba(74,222,128,0.25) !important;  }
+.difficulty-medium { color: #facc15; background: rgba(250,204,21,0.1);  border-color: rgba(250,204,21,0.25) !important;  }
+.difficulty-hard   { color: #fb923c; background: rgba(251,146,60,0.1);  border-color: rgba(251,146,60,0.25) !important;  }
+.difficulty-insane { color: #f87171; background: rgba(248,113,113,0.1); border-color: rgba(248,113,113,0.25) !important; }
+
+.btn-sm {
+  font-family: var(--font-mono) !important;
+  font-size: 0.65rem !important;
+  padding: 3px 10px !important;
+  border-radius: 4px !important;
+  border: 1px solid rgba(74,222,128,0.3) !important;
+  color: #4ade80 !important;
+  background: rgba(74,222,128,0.08) !important;
+  text-decoration: none !important;
+  transition: background 0.12s !important;
+}
+
+.btn-sm:hover {
+  background: rgba(74,222,128,0.16) !important;
+  color: #4ade80 !important;
+}
+
+.post-content table {
+  font-family: var(--font-mono) !important;
+  font-size: 0.78rem !important;
+  border-collapse: collapse !important;
+  width: 100% !important;
+}
+
+.post-content table th {
+  font-size: 0.65rem !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  color: var(--text-muted-highlight-color) !important;
+  border-bottom: 1px solid var(--main-border-color) !important;
+  padding: 6px 12px !important;
+}
+
+.post-content table td {
+  color: var(--text-muted-color) !important;
+  border-bottom: 1px solid var(--main-border-color) !important;
+  padding: 8px 12px !important;
+  vertical-align: top !important;
+}
+
+.post-content table tr:last-child td {
+  border-bottom: none !important;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -352,7 +395,6 @@ footer::before {
   background: rgba(255, 255, 255, 0.18);
 }
 
-/* ── Selection highlight ── */
 ::selection {
   background: rgba(74, 222, 128, 0.2);
   color: var(--text-color);
