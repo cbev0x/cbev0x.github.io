@@ -104,12 +104,12 @@ div.highlight {
 
   #main {
     float: right;
-    width: calc(100% - 230px) !important;
+    width: calc(100% - 210px) !important;
   }
 }
 
 @include breakpoint($x-large) {
   #main {
-    max-width: calc(100% - 230px) !important;
+    max-width: calc(100% - 210px) !important;
   }
 }
