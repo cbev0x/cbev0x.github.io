@@ -93,3 +93,23 @@ div.highlight {
   font-size: 0.75rem !important;
   line-height: 1.5 !important;
 }
+.sidebar {
+  width: 200px !important;
+}
+
+@include breakpoint($large) {
+  .sidebar {
+    width: 200px !important;
+  }
+
+  #main {
+    float: right;
+    width: calc(100% - 230px) !important;
+  }
+}
+
+@include breakpoint($x-large) {
+  #main {
+    max-width: calc(100% - 230px) !important;
+  }
+}
