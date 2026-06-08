@@ -3,7 +3,7 @@ title: "AD CS Abuse Research"
 date: 2026-06-04
 categories: [Personal]
 tags: [Windows, Active Directory, ADCS, Certificates, Privilege Escalation, Research]
-published: false
+published: true
 ---
 
 ## PKI Internals, Certificate Enrollment, and Weak Mapping Exploitation (ESC9 / ESC10)
