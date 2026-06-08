@@ -95,6 +95,9 @@ div.highlight {
 }
 
 
+
+
+
 .sidebar {
   width: 25% !important;
 }
@@ -104,25 +107,21 @@ div.highlight {
     width: 25% !important;
   }
 
-  .toc {
-    width: 25% !important;
-    float: right !important;
-    margin-inline-end: 0 !important;
-    position: sticky !important;
-    top: 2em !important;
+  #main {
+    float: right;
+    width: 73% !important;
   }
 
-  #main {
-    float: none !important;
-    width: 50% !important;
-    margin: 0 auto !important;
+  .toc {
+    width: 300px !important;
+    margin-inline-end: 0 !important;
+    float: inline-end !important;
   }
 }
 
 @include breakpoint($x-large) {
   #main {
-    width: 50% !important;
-    max-width: 50% !important;
+    max-width: 73% !important;
   }
 }
 
