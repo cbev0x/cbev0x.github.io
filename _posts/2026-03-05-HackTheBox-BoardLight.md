@@ -41,15 +41,15 @@ Not a whole lot we can do on that version of OpenSSH without credentials so I fi
 
 Checking out the landing page shows a welcome page for the company. We can see that they are a cybersecurity consulting organization from the description and also that the site is built on PHP by going to any of the other tabs.
 
-![](../assets/img/2026-03-05-BoardLight/1.png)
+![](/assets/img/2026-03-05-BoardLight/1.png)
 
 Light enumeration on the site shows no real functionality that we can exploit and I can't find a login or registration page either. The footer discloses a domain of `board.htb`, so I'll add that to my `/etc/hosts` file.
 
-![](../assets/img/2026-03-05-BoardLight/2.png)
+![](/assets/img/2026-03-05-BoardLight/2.png)
 
 My scans return a subdomain for the site at crm.board.htb and after adding that to my hosts file as well, we discover a login panel for a Dolibarr instance. A quick Google search reveals that this service is a free, open-source Enterprise Resource Planning (ERP) and Customer Relationship Management (CRM) software designed for businesses of all sizes, freelancers, and foundations to manage operations like invoicing, inventory, and human resources.
 
-![](../assets/img/2026-03-05-BoardLight/3.png)
+![](/assets/img/2026-03-05-BoardLight/3.png)
 
 Attempting to login with default credentials like `admin:admin` grants us a valid session and we can start looking around for any sensitive information or functions to help us grab a shell. Interestingly enough, even though we are logged in as the administrator many of the site's modules are blocked or disabled for our account.
 
@@ -119,23 +119,23 @@ python CVE-2023-30253.py --url http://crm.board.htb -u admin -p admin -r ATTACKE
 ## Privilege Escalation
 Now that we have a successful shell, we can start internal enumeration in order to escalate privileges. Checking the `/home` directory shows just one other user on the box besides root named Larissa. 
 
-![](../assets/img/2026-03-05-BoardLight/4.png)
+![](/assets/img/2026-03-05-BoardLight/4.png)
 
 We don't have access to their files and are generally limited as to what we can do with our current account permissions. Luckily we know that the CRM site had a login page, so maybe the config files will give us credentials for MySQL or Larissa's password outright.
 
 ### Password Reuse for SQL
 A query to any search engine will show that configuration files for Dolibarr are stored in `/htdocs/conf/conf.php` and going there rewards us with the password to log into the database.
 
-![](../assets/img/2026-03-05-BoardLight/5.png)
+![](/assets/img/2026-03-05-BoardLight/5.png)
 
 Attempting to dump the database is kind of janky, but shows that we only have access to the Dolibarr DB. Selecting all from the `llx_user` tables gives us two hashes for admin and superadmin, however neither of these crack. 
 
-![](../assets/img/2026-03-05-BoardLight/6.png)
+![](/assets/img/2026-03-05-BoardLight/6.png)
 
 ### Enlightenment SUID Flaw
 Supplying the same password for SSH on Larissa's account works and we get a proper shell. Checking the usual routes for privesc to root reveals a few files pertaining to enlightenment with the SUID bit set.
 
-![](../assets/img/2026-03-05-BoardLight/7.png)
+![](/assets/img/2026-03-05-BoardLight/7.png)
 
 Research shows that Enlightenment is a lightweight, fast, and highly customizable window manager and desktop shell for Linux/Unix systems. Simply put, the fact that it's owned by root and we have access to run it as them may prove very useful. 
 
@@ -169,6 +169,6 @@ ${file} /bin/mount -o noexec,nosuid,utf8,nodev,iocharset=utf8,utf8=0,utf8=1,uid=
 
 Being sure to make it executable and running it grants us root access over the system and we can grab the final flag under the `/root` directory to complete this challenge.
 
-![](../assets/img/2026-03-05-BoardLight/8.png)
+![](/assets/img/2026-03-05-BoardLight/8.png)
 
 That's all y'all, this box was pretty easy but goes to show how keeping important services and utilities up to date can be as mitigation. I hope this was helpful to anyone following along or stuck and happy hacking!

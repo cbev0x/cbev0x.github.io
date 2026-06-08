@@ -59,7 +59,7 @@ There are a total of five ports open:
 ## Initial Enumeration
 Testing for Guest/Null authentication over SMB shows that it has been disabled, which really just leaves us with exploiting the web application. 
 
-![](../assets/img/2026-04-01-Heist/1.png)
+![](/assets/img/2026-04-01-Heist/1.png)
 
 ### Support Website
 I fire up Ffuf to search for subdirectories and Vhosts in the background before heading over to the site.
@@ -97,11 +97,11 @@ attachments             [Status: 301, Size: 156, Words: 9, Lines: 2, Duration: 5
 
 Checking out the landing page shows a login portal for some time of support service. Attempting default credentials such as admin:admin or other common passwords does not work to authenticate.
 
-![](../assets/img/2026-04-01-Heist/2.png)
+![](/assets/img/2026-04-01-Heist/2.png)
 
 We are allowed to login as a guest and doing so reveals a chat history between the Support Admin and a user named Hazard. This conversation describes an issue that the person has been having with their Cisco router and attached is a portion of the configuration file.
 
-![](../assets/img/2026-04-01-Heist/3.png)
+![](/assets/img/2026-04-01-Heist/3.png)
 
 ### Cracking Passwords
 I copy the link and download the text file via cURL to get a closer look at it.
@@ -155,18 +155,18 @@ line vty 0 4
 
 Towards the top of the file, we find an MD5crypt hash along with a few Cisco type 7 encoded passwords for the router and admin logins. If we save that hash to a file and send it over to Hashcat or JohnTheRipper, we're able to crack it, retrieving the plaintext password.
 
-![](../assets/img/2026-04-01-Heist/4.png)
+![](/assets/img/2026-04-01-Heist/4.png)
 
 As for the Cisco type 7 encoded passwords, we can search online for tools that will decode them. I find this [Github repository](https://github.com/ilneill/Py-CiscoT7/blob/master/src/Py-CiscoT7.py) that conveniently encodes and decodes strings given so that we can grab these passwords as well.
 
-![](../assets/img/2026-04-01-Heist/5.png)
+![](/assets/img/2026-04-01-Heist/5.png)
 
 ## SMB Exploitation
 Using the password recovered from the MD5crypt hash on the main page's login with the username of Hazard from the Support issues page fails. Because my scans didn't find any other interesting directories, particularly to use these credentials at, I swap back to SMB.
 
 Netexec reveals that this password succeeds with the Hazard account, however doesn't have access to any non-standard SMB shares or the capability to WinRM onto the machine.
 
-![](../assets/img/2026-04-01-Heist/6.png)
+![](/assets/img/2026-04-01-Heist/6.png)
 
 Although we have authentication, we're not able to do much on this account since it isn't apart of the Remote Management group that can get a shell over WinRM. For that reason, I'll brute force RIDs to find other valid account names on the domain and spray this password against them.
 
@@ -199,7 +199,7 @@ This returns three user accounts on the SupportDesk domain with the names of sup
 $ nxc smb 10.129.96.157 -u users.txt -p passwords.txt --continue-on-success
 ```
 
-![](../assets/img/2026-04-01-Heist/7.png)
+![](/assets/img/2026-04-01-Heist/7.png)
 
 That returns a valid login for Chase's account using one of the Cisco type 7 decoded passwords. Checking to see if this user has WinRM privileges shows that we can grab a shell with tools like [Evil-WinRM](https://github.com/hackplayers/evil-winrm).
 
@@ -209,7 +209,7 @@ $ nxc winrm 10.129.96.157 -u 'chase' -p '[REDACTED]'
 $ evil-winrm -i 10.129.96.157 -u 'chase' -p '[REDACTED]'
 ```
 
-![](../assets/img/2026-04-01-Heist/8.png)
+![](/assets/img/2026-04-01-Heist/8.png)
 
 At this point, we can grab the user flag under his Desktop folder and start internal enumeration to escalate privileges to Administrator.
 
@@ -222,7 +222,7 @@ While enumerating Chase's home directory, I discover a Mozilla Firefox folder wi
 *Evil-WinRM* PS C:\Users\Chase> dir -r -Force
 ```
 
-![](../assets/img/2026-04-01-Heist/9.png)
+![](/assets/img/2026-04-01-Heist/9.png)
 
 ### File Decrypt Failure
 We can use a tool such as [Firefox-Decrypt](https://github.com/unode/firefox_decrypt/blob/main/firefox_decrypt.py) to retrieve stored passwords in these files after transferring them to our local machine. 
@@ -231,7 +231,7 @@ We can use a tool such as [Firefox-Decrypt](https://github.com/unode/firefox_dec
 $ python3 firefox_decrypt.py .
 ```
 
-![](../assets/img/2026-04-01-Heist/10.png)
+![](/assets/img/2026-04-01-Heist/10.png)
 
 This doesn't return anything and after further research, Firefox stores encrypted login credentials in a file named `logins.json` that can be decrypted with `key4.db`. This profile lacked the logins files so we're left with nothing.
 
@@ -288,12 +288,12 @@ Since this dump is from memory, we have to treat it differently from other plain
 - The `-a` flag forces grep to treat binary files as text
 - The `-i` flag returns the line in which the specified word is in
 
-![](../assets/img/2026-04-01-Heist/11.png)
+![](/assets/img/2026-04-01-Heist/11.png)
 
 That outputs a ton of info, but we can find a POST request from localhost containing credentials for the administrator on the Support site. It also seems this was stored in a Crash Reporter directory.
 
 Testing that password for the machine's administrator over WinRM as well succeeds and we're granted a shell on the system with full privileges.
 
-![](../assets/img/2026-04-01-Heist/12.png)
+![](/assets/img/2026-04-01-Heist/12.png)
 
 Grabbing the final flag under their Desktop folder completes this challenge. Overall, I enjoyed this box as it covered some lesser-known techniques and tactics. I hope this was helpful to anyone following along or stuck and happy hacking!

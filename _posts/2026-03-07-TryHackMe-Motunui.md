@@ -141,7 +141,7 @@ Not a whole lot we can do on that version of OpenSSH without credentials so I fi
 nxc smb 10.64.137.61 -u 'Guest' -p '' --shares
 ```
 
-![](../assets/img/2026-03-07-Motunui/1.png)
+![](/assets/img/2026-03-07-Motunui/1.png)
 
 As we can see, Guest authentication is enabled on the Samba shares and we have read permissions for "traces". There are only a few files in each of the directories, however they are all tickets and seem to be packet captures on the network. 
 
@@ -152,20 +152,20 @@ Interestingly, opening up the pcaps in Wireshark show that only the `ticket_6746
 
 Once we have it locally, displaying it with `xdg-open` shows a screenshot of someone's browser. Checking the URL discloses a development subdomain for the site which we can add to our `/etc/hosts` file to start enumeration.
 
-![](../assets/img/2026-03-07-Motunui/2.png)
+![](/assets/img/2026-03-07-Motunui/2.png)
 
 Even though this is useful, I'm going to finish HTTP enumeration on the already exposed web servers to be thorough. Checking out the landing page on port 80 shows the default Apache HTML that is seen on fresh installs. My scans don't pick up anything else here, so I focus in on the Node.js site.
 
-![](../assets/img/2026-03-07-Motunui/3.png)
+![](/assets/img/2026-03-07-Motunui/3.png)
 
 Hopping over to port 5000, making sure to specify that it's HTTPS, shows that it's using a self-signed certificate. Unfortunately, there is no information like alternative domain names or emails for us to gather. Checking out this landing page just displays a welcome text, meaning that enumeration will be key in expanding our attack surface.
 
-![](../assets/img/2026-03-07-Motunui/4.png)
+![](/assets/img/2026-03-07-Motunui/4.png)
 
 ## API Hacking
 The only thing left is the dev virtual host found in the pcap, so that'll be our next destination. The landing page just displays a message saying that this Vhost is solely meant for the site's developers. 
 
-![](../assets/img/2026-03-07-Motunui/5.png)
+![](/assets/img/2026-03-07-Motunui/5.png)
 
 Checking my scans shows one key difference from the previous one, the presence of `/docs` looks interesting considering developers store stuff here.
 
@@ -200,7 +200,7 @@ server-status           [Status: 403, Size: 288, Words: 20, Lines: 10, Duration:
 
 Navigating to that directory automatically redirects us to the README.md file which grants us a few other markdown documents to check out. The routes are intriguing in particular as they're for APIs in development.
 
-![](../assets/img/2026-03-07-Motunui/6.png)
+![](/assets/img/2026-03-07-Motunui/6.png)
 
 Opening the file gives us two APIs for the service on port 3000 under the `/v2/` directory. The base URL for these are at `api.motunui.thm`, so I go ahead and add that to my hosts file as well.
 
@@ -267,7 +267,7 @@ Creates a new cron job running as the current user.
 
 This means we can potentially add new cronjobs for the running user by making requests to this API. The only problem is that the parameter needed to use it is a hash. Because the base URL pointed towards v2, I tried reaching the older variants at v1 which returned a message telling us to get Maui to update the routes.
 
-![](../assets/img/2026-03-07-Motunui/7.png)
+![](/assets/img/2026-03-07-Motunui/7.png)
 
 That gives us a username to play around with. Due to us having access to a login API and the need to get a valid hash in order to make new cronjobs, I'm going to brute force the password for the Maui user until we get a hit.
 
@@ -291,7 +291,7 @@ That returns a successful request pretty quick and we can now attempt to authent
 
 Since the login API returns a hash for the user's password, we can use it to grab the string in a Burp Suite or cURL request.
 
-![](../assets/img/2026-03-07-Motunui/8.png)
+![](/assets/img/2026-03-07-Motunui/8.png)
 
 ## Initial Foothold via Cronjob
 In order for this to work, we'll need to make a POST request to `/v2/jobs` with a valid hash and an malicious job for our parameters. I'm going to schedule the server to execute a Netcat mkfifo reverse shell that points towards my attacking IP to get a foothold on the box. If you're unfamiliar with the crontabs syntax, refer to [this article](https://dev.to/aasik_20409e3305686b324ec/what-is-a-cronjob-and-understanding-syntax-2p6p).
@@ -304,7 +304,7 @@ Capturing a request to an API in Burp Suite and changing the method proved very 
 
 After standing up a Netcat listener to catch the connection and waiting a minute for the cronjob to execute, we get a shell as `www-data`. I also upgrade and stabilize it with the standard `python3 import pty` method.
 
-![](../assets/img/2026-03-07-Motunui/9.png)
+![](/assets/img/2026-03-07-Motunui/9.png)
 
 ## Privilege Escalation
 Now that we're on the filesystem, we can start internal enumeration to escalate privileges to other users. Checking the `/home` directory shows just one other user on the box named Moana, who has a note from root inside:
@@ -336,14 +336,14 @@ en (switches us to privileges EXEC mode)
 show run (displays the running-config for the switch)
 ```
 
-![](../assets/img/2026-03-07-Motunui/10.png)
+![](/assets/img/2026-03-07-Motunui/10.png)
 
 Heading back over to the machine, I authenticate with these creds to get a proper shell on the box as Moana. At this point we can also grab the user flag under her home directory and look for routes to escalate privileges to root.
 
 ### Service Hijacking
 I spend some time enumerating the filesystem for any writable files that were being executed but really couldn't find anything at all. The usual places like SUID bits set on important binaries, loose Sudo permissions, and cronjobs didn't return much either. I resorted to uploading [LinPEAS](https://github.com/peass-ng/PEASS-ng/tree/master/linPEAS) and [pspy](https://github.com/DominicBreuker/pspy) to discover certian things we could use in our endeavor towards root which showed that we had write access over the API service under `/etc/systemd`.
 
-![](../assets/img/2026-03-07-Motunui/11.png)
+![](/assets/img/2026-03-07-Motunui/11.png)
 
 This is a dangerous thing to have since the contents of the file has a line that executes a command specifying where and how to start the service.
 
@@ -418,11 +418,11 @@ For this step, I use the [goldeneye.py](https://github.com/bergercookie/hacking/
 
 Hitting the webpage returns an error saying that it's unable to connect which confirms that the denial of service is working.
 
-![](../assets/img/2026-03-07-Motunui/12.png)
+![](/assets/img/2026-03-07-Motunui/12.png)
 
 Now we can just stop sending those requests and let the service start back up and run our malicious code. Giving it a second and displaying file permissions for the Bash binary show that it now has the SUID bit set and we can spawn a root shell.
 
-![](../assets/img/2026-03-07-Motunui/13.png)
+![](/assets/img/2026-03-07-Motunui/13.png)
 
 Grabbing the final flag under the `/root` directory completes this challenge. Looking back on how others completed this box shows that I went down a very unintended route of abusing systemd misconfigurations. If we were to dig around the filesystem a bit more, there was a pre-master secret key which is used to decrypt TLS in the `/etc` directory. Supplying that to our Wireshark client allows us to read the HTTPS traffic on the earlier packet capture which holds a POST request with root credentials.
 

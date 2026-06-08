@@ -75,15 +75,15 @@ Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 ```
 We get a whole lot of stuff back from that. Seeing as 90 ports are open, i'll start with the more normal and easier things to enumerate such as FTP, Telnet, and HTTP.
 
-![](../assets/img/2026-01-17-Inferno/1.png)
+![](/assets/img/2026-01-17-Inferno/1.png)
 
 Checking the landing page on port 80 shows a quote from Dante's Inferno and a picture portraying the nine circles of hell. Not much info other than that so I start fuzzing for directories and subdomains.
 
-![](../assets/img/2026-01-17-Inferno/2.png)
+![](/assets/img/2026-01-17-Inferno/2.png)
 
 I discover a login panel at /inferno and capturing the request in Burp Suite shows that our credentials are base64 encoded and sent as an Authorization header.
 
-![](../assets/img/2026-01-17-Inferno/3.png)
+![](/assets/img/2026-01-17-Inferno/3.png)
 
 ## Brute Forcing
 I'll throw a quick script together to brute force this panel. I use the usernames Dante, root, Admin, Lucifer, and Inferno alongside rockyou.txt. 
@@ -167,13 +167,13 @@ if __name__ == "__main__":
 
 You can totally do this with Hydra too but I felt like making my own script. Either way, letting that run for a bit returns a successful login as Admin and we gain access to Codiad (a web-based IDE framework).
 
-![](../assets/img/2026-01-17-Inferno/4.png)
+![](/assets/img/2026-01-17-Inferno/4.png)
 
 I check Searchsploit for any quick wins and find that there are four PoCs for Authenticated RCE.
 
 I use [this one](https://github.com/WangYihang/Codiad-Remote-Code-Execute-Exploit) created by WangYihang. Supplying all parameters resolves our request to a 401 unauthorized error, this is because we had to sign in at the pop up as well as the Codiad login panel.
 
-![](../assets/img/2026-01-17-Inferno/5.png)
+![](/assets/img/2026-01-17-Inferno/5.png)
 
 Since we captured that request from earlier, I know it's just basic auth and we can provide the creds by prepending `admin:password@` to our URL.
 
@@ -194,17 +194,17 @@ _Note: The port and IP will be the one you provided, so change accordingly._
 ## Privilege Escalation
 Now that we have a shell as www-data, I look around the system for anyone creds laying around and in /home for any user's personal info. It seems like the system executes a cronjob or something like it to run an exit command every minute or so. Better find something quick!
 
-![](../assets/img/2026-01-17-Inferno/6.png)
+![](/assets/img/2026-01-17-Inferno/6.png)
 
 I discover a file under /home/dante/Downloads containing lines of hexadecimal values. Decoding this gives us some Italian literature and Dante's SSH credentials.
 
-![](../assets/img/2026-01-17-Inferno/7.png)
+![](/assets/img/2026-01-17-Inferno/7.png)
 
 With a stable shell we can grab the first flag under Dante's home directory and begin looking for ways to escalate privileges to root.
 
 I see that we have access to run the tee binary as root user without a password. [GTFOBins](https://gtfobins.github.io/gtfobins/tee/#file-write) has a method for us to write to a file without having privileges over it.
 
-![](../assets/img/2026-01-17-Inferno/8.png)
+![](/assets/img/2026-01-17-Inferno/8.png)
 
 You can grab a root shell many ways, for example echoing an SSH key into `/root/.ssh/authorized_keys` or adding a line to the `/etc/sudoers` file, however I'll be adding another user with root's uid to `/etc/passwd` so we can switch to their account with ease.
 
@@ -222,7 +222,7 @@ echo "USERNAME:HASH:0:0:root:/root:/bin/bash" | sudo tee -a /etc/passwd
 
 _Note: You will have to character escape the $ signs with a backslash because we are using echo here._
 
-![](../assets/img/2026-01-17-Inferno/9.png)
+![](/assets/img/2026-01-17-Inferno/9.png)
 
 All that's left is to grab the final flag under root's home directory and finish the box. I hope this was helpful to anyone stuck or following along and happy hacking!
 

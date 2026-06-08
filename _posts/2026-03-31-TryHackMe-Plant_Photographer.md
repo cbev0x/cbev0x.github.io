@@ -74,21 +74,21 @@ console                 [Status: 200, Size: 1985, Words: 411, Lines: 53, Duratio
 ## Web Enumeration
 The landing page shows a personal page that hosts their photographing portfolio and also provides a way to download their resume.
 
-![](../assets/img/2026-03-31-Plant_Photographer/1.png)
+![](/assets/img/2026-03-31-Plant_Photographer/1.png)
 
 ### Admin Page
 The sidebar menu gives a few links to static places on the main page, along with an admin redirect that displays a message disclosing that it is only reachable from localhost.
 
-![](../assets/img/2026-03-31-Plant_Photographer/2.png)
+![](/assets/img/2026-03-31-Plant_Photographer/2.png)
 
 I capture a request to this endpoint in hopes that we can perform host header manipulation to gain access. Among the popular tricks to bypass localhost authentication is supplying a loopback address in an `X-Forwarded-For` header, which may trick the server into identifying our request as coming from elsewhere, however nothing seemed to work. 
 
-![](../assets/img/2026-03-31-Plant_Photographer/3.png)
+![](/assets/img/2026-03-31-Plant_Photographer/3.png)
 
 ### Console Panel
 My directory searches did find a console panel that was PIN protected, but this is standard for Werkzeug applications and allows for quick access to debug Python expressions. I have seen this page leak hostnames in the footer before so it's worth checking out when it pops up.
 
-![](../assets/img/2026-03-31-Plant_Photographer/4.png)
+![](/assets/img/2026-03-31-Plant_Photographer/4.png)
 
 Further research revealed that this PIN is deterministic and is comprised of nine digits following a `XXX-XXX-XXX` format. It can be found normally in the server shell's stdout, making this technically vulnerable but not worth spending time on right now. 
 
@@ -104,11 +104,11 @@ The only other thing on this site was the presence of a download API that is mea
 ### Discovering Request Logic
 The original request points toward a file server on port 8087, which is not available externally. Attempting to fetch the admin page on port 80, which was not accessible from outside localhost throws a 500 Internal Server error and reveals that the application is using PycURL to make these requests.
 
-![](../assets/img/2026-03-31-Plant_Photographer/5.png)
+![](/assets/img/2026-03-31-Plant_Photographer/5.png)
 
 Knowing that we can make requests to outbound machines, I stand up a Netcat listener and supply my attacking IP in hopes to catch a connection.
 
-![](../assets/img/2026-03-31-Plant_Photographer/6.png)
+![](/assets/img/2026-03-31-Plant_Photographer/6.png)
 
 This succeeds and gives us a custom API key header, which also serves as our first flag. Inspecting the server's request shows that it looks inside of the `/public-docs-k057230990384293` directory for a PDF that matches our ID parameter.
 
@@ -118,7 +118,7 @@ This succeeds and gives us a custom API key header, which also serves as our fir
 
 While attempting to provide an ID that doesn't exist, I'm redirected to strange error page that reveals how the application builds the requests.
 
-![](../assets/img/2026-03-31-Plant_Photographer/7.png)
+![](/assets/img/2026-03-31-Plant_Photographer/7.png)
 
 Our previous attempts show that we have full control over the server and id parameters, however the app appends the .pdf extension to each request and only accepts literal integers for the id.
 
@@ -147,7 +147,7 @@ This effectively upgrades our SSRF requests to fetch local resources other than 
 
 A bit of playing around with it showed that the document with an ID of 1 on port 8087 grants us the second flag.
 
-![](../assets/img/2026-03-31-Plant_Photographer/8.png)
+![](/assets/img/2026-03-31-Plant_Photographer/8.png)
 
 ### Reading Files on Server
 If we recall, the application uses PycURL to make requests which supports the use of the `file://` protocol. I make use of that to read the application's source code at `/usr/src/app/app.py` that can be found in the output of error pages from earlier.
@@ -311,7 +311,7 @@ That shows all 0s which matches to root, as seen in `/etc/passwd`. We can leave 
 
 As for the fourth one, we can refer back to the error page to find the correct `getattr(mod, '__file__', None)` value.
 
-![](../assets/img/2026-03-31-Plant_Photographer/9.png)
+![](/assets/img/2026-03-31-Plant_Photographer/9.png)
 
 ### private_bits
 Moving on, the private bits are a bit more complicated. The Hacktricks article discloses that the value of `str(uuid.getnode())` is the MAC address of the interface in use, translated to decimal format.
@@ -443,7 +443,7 @@ $ python3 GeneratePIN.py
 134-038-673
 ```
 
-![](../assets/img/2026-03-31-Plant_Photographer/10.png)
+![](/assets/img/2026-03-31-Plant_Photographer/10.png)
 
 Hmm, awkward. I tried reverting to using the SHA-1 algorithm and double checked all my bit list values but got nothing to work. Since the newer renditions of Werkzeug's debug console use SHA-1, I figured that the way they generated the PIN could also have been updated over the years.
 
@@ -555,6 +555,6 @@ print(rv)
 
 After gaining access to this, we can simply import the OS module to execute commands and retrieve the final flag under the application's root directory.
 
-![](../assets/img/2026-03-31-Plant_Photographer/11.png)
+![](/assets/img/2026-03-31-Plant_Photographer/11.png)
 
 That's all y'all, this box had me doing a deep dive on ways to generate that PIN but I had fun either way. This serves as a reminder to not leave debug options on in production environments because attacks like these are not far-fetched. I hope this was helpful to anyone following along or stuck and happy hacking.

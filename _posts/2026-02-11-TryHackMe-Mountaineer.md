@@ -40,7 +40,7 @@ There are just two ports open:
 
 Not too much we can do on SSH without credentials so I fire up Gobuster to find subdirectories/subdomains in the background before heading over to the webpage. It looks like the standard welcome text for a fresh nginx install, so enumeration will be key on this box as we don't have anything to exploit yet.
 
-![](../assets/img/2026-02-11-Mountaineer/1.png)
+![](/assets/img/2026-02-11-Mountaineer/1.png)
 
 ```
 $ gobuster dir -u http://10.65.135.175/wordpress/ -w /opt/SecLists/directory-list-2.3-medium.txt
@@ -70,11 +70,11 @@ Finished
 
 My directory search finds a page that redirects us to an application built on Wordpress. I should mention that I had to add mountaineer.thm to my `/etc/hosts` file for the page to load properly even though the scope did not provide it. This site it a dedicated blog for different mountains to post about themselves, taking some time to look around the site gives us a few usernames of Cho0yu, MontBlanc, Everest, and Admin. 
 
-![](../assets/img/2026-02-11-Mountaineer/2.png)
+![](/assets/img/2026-02-11-Mountaineer/2.png)
 
 All the typical Wordpress endpoints exist, including wp-admin that redirects us to a login panel. Other than brute forcing or some kind of misconfiguration, the only vulnerability I could think of was IDOR to a sensitive page.
 
-![](../assets/img/2026-02-11-Mountaineer/3.png)
+![](/assets/img/2026-02-11-Mountaineer/3.png)
 
 That just returned the known listed blogs. I'll be using WPScan to quickly enumerate any vulnerable plugins/themes along with any more users.
 
@@ -270,28 +270,28 @@ I spent some time fuzzing for endpoints or APIs under the that directory but it 
 ## LFI on Images Directory
 I break out cURL as browser's automatically redirect us and we won't be able to gather as much info. Making requests to both `/images` and `/images/` respond with a 301 and 403 respectively. The `301 Moved Permanently` code indicates that the server attempted to access the resource but it had been moved, this is massive as it didn't throw a `404 Error`. 
 
-![](../assets/img/2026-02-11-Mountaineer/4.png)
+![](/assets/img/2026-02-11-Mountaineer/4.png)
 
 The presence of a trailing slash would be problematic as it would lock us under that directory, but since there isn't one we can utilize directory traversal characters to read local files on the server. Let's test that theory by trying to look at /etc/passwd .
 
-![](../assets/img/2026-02-11-Mountaineer/5.png)
+![](/assets/img/2026-02-11-Mountaineer/5.png)
 
 That delivers us the file successfully and I grep for bash to find all users on the system. My next step would be to search for common sensitive resources on the server, such as SSH keys, web configuration files, or DB backups.
 
 ## Roundcube Subdomain
 Nothing came of searching user directories, but the nginx sites-available file discloses a subdomain that pertains to an admin login for the Roundcube mail application.
 
-![](../assets/img/2026-02-11-Mountaineer/6.png)
+![](/assets/img/2026-02-11-Mountaineer/6.png)
 
 After adding that to my `/etc/hosts` file, I check it out only to find login panel without much information on the main page. I figured that this site was pretty well-hidden so the admin wouldn't care if their password was weak, so I started manually brute-forcing logins (ie. admin:admin or admin:password). Eventually, I get a successful login when supplying K2 for both fields.
 
 Looking through the mail received, I find a password for K2's account sent in a heartwarming message from the user Nanga. 
 
-![](../assets/img/2026-02-11-Mountaineer/7.png)
+![](/assets/img/2026-02-11-Mountaineer/7.png)
 
 There was also an email sent from our account to Lhotse that disclosed some personal details about them.
 
-![](../assets/img/2026-02-11-Mountaineer/8.png)
+![](/assets/img/2026-02-11-Mountaineer/8.png)
 
 ## Initial Foothold
 That password works to login at the Wordpress site and now we can use that RCE vulnerability gathered from earlier to get a shell on the box as the server. We also could've reset our password by using the built-in function at wp-admin and checking the inbox.
@@ -314,7 +314,7 @@ $ python3 50082.py -T mountaineer.thm -P 80 -U /wordpress/ -u k2 -p '[REDACTED]'
 
 Once the PoC is executed, we can navigate to the uploads directory to find our super cool Webshell.
 
-![](../assets/img/2026-02-11-Mountaineer/9.png)
+![](/assets/img/2026-02-11-Mountaineer/9.png)
 
 As nice as the p0wnyshell is and even operates, I prefer bash since we don't have a whole lot of functionality in it. A simple netcat mkfifo reverse shell grants me a session as www-data and we can start internal enumeration for finding privesc towards root user.
 
@@ -375,7 +375,7 @@ nc -lvnp 4444 > Backup.kdbx
 
 Opening this with the [Keepassxc tool](https://github.com/keepassxreboot/keepassxc) shows that it's password locked. 
 
-![](../assets/img/2026-02-11-Mountaineer/10.png)
+![](/assets/img/2026-02-11-Mountaineer/10.png)
 
 I kept thinking about the strange email we sent to Lhotse that contained all the information we knew about them. Maybe we are meant to make a wordlist using those keywords and brute force the password that way. If that doesn't end up working, I'll convert the file to a crackable hash format using `keepass2john` and let that run a while.
 
@@ -425,22 +425,22 @@ $ cupp -i
 
 That tool contains almost the exact same fields to input our information at which gives me some hope that this will work. Hydra and other standard BF tools don't support KeePass formats so I find [this script](https://github.com/r3nt0n/keepass4brute) to test with our new wordlist.
 
-![](../assets/img/2026-02-11-Mountaineer/11.png)
+![](/assets/img/2026-02-11-Mountaineer/11.png)
 
 That gives us the correct password for the backup file and we can now dump the database. Doing so rewards us with kangchenjunga's password.
 
-![](../assets/img/2026-02-11-Mountaineer/12.png)
+![](/assets/img/2026-02-11-Mountaineer/12.png)
 
 I use those credentials to login via SSH and grab the local flag inside our home directory. Along with it is a note disclosing that root user keeps using our account and some personal statements.
 
-![](../assets/img/2026-02-11-Mountaineer/13.png)
+![](/assets/img/2026-02-11-Mountaineer/13.png)
 
 Knowing that root user abuses access to our account, we can assume that they run commands that will be logged; Luckily for us, our `.bash_history` file doesn't point to `/dev/null` allowing us to read their password.
 
-![](../assets/img/2026-02-11-Mountaineer/14.png)
+![](/assets/img/2026-02-11-Mountaineer/14.png)
 
 Finally, I switch users to root and grab the final flag inside /root directory to finish out the challenge. There's also a note from the box's developer which I recommend reading.
 
-![](../assets/img/2026-02-11-Mountaineer/15.png)
+![](/assets/img/2026-02-11-Mountaineer/15.png)
 
 That's all y'all, this box was a fun one that really tested enumeration and researching skills. Big thanks to [Nirza](https://tryhackme.com/p/nirza) for creating this challenge as well. I hope this was helpful to anyone following along or stuck and happy hacking!

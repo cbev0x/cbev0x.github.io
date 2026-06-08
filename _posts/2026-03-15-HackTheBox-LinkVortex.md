@@ -41,11 +41,11 @@ We won't be able to do much with that version of OpenSSH without credentials, so
 ## Website Enumeration
 Checking out the landing page shows a place to get information about computer hardware. The page is dynamic and hosts a bunch of blog posts about the many pieces of a working computer.
 
-![](../assets/img/2026-03-15-LinkVortex/1.png)
+![](/assets/img/2026-03-15-LinkVortex/1.png)
 
 The footer contains a sign up panel that doesn't actually work, but also discloses that the site is powered by Ghost. Ghost is a Content Management System that allows users to publish SEO-optimized articles, however more notably, it uses Node.js as its backend and React for the frontend. This is a great bit of info to have as figuring out the technology stack can be a huge help in getting reverse shells or finding vulnerabilities.
 
-![](../assets/img/2026-03-15-LinkVortex/2.png)
+![](/assets/img/2026-03-15-LinkVortex/2.png)
 
 I can't find any useful functionality on this page or directories from my scans, however Ffuf picks up a virtual host of `dev.linkvortex.htb` which I add to my hosts file as well.
 
@@ -81,7 +81,7 @@ dev                     [Status: 200, Size: 2538, Words: 670, Lines: 116, Durati
 
 This page just displays a message saying that the site is still under development. As with anything not completely finished, we may have unauthorized access to important things, so I rerun directory scans to search for interesting points.
 
-![](../assets/img/2026-03-15-LinkVortex/3.png)
+![](/assets/img/2026-03-15-LinkVortex/3.png)
 
 ```
 $ ffuf -u http://dev.linkvortex.htb/FUZZ -w /opt/SecLists/Discovery/Web-Content/raft-small-words.txt --fs 0
@@ -133,22 +133,22 @@ $ cd git-src
 ### Commit Diffs
 We can use the git diff command to view the changes between each commit, however there doesn't seem to be anything useful in them. Checking the status shows that there are two new changes that have yet to be committed. First is an `authentication.test.js` file that has been modified, and the second being a new Dockerfile for the Ghost CMS site. 
 
-![](../assets/img/2026-03-15-LinkVortex/4.png)
+![](/assets/img/2026-03-15-LinkVortex/4.png)
 
 Displaying both of these on their own showed nothing interesting, however when showing what was changed in the `ghost/core/test/regression/api/admin/authentication.test.js` file, a new password emerges. I'll assume that this is for the main website and not some other application for now.
 
-![](../assets/img/2026-03-15-LinkVortex/5.png)
+![](/assets/img/2026-03-15-LinkVortex/5.png)
 
 The default admin panel for Ghost CMS sites is at `/ghost` and going there prompts us to login. We couldn't find an email for the earlier password, but just trying it along with `admin@linkvortex.htb` succeeds and we're redirected to the dashboard.
 
-![](../assets/img/2026-03-15-LinkVortex/6.png)
+![](/assets/img/2026-03-15-LinkVortex/6.png)
 
 A quick look around shows just one potentially useful feature, which is the code injection tab under settings. This would allow us to add HTML to the site's header and footer, but after some time messing around with it, I couldn't figure out anything useful for it.
 
 ## CVE-2023–40028
 Interestingly, I can't find the version in use even though we're logged in as the admin. Heading back to the Git files, I eventually find that it's using Ghost v5.58.0 inside of the Dockerfile.
 
-![](../assets/img/2026-03-15-LinkVortex/7.png)
+![](/assets/img/2026-03-15-LinkVortex/7.png)
 
 Taking to Google and ExploitDB to find any common vulnerabilities in this implementation leads me to finding [CVE-2023–40028](https://nvd.nist.gov/vuln/detail/CVE-2023-40028), which explains that authenticated users are able to upload files that are symlinks. This can be exploited into reading any file on the host operating system.
 
@@ -158,7 +158,7 @@ I use this Arbitrary File Read [Python script](https://github.com/godylockz/CVE-
 $ python3 ghost_fileread.py -t http://linkvortex.htb -u admin@linkvortex.htb -p [REDACTED]
 ```
 
-![](../assets/img/2026-03-15-LinkVortex/8.png)
+![](/assets/img/2026-03-15-LinkVortex/8.png)
 
 The contents of `/etc/passwd` don't actually show any users other than root, so we can't snoop through anyone's home directory. Earlier, we saw that the Dockerfile copied the production config file to a location on the filesystem that we should be able to read.
 
@@ -177,14 +177,14 @@ index 0000000..50864e0
 
 Displaying the contents of that production config file gives us credentials for a user named Bob.
 
-![](../assets/img/2026-03-15-LinkVortex/9.png)
+![](/assets/img/2026-03-15-LinkVortex/9.png)
 
 Attempting to use these over SSH actually works and we get a proper shell on the system. I guess the script couldn't print that many lines as Bob's entry is indeed inside of `/etc/passwd` upon double checking. At this point we can grab the user flag under his home directory and start internal enumeration to escalate privileges towards root.
 
 ## Privilege Escalation
 Whilst checking the usual routes for privesc, I notice that Bob has permission to run a Bash script as root, provided we give it a `.png` file as a parameter.
 
-![](../assets/img/2026-03-15-LinkVortex/10.png)
+![](/assets/img/2026-03-15-LinkVortex/10.png)
 
 ### Script Anatomy
 The following is what the script executes:
@@ -255,10 +255,10 @@ $ export CHECK_CONTENT=true
 $ sudo bash /opt/ghost/clean_symlink.sh /home/bob/1.png
 ```
 
-![](../assets/img/2026-03-15-LinkVortex/11.png)
+![](/assets/img/2026-03-15-LinkVortex/11.png)
 
 That works to retrieve Root user's `id_rsa` private key which can be used to authenticate over SSH and grab a shell as them. Make sure to give the key file correct permissions before attempting it.
 
-![](../assets/img/2026-03-15-LinkVortex/12.png)
+![](/assets/img/2026-03-15-LinkVortex/12.png)
 
 Finally, grabbing the root flag under their home directory completes this challenge. Overall this box was pretty cool, it definitely required some knowledge of Git and functions of symlinks, but I enjoyed it plenty. I hope this was helpful to anyone following along or stuck and happy hacking!

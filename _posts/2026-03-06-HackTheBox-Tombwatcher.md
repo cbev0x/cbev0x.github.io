@@ -77,11 +77,11 @@ Looks like we're dealing with a Windows machine with Active Directory components
 
 Checking out the landing page for the web server just shows the typical Microsoft IIS starter page. I'll leave subdirectory and subdomain scans running in the background in case we find a login somewhere.
 
-![](../assets/img/2026-03-06-Tombwatcher/1.png)
+![](/assets/img/2026-03-06-Tombwatcher/1.png)
 
 This is an assumed breach box, meaning we are granted credentials for a user beforehand. I use them to authenticate over SMB in order to discover any readable shares as well as grab a list of users on the domain by RID brute forcing.
 
-![](../assets/img/2026-03-06-Tombwatcher/2.png)
+![](/assets/img/2026-03-06-Tombwatcher/2.png)
 
 ```
 #Capturing output of RID brute-force to a file
@@ -102,7 +102,7 @@ bloodhound-python -u henry -p 'H3nry_987TGV!' -d tombwatcher.htb -ns 10.129.45.2
 
 It seems like our account doesn't have much access as we're only apart of the users and domain users group. The one interesting thing under outbound object control is the capability to `writeSPN` over Alfred's account.
 
-![](../assets/img/2026-03-06-Tombwatcher/3.png)
+![](/assets/img/2026-03-06-Tombwatcher/3.png)
 
 As there's not much else to do, our only choice is to perform a Targeted Kerberoasting attack on that account.
 
@@ -137,14 +137,14 @@ sudo rdate -n flight.htb
 nxc ldap dc01.tombwatcher.htb -u henry -p 'H3nry_987TGV!' -k --kerberoasting hashes
 ```
 
-![](../assets/img/2026-03-06-Tombwatcher/4.png)
+![](/assets/img/2026-03-06-Tombwatcher/4.png)
 
 Cracking that hash is very quick and we can now authenticate as Alfred. Heading back to Bloodhound shows that he has access to `addSelf` to the Infrastructure group. Our goal is to try and grab a shell, so I check who is apart of the remote management group that can WinRM onto the domain and find that John is the only user.
 
 ## Attack Chain to John
 Using that pathfinding function shows a relatively long route to get access to that account. First, we can add ourselves to the Infrastructure group which can read the group managed service account password over `Ansible_Dev$`. Once we have access to that machine account, we can then force change Sam's password, who has `writeOwner` permissions over John's account.
 
-![](../assets/img/2026-03-06-Tombwatcher/5.png)
+![](/assets/img/2026-03-06-Tombwatcher/5.png)
 
 Getting started on that, I use BloodyAD again to add Alfred as a member to the Infrastructure group.
 
@@ -158,7 +158,7 @@ Next, I read the `Ansible_Dev$` account's hash with a simple Netexec command ove
 netexec ldap dc01.tombwatcher.htb -u alfred -p basketball --gmsa
 ```
 
-![](../assets/img/2026-03-06-Tombwatcher/6.png)
+![](/assets/img/2026-03-06-Tombwatcher/6.png)
 
 Now back to BloodyAD to change Sam's password. Note that there is no hash option and we must provide it with a password, however using a leading colon will recognize our string as a hash.
 
@@ -182,23 +182,23 @@ certipy-ad shadow auto -username sam -password 'Password123!' -account john -dc-
 
 _Note: If this fails, it may be an error in package dependencies or a cleanup script being executed that reverts changes that were just made by us._
 
-![](../assets/img/2026-03-06-Tombwatcher/7.png)
+![](/assets/img/2026-03-06-Tombwatcher/7.png)
 
 ## Privilege Escalation
 With that handled, we can now grab a shell on the box with [Evil-WinRM](https://github.com/Hackplayers/evil-winrm) using the captured NTLM hash and secure the user flag under his Desktop folder as well.
 
-![](../assets/img/2026-03-06-Tombwatcher/8.png)
+![](/assets/img/2026-03-06-Tombwatcher/8.png)
 
 Now that we finally have a shell on the box, let's start internal enumeration in order to escalate privileges to Administrator. The filesystem doesn't seem to hold anything that we can use and there are no other interesting users. Bloodhound shows that our current account has `genericAll` over the Active Directory Certificate Services group, but beyond that there isn't much we can do.
 
 ### Deleted Object
 I'm unable to see any vulnerabilities in Bloodhound, so I resort to Certipy-AD in hopes to find anything helpful for our goal. This returned something strange, it failed to lookup an object with a specific SID which I've never seen before.
 
-![](../assets/img/2026-03-06-Tombwatcher/9.png)
+![](/assets/img/2026-03-06-Tombwatcher/9.png)
 
 Some research as to why this happened reveals that Active Directory just cannot resolve the identity associated with that SID and fails. This typically means that that account/object has been deleted. While parsing the Certipy output for intriguing enrollment rights, I find that same SID under the WebServer template.
 
-![](../assets/img/2026-03-06-Tombwatcher/10.png)
+![](/assets/img/2026-03-06-Tombwatcher/10.png)
 
 My next goal is to find out what this object is and if we're able to restore it in order to help us escalate privileges. We can do this with a simple PowerShell command as we have a shell now.
 
@@ -254,7 +254,7 @@ whenCreated                     : 11/16/2024 12:07:04 PM
 ### ESC15 PrivEsc
 This shows that the deleted object was in fact a certificate admin on the domain. I'm willing to bet that since John has genericAll over the ADCS group, we're able to bring this account back from the recycle bin. We can test it out by using the `Restore-ADObject` command in PS while providing the object's GUID.
 
-![](../assets/img/2026-03-06-Tombwatcher/11.png)
+![](/assets/img/2026-03-06-Tombwatcher/11.png)
 
 Perfect, now that it's been restored, we can overwrite it's password and see if we're able to find any vulnerable ADCS templates now.
 
@@ -380,7 +380,7 @@ There's a lot happening in that command, so I'll break down what each flag is do
 - `-upn administrator@tombwatcher.htb` – Impersonated user UPN
 - `-application-policies 'Certificate Request Agent'` – Injects requested application policy (ESC15 abuse)
 
-![](../assets/img/2026-03-06-Tombwatcher/12.png)
+![](/assets/img/2026-03-06-Tombwatcher/12.png)
 
 Running that grants us an `administrator.pfx` file that we can now use in another request with the User template. This step will give us a new `.pfx` file that is used to authenticate.
 
@@ -388,7 +388,7 @@ Running that grants us an `administrator.pfx` file that we can now use in anothe
 certipy-ad req -u cert_admin -p 'Password123!' -dc-ip 10.129.45.223 -target dc01.tombwatcher.htb -ca tombwatcher-CA-1 -template User -pfx administrator.pfx -on-behalf-of 'tombwatcher\Administrator'
 ```
 
-![](../assets/img/2026-03-06-Tombwatcher/13.png)
+![](/assets/img/2026-03-06-Tombwatcher/13.png)
 
 The last step for ESC15 is to use the auth module in Certipy-AD with the new certificate in order to grant us the Administrator's hash.
 
@@ -396,10 +396,10 @@ The last step for ESC15 is to use the auth module in Certipy-AD with the new cer
 certipy-ad auth -pfx administrator_964521c7-a84d-4a39-ab2b-710fef23b4b5.pfx -dc-ip 10.129.45.223
 ```
 
-![](../assets/img/2026-03-06-Tombwatcher/14.png)
+![](/assets/img/2026-03-06-Tombwatcher/14.png)
 
 Finally, we can Evil-WinRM onto the domain and grab the root flag under their Desktop directory to complete this challenge.
 
-![](../assets/img/2026-03-06-Tombwatcher/15.png)
+![](/assets/img/2026-03-06-Tombwatcher/15.png)
 
 That's all y'all, this box was a bit difficult towards the end for me because I'm not too familiar with ADCS in general. I enjoyed the user chain that we exploited and learned plenty on the way. I hope this was helpful to anyone following along or stuck like I was and happy hacking!

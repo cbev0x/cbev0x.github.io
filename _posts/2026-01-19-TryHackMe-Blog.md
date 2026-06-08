@@ -68,7 +68,7 @@ There are four ports open:
 
 Looks like wp-admin is a disallowed entry on robots.txt, so we know the site is running Wordpress. Before checking the webpage out, I check for guest authentication on SMB.
 
-![](../assets/img/2026-01-19-Blog/1.png)
+![](/assets/img/2026-01-19-Blog/1.png)
 
 We have read and write permissions for a shared named BillySMB. There are three files on the share that are pretty useless for us (a QR code to a Billy Joel song, a Taylor Swift song on mp4 and an Alice in wonderland picture).
 
@@ -214,30 +214,30 @@ Interesting Finding(s):
 
 I discover two valid usernames of `bjoel` and `kwheel`. Xmlrpc is also enabled on this site which makes it very vulnerable to brute force attacks. Doing so grants us a successful login as `kwheel`.
 
-![](../assets/img/2026-01-19-Blog/2.png)
+![](/assets/img/2026-01-19-Blog/2.png)
 
 We can login to the site as Karen but there's not much to do as she's not an admin. There is a draft post with the title of a (maybe) random string though.
 
-![](../assets/img/2026-01-19-Blog/3.png)
+![](/assets/img/2026-01-19-Blog/3.png)
 
 ## Initial Foothold
 I check Exploit-DB for any vulnerabilities in Wordpress v5.0 and find that there is a PoC for getting remote code execution via an image upload. I tried using a python script at first but that kept failing due to an "index out of range" error, so I moved to Metasploit instead.
 
 I use the `exploit/multi/http/wp_crop_rce` module and set the local host/port, remote host, username, and password before running it to grab a shell.
 
-![](../assets/img/2026-01-19-Blog/4.png)
+![](/assets/img/2026-01-19-Blog/4.png)
 
 I use this to dump the contents of wp-config.php, which gives me a wordpress user's password.
 
-![](../assets/img/2026-01-19-Blog/5.png)
+![](/assets/img/2026-01-19-Blog/5.png)
 
 This password also works to sign in as bjoel at wp-admin. I don't really like the meterpreter shell so I'm going to update the site's template 404 page source code to a PHP reverse shell and continue from there. 
 
-![](../assets/img/2026-01-19-Blog/6.png)
+![](/assets/img/2026-01-19-Blog/6.png)
 
 Now with an actual bash shell, I can use commands like find/locate to get around easier. Displaying user.txt under bjoel's home directory shows that we need to find the actual file someplace else.
 
-![](../assets/img/2026-01-19-Blog/7.png)
+![](/assets/img/2026-01-19-Blog/7.png)
 
 ## Privilege Escalation
 Next, I check the usual routes for privesc and find a special binary with the SUID bit set on it. `/usr/bin/checker` displays whether we are an admin or not by getting an environment variable and outputting the current user's status.
@@ -246,11 +246,11 @@ Next, I check the usual routes for privesc and find a special binary with the SU
 find / -perm /4000 2>/dev/null
 ```
 
-![](../assets/img/2026-01-19-Blog/8.png)
+![](/assets/img/2026-01-19-Blog/8.png)
 
 We can set this admin env variable to be whatever we want and execute the binary as root. I set exported the var to be 0 as a test run and it simply threw me into a bash shell as root user, that was easy!
 
-![](../assets/img/2026-01-19-Blog/9.png)
+![](/assets/img/2026-01-19-Blog/9.png)
 
 It seems like this binary had a check like:
 
@@ -269,6 +269,6 @@ find / -type f -name user* 2>/dev/null
 
 This shows it was hiding inside of /media/usb, which is a very fitting place for this box's theme. That finishes out the box!
 
-![](../assets/img/2026-01-19-Blog/10.png)
+![](/assets/img/2026-01-19-Blog/10.png)
 
 Thanks to Nameless0ne for making another great challenge, I really enjoyed this one. I hope this was helpful to anyone stuck or following along and happy hacking!

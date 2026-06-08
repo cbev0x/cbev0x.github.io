@@ -27,7 +27,7 @@ This now leaves us with file full of data that needs to be XOR decrypted (the ke
 
 XOR (key=23, Decimal, Standard scheme) -> Render Image.
 
-![](../assets/img/2026-01-15-BreachBlockerUnlocker/1.png)
+![](/assets/img/2026-01-15-BreachBlockerUnlocker/1.png)
 
 Boom! That’s our key to start the box, now let’s head over to SQ4.
 
@@ -119,7 +119,7 @@ We have 4 ports open:
 
 We have some commands available to us on SMTP so I start by enumerating that port with Metasploit before heading over to the web server.
 
-![](../assets/img/2026-01-15-BreachBlockerUnlocker/2.png)
+![](/assets/img/2026-01-15-BreachBlockerUnlocker/2.png)
 
 I don’t find anything so let’s pop on over to the nginx server. I check the certificate for any more info and got nothing. Landing on the page, we see a mobile portal with a few apps installed.
 
@@ -129,50 +129,50 @@ _Hopper must somehow pivot into the linked bank account, and, outsmarting the la
 
 We need an account number and a pin to sign into the banking app, so let’s enumerate the phone some more.
 
-![](../assets/img/2026-01-15-BreachBlockerUnlocker/3.png)
+![](/assets/img/2026-01-15-BreachBlockerUnlocker/3.png)
 
 The email field in Hopflix is prefilled which grants us Sir BreachBlocker’s email. Checking his inbox discloses that the charity funds are locked
 
-![](../assets/img/2026-01-15-BreachBlockerUnlocker/4.png)
+![](/assets/img/2026-01-15-BreachBlockerUnlocker/4.png)
 
 There were some interesting text messages to say the least but the only other thing of note was an option to disable the face id on the authenticator, however that requires a 6 digit passcode.
 
 Looking at the source code on this port is long but also may disclose a portion of his bank account number.
 
-![](../assets/img/2026-01-15-BreachBlockerUnlocker/5.png)
+![](/assets/img/2026-01-15-BreachBlockerUnlocker/5.png)
 
 A bit more digging and we finally find the phone passcode hardcoded in main.js . Now we can turn off the authenticator face id so we don’t have issues in the future.
 
-![](../assets/img/2026-01-15-BreachBlockerUnlocker/6.png)
+![](/assets/img/2026-01-15-BreachBlockerUnlocker/6.png)
 
 I end up capturing a request to the bank-login API in Burp Suite to try enumerating the account_id but hit a dead end.
 
-![](../assets/img/2026-01-15-BreachBlockerUnlocker/7.png)
+![](/assets/img/2026-01-15-BreachBlockerUnlocker/7.png)
 
 The Mobile application didn’t really pan out, so I run a few Ffuf scans which brings forth an exposed nginx configuration file. This is absolutely golden as we can see how the server functions!
 
-![](../assets/img/2026-01-15-BreachBlockerUnlocker/8.png)
+![](/assets/img/2026-01-15-BreachBlockerUnlocker/8.png)
 
 Reading through it, that try_files directive is interesting to me as it tells the web server to find the URI and serve it to us. This looks normal until you realizing that when the URI doesn’t exist, that request then gets forwarded back to uWSGI .
 
-![](../assets/img/2026-01-15-BreachBlockerUnlocker/9.png)
+![](/assets/img/2026-01-15-BreachBlockerUnlocker/9.png)
 
 This is good info and may let us read the files directly from the web application’s directory. Let’s put this to the test.
 
 ## Exploitation
 I capture a request in Burp Suite and start testing common Python filenames like app.py, hello.py, etc. However,main.py grants us the first of three flags in the credentials section.
 
-![](../assets/img/2026-01-15-BreachBlockerUnlocker/10.png)
+![](/assets/img/2026-01-15-BreachBlockerUnlocker/10.png)
 
 Among the first flag are two database endpoints for Hopflix and Hopsec Bank. Checking them out shows that only the hopflix DB exists. After downloading it, I use sqlite3 to dump the users table which gives us an incredibly long password hash for Sir BreachBlocker.
 
 Looking back at the main.py code shows that each character in his hash is SHA-1 encrypted a whopping 5000 times and then concatenated at the end.
 
-![](../assets/img/2026-01-15-BreachBlockerUnlocker/11.png)
+![](/assets/img/2026-01-15-BreachBlockerUnlocker/11.png)
 
 Now I’m not too sure if it’s possible to reverse this but we can examine the hashes structure. Since SHA-1 outputs 40 characters per single one, the password must be 12 characters long.
 
-![](../assets/img/2026-01-15-BreachBlockerUnlocker/12.png)
+![](/assets/img/2026-01-15-BreachBlockerUnlocker/12.png)
 
 Taking some time to make sense of the python code, I find that if we supply a password of this length we’re able to bypass the first check. The second check hashes each character in the password and compares them in sequence to the valid password.
 
@@ -319,29 +319,29 @@ This script iterates through all characters in place of the 12-character long pa
 
 _Note: You will need to use the Attack Box for this portion as VPN connections heavily bog down our timing guesses. Comparing the two outputs (Kali and Attack Box) I got two completely different passwords on top of the AB being faster altogether._
 
-![](../assets/img/2026-01-15-BreachBlockerUnlocker/13.png)
+![](/assets/img/2026-01-15-BreachBlockerUnlocker/13.png)
 
 _Timing attacks are always a bit finicky especially when we’re guessing like this._
 
 Using this to sign into Hopflix confirms it works and we grab the second flag.
 
-![](../assets/img/2026-01-15-BreachBlockerUnlocker/14.png)
+![](/assets/img/2026-01-15-BreachBlockerUnlocker/14.png)
 
 This page doesn’t have any other functionality besides hosting the second flag so let’s try these creds for the hopsec bank app too. This works but we’re prompted to select an email for our one time pass to go to.
 
-![](../assets/img/2026-01-15-BreachBlockerUnlocker/15.png)
+![](/assets/img/2026-01-15-BreachBlockerUnlocker/15.png)
 
 Either option needs the six digit passcode from that email account.
 
-![](../assets/img/2026-01-15-BreachBlockerUnlocker/16.png)
+![](/assets/img/2026-01-15-BreachBlockerUnlocker/16.png)
 
 Looking back at the code used to generate such code shows that it is truly random.
 
-![](../assets/img/2026-01-15-BreachBlockerUnlocker/17.png)
+![](/assets/img/2026-01-15-BreachBlockerUnlocker/17.png)
 
 However the logic behind how the application handles emails is deeply flawed. It does a few checks to make sure the email address is valid, the correct structure, and is in the allowed emails/domains lists.
 
-![](../assets/img/2026-01-15-BreachBlockerUnlocker/18.png)
+![](/assets/img/2026-01-15-BreachBlockerUnlocker/18.png)
 
 The real problem here is this line:
 
@@ -360,12 +360,12 @@ We’ll need to host an SMTP server in order to receive the one time pass too. S
 
 I set up a listener on port 25 and then capture a POST request to the /api/send2fa endpoint, changing the email field to our payload. Wait a moment and we have our OTP at last.
 
-![](../assets/img/2026-01-15-BreachBlockerUnlocker/19.png)
+![](/assets/img/2026-01-15-BreachBlockerUnlocker/19.png)
 
-![](../assets/img/2026-01-15-BreachBlockerUnlocker/20.png)
+![](/assets/img/2026-01-15-BreachBlockerUnlocker/20.png)
 
 After supplying our valid OTP to sign in we can release the charity funds to grab our final flag completing the box.
 
-![](../assets/img/2026-01-15-BreachBlockerUnlocker/21.png)
+![](/assets/img/2026-01-15-BreachBlockerUnlocker/21.png)
 
 This marks the end of AOC ’25 which was very well put together. Great job to everyone involved with making the rooms/side quests. I hope this was helpful to anyone following along or stuck and happy hacking!

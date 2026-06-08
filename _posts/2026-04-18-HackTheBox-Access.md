@@ -53,7 +53,7 @@ Since there is a web server I fire up Ffuf to search for subdirectories and Vhos
 ## FTP Enumeration
 Default scripts show that the FTP server allows for anonymous login, inside are two files split between the Backups and Engineer directories. The first being an .mdb (Microsoft Access Database) file and the other, a Zip archive for Access Control information. We are also not allowed to put files onto the server, voiding any possibility of grabbing a reverse shell through the website.
 
-![](../assets/img/2026-04-18-Access/1.png)
+![](/assets/img/2026-04-18-Access/1.png)
 
 ### Dumping Backup DB
 Attempting to unzip the _Access_Control.zip_ file fails due to some type of encryption. I give a go at cracking it with zip2john, however it times out leaving me with no results. On the other hand, we're able to dump the contents of the backup database by opening Microsoft Access on Windows or using mdbtools on linux.
@@ -72,12 +72,12 @@ $ mdb-export backup.mdb auth_user > out.csv
 $ xdg-open out.csv
 ```
 
-![](../assets/img/2026-04-18-Access/2.png)
+![](/assets/img/2026-04-18-Access/2.png)
 
 ### Microsoft Vulnerabilities
 My directory scans found absolutely nothing on the web server apart from the index page. Checking out the website just shows a picture of some sort of server along with the title of LON-MC6.
 
-![](../assets/img/2026-04-18-Access/3.png)
+![](/assets/img/2026-04-18-Access/3.png)
 
 When Googling about this, I come across this [TrendMicro article](https://www.trendmicro.com/vinfo/us/security/news/vulnerabilities-and-exploits/patched-microsoft-access-mdb-leaker-cve-2019-1463-exposes-sensitive-data-in-database-files) which covers [CVE-2019–1463](https://nvd.nist.gov/vuln/detail/cve-2019-1463), an information disclosure vulnerability within Microsoft Access' software due to improper handling of objects in memory. 
 
@@ -88,7 +88,7 @@ Another suggestion that popped up during research was this [Microsoft security d
 ## Initial Foothold
 Now that we have credentials, I connect over Telnet which prompts a login. Unfortunately, Using any of the three pairs found in the MDB file do not work here.
 
-![](../assets/img/2026-04-18-Access/4.png)
+![](/assets/img/2026-04-18-Access/4.png)
 
 ### Decrypting ZIP Archive
 Remembering that the Zip archive failed to unzip due to unsupported compression method, I found out that this was because it was password protected. Unzipping this archive with the Engineer user's password works and we're granted a .pst (Outlook Personal Storage) file. 
@@ -106,11 +106,11 @@ $ xdg-open Access\ Control.mbox
 ### Telnet Creds
 Upon using this tool on a .pst file, it will create a copy and convert it to .mbox format which can be opened with the `xdg-open` command. Inside contains an email memo from John, regarding a password change for the 'Security' account.
 
-![](../assets/img/2026-04-18-Access/5.png)
+![](/assets/img/2026-04-18-Access/5.png)
 
 Attempting to use these newfound credentials over Telnet succeeds and we're granted a shell on the box as the security user.
 
-![](../assets/img/2026-04-18-Access/6.png)
+![](/assets/img/2026-04-18-Access/6.png)
 
 At this point we can grab the user flag under their Desktop folder and begin looking at ways to escalate privileges towards administrator. 
 
@@ -120,11 +120,11 @@ I tried to upload a reverse shell made with Msfvenom in order to upgrade from th
 ### Runas.exe LNK File
 Some light enumeration on the filesystem shows a .lnk file on the Public user's Desktop folder that executes the _runas.exe_ binary. We can also see that it's saving the administrator's credential for us with the access.exe binary later on.
 
-![](../assets/img/2026-04-18-Access/7.png)
+![](/assets/img/2026-04-18-Access/7.png)
 
 We can confirm this by listing stored credentials with `cmdkey /list`.
 
-![](../assets/img/2026-04-18-Access/8.png)
+![](/assets/img/2026-04-18-Access/8.png)
 
 ### Saved Creds Exploitation
 Fortunately for us, since the administrator's credentials are already saved, we can utilize the `/savecred` argument with _runas.exe_ in order to execute commands as them. Due to our pseudo-terminal, we won't be able to spawn a new cmd process within it, so I opt to upload _nc.exe_ to the box and have it execute malicious script to connect back to me.
@@ -141,6 +141,6 @@ $ runas.exe /user:administrator /savecred "C:\temp\shell.bat
 
 After standing up a Netcat listener and having runas execute the reverse shell script, I grab a session as administrator on the system at last.
 
-![](../assets/img/2026-04-18-Access/9.png)
+![](/assets/img/2026-04-18-Access/9.png)
 
 Grabbing the root flag under their Desktop folder completes this challenge. Overall, this box was very unique in the fact that it utilized several older Windows tactics to compromise the machine. I hope this was helpful to anyone following along or stuck and happy hacking!

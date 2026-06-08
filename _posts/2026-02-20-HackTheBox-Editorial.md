@@ -60,22 +60,22 @@ Starting gobuster in directory enumeration mode
 
 Checking out the landing page shows what looks like a site dedicated to publish books with the Tiempo Arriba Editorial company. There are a lot of dead links except for the header tabs.
 
-![](../assets/img/2026-02-20-Editorial/1.png)
+![](/assets/img/2026-02-20-Editorial/1.png)
 
 The About page discloses the organization's email structure which may be helpful for a login panel down the road or to enumerate users.
 
-![](../assets/img/2026-02-20-Editorial/2.png)
+![](/assets/img/2026-02-20-Editorial/2.png)
 
 ## Server-Side Request Forgery
 The only other directory on the website is the upload tab which allows us to supply information about our book so that the editorial can review it. I quickly test for HTML injection but it doesn't seem like the site reflects our input back to the screen, we also haven't found a login panel to make stealing cookies viable.
 
-![](../assets/img/2026-02-20-Editorial/3.png)
+![](/assets/img/2026-02-20-Editorial/3.png)
 
 The most interesting part about this form is the option to supply a cover photo for our book using a URL or via the file upload. I played around with the file upload for a bit but couldn't get anything other than valid images to be accepted.
 
 The presence of the URL field made me think that it wasn't just pulling from the local server and that we could host files from our machine in order for them to be displayed in the request. Testing this out confirms that the site is vulnerable to Server-Side Request Forgery by hitting the preview button.
 
-![](../assets/img/2026-02-20-Editorial/4.png)
+![](/assets/img/2026-02-20-Editorial/4.png)
 
 A quick peek at a 404 page matches with the standard Python Flask text, so I first try to serve a reverse shell in hopes that the site would execute it once displayed, however this didn't pan out. We could still get the server to make arbitrary requests, so I decide to use the URL field to fuzz for any internal ports open by supplying it with a `localhost` IP.
 
@@ -84,7 +84,7 @@ Capturing a request in Burp Suite and providing URLs such as `127.0.0.1` only ma
 
 In any case, I end up copying the request to a file and creating a FFUF command to fuzz for ports that hang or don't instantly respond which could mean an internal API is running.
 
-![](../assets/img/2026-02-20-Editorial/5.png)
+![](/assets/img/2026-02-20-Editorial/5.png)
 
 ```
 $ ffuf -u http://editorial.htb/upload-cover --request apifuzz.req -w <( seq 0 65535) --fl 6
@@ -96,7 +96,7 @@ Let's break down this command:
 - `-w <( seq 0 65535)` pipes a set of sequential numbers into the wordlist option, allowing us to enumerate all port numbers (this is also done in memory instead of the filesystem which is a plus).
 - `--fl` 6 will filter any responses that contain six lines
 
-![](../assets/img/2026-02-20-Editorial/6.png)
+![](/assets/img/2026-02-20-Editorial/6.png)
 
 I get a hit back on port 5000 that responds with a size of 51. I make another request in my browser to that port and the preview image updates, so I open the picture in a new tab to download it and find the following JSON data:
 
@@ -155,12 +155,12 @@ That gives us a list of internal APIs to now make further requests to, the main 
 
 Taking a peak into the Authors directory under the messages endpoint shows the standard template for the mail received upon granting a new author access to the internal forum and authors site. Luckily for us, there's a pair of credentials for the dev user which seems to be the default.
 
-![](../assets/img/2026-02-20-Editorial/7.png)
+![](/assets/img/2026-02-20-Editorial/7.png)
 
 ## Privilege Escalation
 Using those to login over SSH works to grab a successful shell and we can start internal enumeration on the box to escalate privileges to root user. At this point we can also grab the user flag under our home directory.
 
-![](../assets/img/2026-02-20-Editorial/8.png)
+![](/assets/img/2026-02-20-Editorial/8.png)
 
 Going about the usual routes for privesc to root user shows a few directories that may be of interest, namely `.git` under `/home` and `internal_apps` under `/opt`. I spend some time digging on these in hopes that a commit or config file holds hardcoded credentials.
 
@@ -168,12 +168,12 @@ Running git log under that directory shows a few commits, the most interesting o
 
 Using a git diff command between that commit and a more recent one shows what information was changed. Similarly to the last password disclosure, this one contains credentials for the prod user which also work over SSH.
 
-![](../assets/img/2026-02-20-Editorial/9.png)
+![](/assets/img/2026-02-20-Editorial/9.png)
 
 ### GitPython Clone Command Injection
 Restarting privesc enumeration for this user shows that we're able to run a python script that clones the production env as root user.
 
-![](../assets/img/2026-02-20-Editorial/10.png)
+![](/assets/img/2026-02-20-Editorial/10.png)
 
 This script has a simple task to change directories into clone_changes under `/opt/internal_apps` and then use the user-supplied URL to clone from.
 
@@ -194,7 +194,7 @@ r.clone_from(url_to_clone, 'new_changes', multi_options=["-c protocol.ext.allow=
 
 Next, I check the Git version to see if it's vulnerable to any know exploits and find both GitDB and GitPython installed on the system.
 
-![](../assets/img/2026-02-20-Editorial/11.png)
+![](/assets/img/2026-02-20-Editorial/11.png)
 
 A bit of digging explains that GitDB is a dependecy for GitPython, so I Google the ladder in order to find anything to use. This rewards us with many known vulnerabilities pertaining to our version, namely [CVE-2022–24439](https://nvd.nist.gov/vuln/detail/cve-2022-24439) which shows that all implementations of GitPython are inherently prone to Remote Code Execution via the URL parameter in the clone command. This is due to the library having a lack of sanitization in external calls to Git.
 
@@ -232,6 +232,6 @@ sudo python3 /opt/internal_apps/clone_changes/clone_prod_change.py 'ext::sh -c /
 
 Finally spawning a root shell with our new bash clone let's us grab the final flag under /root to complete this challenge.
 
-![](../assets/img/2026-02-20-Editorial/12.png)
+![](/assets/img/2026-02-20-Editorial/12.png)
 
 That's all y'all, this box was a fun one as SSRF doesn't get enough love in CTFs. I hope this was helpful to anyone following along or stuck and happy hacking!

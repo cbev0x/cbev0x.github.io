@@ -13,7 +13,7 @@ _Use your exploitation skills to uncover encrypted keys and get RCE._
 ## Scanning & Enumeration
 As always, a quick Nmap scan shows the services up and running on our target IP.
 
-![](../assets/img/2026-01-15-Decryptify/1.png)
+![](/assets/img/2026-01-15-Decryptify/1.png)
 
 Just two ports open:
 - SSH on port 22
@@ -21,7 +21,7 @@ Just two ports open:
 
 Before taking a look at the webpage I’m going to leave a gobuster dir search in the background.
 
-![](../assets/img/2026-01-15-Decryptify/2.png)
+![](/assets/img/2026-01-15-Decryptify/2.png)
 
 The landing page shows that we can sign in with a username/email and an invite code instead of a typical password. Checking out the API documentation requires a passcode as well.
 
@@ -64,17 +64,17 @@ Starting gobuster in directory enumeration mode
 
 We get some places to check out from the scan, most notably phpmyadmin and logs . phpmyadmin is the standard admin panel that uses MySQL to query for usernames and passwords (this version is secure), however the logs endpoint is exposed and contains some good info.
 
-![](../assets/img/2026-01-15-Decryptify/3.png)
+![](/assets/img/2026-01-15-Decryptify/3.png)
 
 Here we get an invite code for `alpha@fake.thm`, but looking through the logs show that that account was deactivated shortly after. Then a new account under hello@fake.thm was created in its place. The invite code decrypts to a big number which I assume is randomly created so we can’t attack from that angle.
 
 Looking back at our gobuster scan shows an exposed folder for javascript, this contains a file called api.js . If we make sense of this code, the API checks for a hardcoded string in the API (presumably the password) and allows for access. Deobfuscating the code resolves our password to ‘H7gY2tJ9wQzD4rS1’.
 
-![](../assets/img/2026-01-15-Decryptify/4.png)
+![](/assets/img/2026-01-15-Decryptify/4.png)
 
 Let’s use this to read the API docs.
 
-![](../assets/img/2026-01-15-Decryptify/5.png)
+![](/assets/img/2026-01-15-Decryptify/5.png)
 
 Now we can make more sense of the invite code. The API first calculates the string length of our email. Then it extracts the first 8 characters from it and converts them to hexadecimal format.
 
@@ -149,15 +149,15 @@ print $token
 
 Cool, this grants us a successful login for the user hello as well as the first flag on the box. There’s not much functionality within the site as we have it so, I try generating a valid code for admin@fake.thm but that doesn’t work.
 
-![](../assets/img/2026-01-15-Decryptify/6.png)
+![](/assets/img/2026-01-15-Decryptify/6.png)
 
 Looking through the source code on the page shows that there’s a hidden field named date with a base64 encoded value.
 
-![](../assets/img/2026-01-15-Decryptify/7.png)
+![](/assets/img/2026-01-15-Decryptify/7.png)
 
 Including that parameter in the URL without the value attached to it shows a padding error.
 
-![](../assets/img/2026-01-15-Decryptify/8.png)
+![](/assets/img/2026-01-15-Decryptify/8.png)
 
 After some research, there’s an attack method aptly named Padding Oracle, which allows for RCE on the box. I’ll be using an automated tool named padre for this part.
 
@@ -165,17 +165,17 @@ You can get it from this [GitHub repo](https://github.com/glebarez/padre/release
 
 We need to specify the full URL with a $ where the padding attack will go, the cookies needed for the requests, and the string used in the initial page.
 
-![](../assets/img/2026-01-15-Decryptify/9.png)
+![](/assets/img/2026-01-15-Decryptify/9.png)
 
 We see that the system is issuing date `+%Y` here. Now we can use our own string to pass in commands via the URL to get command execution on the system.
 
-![](../assets/img/2026-01-15-Decryptify/10.png)
+![](/assets/img/2026-01-15-Decryptify/10.png)
 
 Using this padding grants us the final flag for the box.
 
 This vulnerability exists due to the site disclosing whether encrypted data is valid or not. We were able to test for invalid padding and therefore able to abuse this field to execute commands in place of the real date call.
 
-![](../assets/img/2026-01-15-Decryptify/11.png)
+![](/assets/img/2026-01-15-Decryptify/11.png)
 
 Not wanting to stop there, I attempted to get a shell via netcat, python, and bash but only got another padding error instead. That’s where the fun ends.
 

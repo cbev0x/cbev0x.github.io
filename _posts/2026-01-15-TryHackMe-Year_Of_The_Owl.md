@@ -81,15 +81,15 @@ There’s a lot here so the main points are:
 
 Nothing crazy stands out by looking at the versions and from default nmap scripts. Taking a look at the webpage, both HTTP and HTTPS display an owl image on the landing page. The self-signed certificate doesn’t disclose anything either.
 
-![](../assets/img/2026-01-15-YearOfTheOwl/1.png)
+![](/assets/img/2026-01-15-YearOfTheOwl/1.png)
 
 I let a gobuster scan in the background to find hidden endpoints while I poke around other services. Netexec shows that guest login isn’t allowed for SMB and no shares are available to us.
 
-![](../assets/img/2026-01-15-YearOfTheOwl/2.png)
+![](/assets/img/2026-01-15-YearOfTheOwl/2.png)
 
 Gobuster confirms that the site is ran on php but we don’t have access to the admin login panel yet.
 
-![](../assets/img/2026-01-15-YearOfTheOwl/3.png)
+![](/assets/img/2026-01-15-YearOfTheOwl/3.png)
 
 Not finding too much on TCP so it’s always good practice to scan UDP on systems as well. I scanned UDP and didn’t find anything and spent another half hour enumerating TCP services to no avail.
 
@@ -97,20 +97,20 @@ I’ll be honest I was frustrated at this point because for whatever reason, Nma
 
 In any case, I turn to Metaspoit and use the scanner/snmp/snmp_login module to check for SNMP.
 
-![](../assets/img/2026-01-15-YearOfTheOwl/4.png)
+![](/assets/img/2026-01-15-YearOfTheOwl/4.png)
 
-![](../assets/img/2026-01-15-YearOfTheOwl/5.png)
+![](/assets/img/2026-01-15-YearOfTheOwl/5.png)
 
 SNMP is running on port 161, here we get a successful login and find a community string named ‘openview’. Let’s use it with snmp_userenum to find valid usernames on the service.
 
-![](../assets/img/2026-01-15-YearOfTheOwl/6.png)
+![](/assets/img/2026-01-15-YearOfTheOwl/6.png)
 
 ## Brute Forcing
 Next I try to brute force RDP with our new username. I use a few wordlists and find that a login might be valid, just not for RDP.
 
-![](../assets/img/2026-01-15-YearOfTheOwl/7.png)
+![](/assets/img/2026-01-15-YearOfTheOwl/7.png)
 
-![](../assets/img/2026-01-15-YearOfTheOwl/8.png)
+![](/assets/img/2026-01-15-YearOfTheOwl/8.png)
 
 I try to brute force SMB with crackmapexec and rockyou.txt, finding that Jareth has access to WINRM. Still no password though. Close to 40 minutes of trying various tools and methods of brute forcing and enumerating other services, I turn to OSINT as the quote from the THM page piqued my interest.
 
@@ -118,32 +118,32 @@ When the labyrinth is before you and you lose your way, sometimes thinking outsi
 
 Looking up Jareth shows that he’s the main antagonist from a movie named Labyrinth 1986. After reading about the plot and gathering character names, I throw a quick wordlist together and use it to connect via the Evil-WinRM exploit.
 
-![](../assets/img/2026-01-15-YearOfTheOwl/9.png)
+![](/assets/img/2026-01-15-YearOfTheOwl/9.png)
 
-![](../assets/img/2026-01-15-YearOfTheOwl/10.png)
+![](/assets/img/2026-01-15-YearOfTheOwl/10.png)
 
 ## Initial Foothold
 Here we can grab the first flag and turn towards privilege escalation!
 
-![](../assets/img/2026-01-15-YearOfTheOwl/11.png)
+![](/assets/img/2026-01-15-YearOfTheOwl/11.png)
 
 Checking the scheduled tasks list shows the presence of Windows Defender, meaning we can’t upload a reverse shell without it flagging/blocking our connection. I end up uploading winPEAS.ps1 via Powershell’s Invoke-WebRequest to grab the file from my attacking machine.
 
-![](../assets/img/2026-01-15-YearOfTheOwl/12.png)
+![](/assets/img/2026-01-15-YearOfTheOwl/12.png)
 
 ## Privilege Escalation
 Letting that ran for a while, WinPEAS flagged something in the Recycle Bin which looked strange. Looks like there was an attempt to delete the SAM and System backup files for the box but it didn’t actually clear them.
 
-![](../assets/img/2026-01-15-YearOfTheOwl/13.png)
+![](/assets/img/2026-01-15-YearOfTheOwl/13.png)
 
-![](../assets/img/2026-01-15-YearOfTheOwl/14.png)
+![](/assets/img/2026-01-15-YearOfTheOwl/14.png)
 
 Downloading these won’t work from the recycle bin so copy them to Jareth’s Documents folder or something similar and then try.
 
-![](../assets/img/2026-01-15-YearOfTheOwl/15.png)
+![](/assets/img/2026-01-15-YearOfTheOwl/15.png)
 
 Now that we’ve downloaded these, let’s use impacket’s tools to dump hashes from the files. Finally, we can use the admin hash to login with evil-winrm again and grab the admin.txt flag.
 
-![](../assets/img/2026-01-15-YearOfTheOwl/16.png)
+![](/assets/img/2026-01-15-YearOfTheOwl/16.png)
 
 With that the box is finished. This took me the better part of a day as I didn’t want to use any hints, but I learned tons regarding SNMP enumeration and UDP scanning. I hope this was helpful to anyone stuck or following along and happy hacking!

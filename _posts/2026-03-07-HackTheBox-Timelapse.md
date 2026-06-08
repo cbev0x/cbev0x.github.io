@@ -59,12 +59,12 @@ Looks like a Windows machine with Active Directory components installed on it. L
 ## SMB Shares
 Using Netexec shows that Guest authentication is enabled on SMB and that we have read permissions to a non-standard share. Inside are two directories for the Development and HelpDesk roles.
 
-![](../assets/img/2026-03-07-Timelapse/1.png)
+![](/assets/img/2026-03-07-Timelapse/1.png)
 
 ### Cracking Password-Protected Zip File
 As we can see, the Dev folder holds a backup Zip file for what appears to be the WinRM service. Checking the HelpDesk folder reveals a few informational documents for LAPS as well as a `.msi` installer file.
 
-![](../assets/img/2026-03-07-Timelapse/2.png)
+![](/assets/img/2026-03-07-Timelapse/2.png)
 
 After grabbing all of these, I attempt to unzip the winrm archive which prompts us for a password. Trying a few common ones doesn't work to unlock it so I'll convert this file into a crackable format using [zip2john](https://github.com/openwall/john/blob/bleeding-jumbo/src/zip2john.c) and recover the password that way.
 
@@ -78,7 +78,7 @@ $ john hash --wordlist=/opt/SecLists/rockyou.txt
 
 That retrieves a valid password very quick and can be used to dump the Zip. Inside is the `legacyy_dev_auth.pfx` - A `.pfx` file (PKCS #12 format) is used to store a digital certificate along with its associated private key in a single, encrypted file. It's commonly used for authentication and secure communications, such as installing SSL/TLS certificates on servers or importing certificates for user or machine authentication.
 
-![](../assets/img/2026-03-07-Timelapse/3.png)
+![](/assets/img/2026-03-07-Timelapse/3.png)
 
 ### Cracking Password-Protected PFX File
 Inside of these `.pfx` files is an SSL certificate and a private key used for authentication, most likely for WinRM as that was the archive's name. If we can crack this, we'll be able to get a shell on the box via the private key. Once again, I convert this file into a crackable format so that JTR recognizes it and give it a minute to recover the password.
@@ -91,7 +91,7 @@ $ pfx2john legacyy_dev_auth.pfx > hashy
 $ john hashy --wordlist=/opt/SecLists/rockyou.txt
 ```
 
-![](../assets/img/2026-03-07-Timelapse/4.png)
+![](/assets/img/2026-03-07-Timelapse/4.png)
 
 We can use OpenSSL to extract both the certificate and the private key from this `.pfx` so that we can supply them for authentication later.
 
@@ -121,12 +121,12 @@ evil-winrm -S -i 10.129.227.113 -u validusers.txt -c cert.pem -k key.pem
 
 At this point we can also grab the user flag under their Desktop folder.
 
-![](../assets/img/2026-03-07-Timelapse/5.png)
+![](/assets/img/2026-03-07-Timelapse/5.png)
 
 ## Privilege Escalation
 Thinking back to the SMB share, we found a few files pertaining to Local Administrator Password Solution (LAPS) and also discovered a domain group named `LAPS_Readers` while brute-forcing RIDs. Checking our account's privileges shows that we are not apart of this group, however if we're able to pivot to a user who is, we may have the capability to read local passwords on the domain.
 
-![](../assets/img/2026-03-07-Timelapse/6.png)
+![](/assets/img/2026-03-07-Timelapse/6.png)
 
 ### Creds in PS History
 A bit of enumeration on the filesystem didn't return much other than the presence of two other users named svc_deploy and TRX. I figured that since our account belonged to a developer, they'd manage configurations for the related services. I end up checking our account's PowerShell history and find a password that was converted to a secure string for the `svc_deploy` user inside.
@@ -135,12 +135,12 @@ A bit of enumeration on the filesystem didn't return much other than the presenc
 $ type C:\Users\legacyy\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt
 ```
 
-![](../assets/img/2026-03-07-Timelapse/7.png)
+![](/assets/img/2026-03-07-Timelapse/7.png)
 
 ### Reading Passwords with LAPS
 Testing to see if this works shows that we can authenticate over SMB and also that they have WinRM access because they're apart of the Remote Management group. Grabbing a shell with Evil-WinRM again reveals that this account is apart of the `LAPS_Readers` group and that we should be able to display passwords for other user accounts.
 
-![](../assets/img/2026-03-07-Timelapse/8.png)
+![](/assets/img/2026-03-07-Timelapse/8.png)
 
 Rather than fumble around with weird PowerShell syntax, I'll use Impacket's [GetLAPSPassword](https://github.com/fortra/impacket/blob/master/examples/GetLAPSPassword.py) module to dump all local passwords stored on the domain.
 
@@ -150,6 +150,6 @@ $ impacket-GetLAPSPassword -dc-ip 10.129.227.113 'timelapse.htb/svc_deploy:[REDA
 $ evil-winrm -S -i dc01.timelapse.htb -u 'administrator' -p '[REDACTED]'
 ```
 
-![](../assets/img/2026-03-07-Timelapse/9.png)
+![](/assets/img/2026-03-07-Timelapse/9.png)
 
 Finally, grabbing the root flag under `C:\Users\TRX\Desktop\root.txt` completes this challenge. I enjoyed this box because it showed that there are other ways to authenticate than just a password. I hope this was helpful to anyone following along or stuck and happy hacking!

@@ -72,36 +72,36 @@ There are four ports open:
 
 Looking at the webpage it just seems like this is for recovering something. It contains a very long string and there are no other directories so I check out NFS/rpcbind.
 
-![](../assets/img/2026-01-15-Willow/1.png)
+![](/assets/img/2026-01-15-Willow/1.png)
 
 We are able to mount a directory to our system because of rpcbind. Checking what’s in it leaks the info about how the SSH key pairs were generated.
 
-![](../assets/img/2026-01-15-Willow/2.png)
+![](/assets/img/2026-01-15-Willow/2.png)
 
-![](../assets/img/2026-01-15-Willow/3.png)
+![](/assets/img/2026-01-15-Willow/3.png)
 
 It’s obvious we need to recover an RSA key (maybe pair) from what we found. The first part of the long string from the website decodes to a message saying that this is our private key.
 
-![](../assets/img/2026-01-15-Willow/4.png)
+![](/assets/img/2026-01-15-Willow/4.png)
 
 As we have both the private key’s bytes and the integers used to create it, it’s possible to recover the private key with a bit of work. I’ll be using a simple python script.
 
 ## Exploitation
 First I grab the decoded bytes from CyberChef (just use From Hex on the long string and cut the first line out) and added a comma after each byte to use it in my script.
 
-![](../assets/img/2026-01-15-Willow/5.png)
+![](/assets/img/2026-01-15-Willow/5.png)
 
 Now I run the script and we get the rsa private key.
 
-![](../assets/img/2026-01-15-Willow/6.png)
+![](/assets/img/2026-01-15-Willow/6.png)
 
 We still need to crack this so I send it to JohnTheRipper using rockyou.txt.
 
-![](../assets/img/2026-01-15-Willow/7.png)
+![](/assets/img/2026-01-15-Willow/7.png)
 
 Using the recovered password to sign in on SSH gives us our initial foothold and we can start looking for root privesc.
 
-![](../assets/img/2026-01-15-Willow/8.png)
+![](/assets/img/2026-01-15-Willow/8.png)
 
 Note: I had some trouble signing in with this key, so make sure to specify that the pubkey type is ssh-rsa with this command:
 
@@ -112,7 +112,7 @@ ssh -i rsa_key_file -o PubkeyAcceptedKeyTypes=+ssh-rsa willow@MACHINE_IP
 ## Privilege Escalation
 I secure copy the user flag with scp and opening it with xdg-open to display it.
 
-![](../assets/img/2026-01-15-Willow/9.png)
+![](/assets/img/2026-01-15-Willow/9.png)
 
 Displaying sudo privs shows that we have access to the /bin/mount on the /dev/ directory. Looking inside it shows a hidden backup folder we can copy to /var/failsafe .
 
@@ -120,6 +120,6 @@ Displaying the creds.txt we get from that file gives us the passwords for both r
 
 It gives us a hint though. Since the user flag was in a jpg I thought about using steghide but we didn’t have a password. Using it now grants us the root flag to finish out the box.
 
-![](../assets/img/2026-01-15-Willow/10.png)
+![](/assets/img/2026-01-15-Willow/10.png)
 
 This box was fun, I liked the cryptographic focus and the twist at the end. I hope this was helpful to anyone stuck or following along and happy hacking!

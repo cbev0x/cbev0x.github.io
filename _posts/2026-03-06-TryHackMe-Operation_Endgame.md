@@ -71,12 +71,12 @@ Looks like a Windows machine with Active Directory components installed on it. T
 
 Viewing the certificate confirms the common name and doesn't give us any alternates. I'll still scan for subdomains and subdirectories in the background to save on some time before heading over to enumerate SMB.
 
-![](../assets/img/2026-03-06-OperationEndgame/1.png)
+![](/assets/img/2026-03-06-OperationEndgame/1.png)
 
 ## Attempting to AS-REP Roast
 Looks like Guest authentication is enabled over SMB, however there are no interesting file shares available to us other than the defaults. I also brute force RIDs to get a list of users on the system.
 
-![](../assets/img/2026-03-06-OperationEndgame/2.png)
+![](/assets/img/2026-03-06-OperationEndgame/2.png)
 
 We can use a `sed` command to strip the extra data from the list in order to use these usernames for things like Kerberos pre-auth checking, etc.
 
@@ -94,7 +94,7 @@ I quickly check if any of these accounts are valid on the domain using a tool ca
 $ kerbrute userenum -d thm.local --dc 10.65.129.69 ../validnames.txt
 ```
 
-![](../assets/img/2026-03-06-OperationEndgame/3.png)
+![](/assets/img/2026-03-06-OperationEndgame/3.png)
 
 Next, let's check if any of these accounts have Kerberos pre-authentication disabled so we can grab NTLM hashes. I get hits back for the users MAXINE_FREEMAN, PHYLLIS_MCCOY, QUEEN_GARNER, ISIAH_WALKER, and SHELLEY_BEARD.
 
@@ -102,7 +102,7 @@ Next, let's check if any of these accounts have Kerberos pre-authentication disa
 $ python3 GetNPUsers.py -dc-ip 10.65.129.69 -usersfile ../validnames.txt -no-pass thm.local/
 ```
 
-![](../assets/img/2026-03-06-OperationEndgame/4.png)
+![](/assets/img/2026-03-06-OperationEndgame/4.png)
 
 ## Kerberoasting
 None of those hashes crack, so AS-REP Roasting won't be possible for this box, however since LDAP guest authentication is enabled as well, we can use that to get a list of Kerberoastable accounts. 
@@ -113,7 +113,7 @@ $ nxc ldap ad.thm.local -u 'guest' -p '' --kerberoasting kroast.txt
 
 That returns just one TGS for `CODY_ROY`'s account and sending it over to JTR to get the plaintext version actually works this time. 
 
-![](../assets/img/2026-03-06-OperationEndgame/5.png)
+![](/assets/img/2026-03-06-OperationEndgame/5.png)
 
 ## BloodHound Enumeration
 This opens up a lot of doors for us, but I'm going to use these credentials for LDAP authentication so I can get data to send to Bloodhound. I use [bloodhound-python](https://github.com/dirkjanm/BloodHound.py) for this step as we don't have a shell to use RustHound just yet.
@@ -127,7 +127,7 @@ Giving it a minute to ingest those JSON files allows us to map out the domain in
 ## RBCD to Administrator
 It gets overlooked quite often, but the Guest account is worth enumerating to see if they have access to important stuff. Interestingly, by using the pathfinding tool, I discover that that user is a member of the Guests group which has `GenericWrite` access over the AD domain. With this write access enabled, we can effectively modify the `msDS-AllowedToActOnBehalfOfOtherIdentity` attribute of the Domain Controller in order to carry out a Resource-Based Constraint Delegation (RBCD) attack.
 
-![](../assets/img/2026-03-06-OperationEndgame/6.png)
+![](/assets/img/2026-03-06-OperationEndgame/6.png)
 
 Another requirement for this attack to work is that we need an account with an SPN that we're able to modify. Typically, we'd have to create a machine account since they have SPNs by default, but luckily we already know that Cody's account meets this standard as we Kerberoasted his in previous steps.
 
@@ -174,7 +174,7 @@ $ export KRB5CCNAME=Administrator@cifs_ad.thm.local@THM.LOCAL.ccache
 $ impacket-smbexec -k -no-pass Administrator@ad.thm.local
 ```
 
-![](../assets/img/2026-03-06-OperationEndgame/7.png)
+![](/assets/img/2026-03-06-OperationEndgame/7.png)
 
 It wasn't until I was reading some other writeups when I realized this was an unintended way of completing the challenge. We were meant to Kerberoast `CODY_ROY`'s account and crack the hash to get his password. By password-spraying other users on the domain, we find that it's valid for `ZACHARY_HUNT`. Then we discover that he has `genericWrite` access over another account perform a targeted Kerberoasting attack on `JERRI_LANCASTER`. Lastly, there's a PowerShell script that contains credentials for `SANFORD_DAUGHERTY` who is a local administrator on the domain.
 

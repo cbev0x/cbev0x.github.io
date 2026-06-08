@@ -87,12 +87,12 @@ Looks like a Windows machine with Active Directory components installed on it an
 
 Checking out both web servers displays the default Microsoft IIS page for fresh installs, so I'll fuzz for subdirectories and Vhosts with Ffuf in the background while enumerating other services. HTTPS prompts us to accept a self-signed certificate, however there's no useful information on it.
 
-![](../assets/img/2026-03-09-Ledger/1.png)
+![](/assets/img/2026-03-09-Ledger/1.png)
 
 ## SMB Enumeration
 Moving onto SMB reveals that Guest authentication is enabled, but we don't have read permissions to any non-standard shares. 
 
-![](../assets/img/2026-03-09-Ledger/2.png)
+![](/assets/img/2026-03-09-Ledger/2.png)
 
 I use Netexec's RID brute-force option to collect a list of all accounts and groups on the domain before carrying on. A simple `awk` command will extract the usernames from the output which is handy for testing certain things.
 
@@ -111,7 +111,7 @@ Next, I enumerate which users are still valid on the domain with [Kerbrute](http
 $ kerbrute userenum ../validusers.txt --dc labyrinth.thm.local -d thm.local
 ```
 
-![](../assets/img/2026-03-09-Ledger/3.png)
+![](/assets/img/2026-03-09-Ledger/3.png)
 
 That returns a lot of output and reveals that almost all are valid usernames. Now I want to test if any accounts have Kerberos pre-authentication disabled in order to capture a `krb5asrep` hash to crack offline.
 
@@ -121,7 +121,7 @@ $ impacket-GetNPUsers -dc-ip 10.64.136.244 -usersfile ../validusers.txt -no-pass
 
 That eventually shows that five users don't have that option enabled. Sending them over to JohnTheRipper or Hashcat and giving it a moment to run returns nothing, meaning we're back to square one. AS-REP Roasting is always a good thing to try if we don't start with credentials due to how easy it is to gain passwords when applicable.
 
-![](../assets/img/2026-03-09-Ledger/4.png)
+![](/assets/img/2026-03-09-Ledger/4.png)
 
 ## LDAP Enumeration
 Since we can't Kerberoast quite yet and SMB had nothing in store, I check to see if LDAP anonymous binds are allowed and find that we can indeed make limited queries. First, I grab the naming contexts for future reference.
@@ -130,7 +130,7 @@ Since we can't Kerberoast quite yet and SMB had nothing in store, I check to see
 $ ldapsearch -x -H ldap://labyrinth.thm.local -s base namingContexts
 ```
 
-![](../assets/img/2026-03-09-Ledger/5.png)
+![](/assets/img/2026-03-09-Ledger/5.png)
 
 Next, I'll make a query to retrieve all objects that have an `objectClass` attribute and save it to a file for easier parsing.
 
@@ -138,7 +138,7 @@ Next, I'll make a query to retrieve all objects that have an `objectClass` attri
 $ ldapsearch -x -H ldap://thm.local -b "dc=thm,dc=local" "(objectClass=*)" > objclass.txt
 ```
 
-![](../assets/img/2026-03-09-Ledger/6.png)
+![](/assets/img/2026-03-09-Ledger/6.png)
 
 ### Password in Description Attribute
 That returns almost too much information, so I grep for objects that may seem interesting in hopes to gather any sensitive knowledge. I start with all description attributes as Administrators can sometimes leave legacy passwords or handy notes there.
@@ -176,21 +176,21 @@ Among the sea of output, I discover two instances of a default password being le
 
 There weren't any interesting shares on SMB, so I don't even bother rerunning those commands, however testing if either accounts have RDP access returns a successful authentication for Susanna.
 
-![](../assets/img/2026-03-09-Ledger/7.png)
+![](/assets/img/2026-03-09-Ledger/7.png)
 
 ## Privilege Escalation
 Authenticating over RDP grants us a shell on the domain and the user flag is sitting on the desktop for us to redeem.
 
-![](../assets/img/2026-03-09-Ledger/8.png)
+![](/assets/img/2026-03-09-Ledger/8.png)
 
 ### Active Directory Certificate Services
 Now that we have initial access to the domain, I spawn a CMD shell as Susanna to check out the filesystem for any intriguing things as well as list all of our new privileges. Listing users on the `C:\` drive shows one other account besides the Administrator on the box named `BRADLEY_ORTIZ`, who we may just have to pivot to.
 
-![](../assets/img/2026-03-09-Ledger/9.png)
+![](/assets/img/2026-03-09-Ledger/9.png)
 
 We don't have crazy privileges to abuse, however I notice that we are in the built-in Certificate Service DCOM Access group, which reveals that Active Directory Certificate Services (AD CS) is installed on the system.
 
-![](../assets/img/2026-03-09-Ledger/10.png)
+![](/assets/img/2026-03-09-Ledger/10.png)
 
 Knowing that we could have access to obtain certificates, we can check for misconfigurations in AD CS, and if present they may allow us to escalate privileges. For this step I use the find feature in [Certipy-AD](https://github.com/ly4k/Certipy), which allows us to enumerate templates that are vulnerable.
 
@@ -363,7 +363,7 @@ Finally, we can grab a shell with Impacket's WMIExec or SMBExec in a Pass-The-Ha
 $ impacket-smbexec -k -hashes ':[REDACTED]' THM.LOCAL/Administrator@labyrinth.thm.local
 ```
 
-![](../assets/img/2026-03-09-Ledger/11.png)
+![](/assets/img/2026-03-09-Ledger/11.png)
 
 A bit of post-exploitation enumeration revealed that another way to own this box is by a Resource Based Constraint Delegation attack since users in the Guests group have GenericWrite over the `LABYRINTH.THM.LOCAL` computer object. This would've been my preferred way of escalating privileges had I used BloodHound, but I've been too reliant on it as of late, so I decided not to. This [RedFoxSec article](https://redfoxsec.com/blog/rbcd-resource-based-constrained-delegation-abuse/) explains the basics as well as how to go about exploiting this vector if you're interested.
 

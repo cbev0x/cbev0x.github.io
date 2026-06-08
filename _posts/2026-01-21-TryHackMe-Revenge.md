@@ -45,7 +45,7 @@ That OpenSSH version is only prone to username enumeration so let's head on over
 
 Checking the landing page gives us a few names of organization members. The page also seems like it's static as the login panel doesn't respond whatsoever.
 
-![](../assets/img/2026-01-21-Revenge/1.png)
+![](/assets/img/2026-01-21-Revenge/1.png)
 
 Gobuster finds an admin login panel and a /static/ directory that returns a 403 Forbidden code.
 
@@ -54,18 +54,18 @@ Checking all parts of the website shows something interesting on the products ta
 ## Initial Foothold
 I test for special characters and get a 500 internal server error in return, hinting that it may be prone to SQLi. Sending that to SQLMap confirms my suspicions and we can enumerate the DB using a UNION query.
 
-![](../assets/img/2026-01-21-Revenge/2.png)
+![](/assets/img/2026-01-21-Revenge/2.png)
 
 Dumping the database gives us password hashes for three users in the system_user table as well as our first flag in the user table.
 
-![](../assets/img/2026-01-21-Revenge/3.png)
+![](/assets/img/2026-01-21-Revenge/3.png)
 
 Sending those over to JohnTheRipper or Hashcat will give us the plaintext password for the server-admin user and we can login on SSH.
 
 ## Privilege Escalation
 We can grab the second flag in their home dir and start looking for ways to grab root and deface the webpage. Listing Sudo commands show that we have full Sudo permissions on the systemctl binary for duckyinc.service.
 
-![](../assets/img/2026-01-21-Revenge/4.png)
+![](/assets/img/2026-01-21-Revenge/4.png)
 
 Since we can sudoedit the duckyinc.service file, we're able to use it to echo our SSH public key into /root/.ssh/authorized_keys . [GTFOBins](https://gtfobins.org/gtfobins/systemctl/#shell) has a good method for this. Change the ExecStart line to the following:
 
@@ -73,7 +73,7 @@ Since we can sudoedit the duckyinc.service file, we're able to use it to echo ou
 /bin/sh -c "echo '<SSH_PUB_KEY>' >> /root/.ssh/authorized_keys"
 ```
 
-![](../assets/img/2026-01-21-Revenge/5.png)
+![](/assets/img/2026-01-21-Revenge/5.png)
 
 Now we can reload the daemons and restart the duckyinc.service, letting us SSH into the box again as root.
 
@@ -82,10 +82,10 @@ $ sudo /bin/systemctl daemon-reload
 $ sudo /bin/systemctl restart duckyinc.service
 ```
 
-![](../assets/img/2026-01-21-Revenge/6.png)
+![](/assets/img/2026-01-21-Revenge/6.png)
 
 Now we can change the `/var/www/duckyinc/templates/index.html` file to be whatever we want and grab the root flag in our home dir.
 
-![](../assets/img/2026-01-21-Revenge/7.png)
+![](/assets/img/2026-01-21-Revenge/7.png)
 
 This was a pretty fun box, I'd like to see more in this Billy Joel saga. I hope this was helpful to anyone following along or stuck and happy hacking!

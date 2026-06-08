@@ -75,12 +75,12 @@ Looks like a Windows machine with Active Directory components installed on it, m
 ## Service Enumeration
 This is an assumed breach scenario, meaning we start out with credentials for a low-level user on the domain. Using these to check available shares shows one non-standard one, but we don't have access to it just yet.
 
-![](../assets/img/2026-04-23-Puppy/1.png)
+![](/assets/img/2026-04-23-Puppy/1.png)
 
 ### No NFS Mounts
 It's a bit strange to see a Network File System server on Windows since it supports a lot less than SMB does, so I see if we have access to any exported mounted file systems. Running showmount on the DC hangs for a bit but then returns nothing.
 
-![](../assets/img/2026-04-23-Puppy/2.png)
+![](/assets/img/2026-04-23-Puppy/2.png)
 
 ### Mapping AD with BloodHound
 I fire up BloodHound to map the domain, collecting the data with [BloodHound-Python](https://github.com/dirkjanm/bloodhound.py) since we don't have a shell to upload SharpHound just yet.
@@ -109,7 +109,7 @@ INFO: Done in 00M 11S
 
 After letting it ingest those JSON files for a bit, I start checking out which outbound object controls that _levi.james_ has. This shows that since he is apart of the HR group, we have _GenericWrite_ permissions over the Developers group and can add ourselves to it. There's a good bet we can read the DEV SMB share once we're in this too.
 
-![](../assets/img/2026-04-23-Puppy/3.png)
+![](/assets/img/2026-04-23-Puppy/3.png)
 
 ### Adding Ourselves to Dev Group
 I'll use Samba's net tool to carry out this operation over RPC. Checking the available shares after confirms that theory and we can now grab its contents.
@@ -118,11 +118,11 @@ I'll use Samba's net tool to carry out this operation over RPC. Checking the ava
 $ net rpc group addmem "Developers" "levi.james" -U 'PUPPY.HTB'/'levi.james'%'KingofAkron2025!' -S DC.PUPPY.HTB
 ```
 
-![](../assets/img/2026-04-23-Puppy/4.png)
+![](/assets/img/2026-04-23-Puppy/4.png)
 
 Connecting with SMBClient shows that it stores a .kdbx (KeePass database) file and an empty projects folder.
 
-![](../assets/img/2026-04-23-Puppy/5.png)
+![](/assets/img/2026-04-23-Puppy/5.png)
 
 ### Dumping KeePass DB
 These files are password-protected, so I use a tool like [keepass2john](https://github.com/ivanmrsulja/keepass2john) in order to convert it into a crackable hash. There is an issue with converting some newer versions of KeePass files, so we'll need a more recent version of JTR. Instead of manually compiling it, I found that Snap will grab the most recent version when installing.
@@ -139,7 +139,7 @@ $ john-the-ripper.keepass2john recovery.kdbx > hashy
 $ john-the-ripper hashy --wordlist=rockyou.txt
 ```
 
-![](../assets/img/2026-04-23-Puppy/6.png)
+![](/assets/img/2026-04-23-Puppy/6.png)
 
 Sending it over to Hashcat or JohnTheRipper recovers the password quickly and we can see which credentials it holds. This gives us passwords for five domain users that can be sprayed to test for validity.
 
@@ -165,7 +165,7 @@ user:[steph.cooper_adm] rid:[0x457]
 
 Before we spray these passwords, it's a good idea to check the domain's password policy, so we aren't inadvertently locking someone out of their business operations. Using the `--pass-pol` option in Netexec reveals that there is no Account Lockout Threshold, so we're good to go.
 
-![](../assets/img/2026-04-23-Puppy/7.png)
+![](/assets/img/2026-04-23-Puppy/7.png)
 
 Testing every enumerated account with the passwords we gathered grants us a login for _ant.edwards_.
 
@@ -173,12 +173,12 @@ Testing every enumerated account with the passwords we gathered grants us a logi
 $ nxc smb DC.PUPPY.HTB -u users -p passwords --continue-on-success
 ```
 
-![](../assets/img/2026-04-23-Puppy/8.png)
+![](/assets/img/2026-04-23-Puppy/8.png)
 
 ### Changing User Password
 Heading back to BloodHound, we see that because he is in the Senior Developers group, he has _GenericAll_ permissions over _Adam.Silver_.
 
-![](../assets/img/2026-04-23-Puppy/9.png)
+![](/assets/img/2026-04-23-Puppy/9.png)
 
 This opens up a few options for us, since we have can write to that account's SPN, we can perform a targeted Kerberoasting attack, or add a shadow credential by modifying its `msDS-KeyCredentialLink` attribute. I spent some time attempting both of these, but the NTLM hash did not crack and none of the tools I used for shadow creds succeeded.
 
@@ -188,7 +188,7 @@ I fall back to just changing _Adam.Silver's_ password, but this is a last-case s
 $ net rpc password 'adam.silver' 'Password123!' -U 'PUPPY.HTB'/'ant.edwards'%'[REDACTED]' -S 'DC.PUPPY.HTB'
 ```
 
-![](../assets/img/2026-04-23-Puppy/10.png)
+![](/assets/img/2026-04-23-Puppy/10.png)
 
 ### Initial Foothold
 Confirming that we actually reset his password returns an error disclosing that the account is currently disabled. Usually, we'd need administrative access to fix this, but _GenericAll_ works the same for us here. I use [BloodyAD](https://github.com/CravateRouge/bloodyAD) to remove this account restriction which also allows us to grab a shell due to him being in the Remote Management group.
@@ -197,18 +197,18 @@ Confirming that we actually reset his password returns an error disclosing that 
 $ bloodyAD -u ant.edwards -p '[REDACTED]' --host dc.puppy.htb -d puppy.htb remove uac adam.silver -f ACCOUNTDISABLE
 ```
 
-![](../assets/img/2026-04-23-Puppy/11.png)
+![](/assets/img/2026-04-23-Puppy/11.png)
 
 At this point, we could grab the user flag under their Desktop folder and start internal enumeration to escalate privileges towards administrator.
 
-![](../assets/img/2026-04-23-Puppy/12.png)
+![](/assets/img/2026-04-23-Puppy/12.png)
 
 Listing the users directory shows the only other account that we don't have access to is _steph.cooper_, making them a prime target for us.
 
 ## Privilege Escalation
 Checking out the root of the `C:\` drive shows a Backups directory that contains a backup Zip archive for a website. I use Evil-WinRM's built in download function to transfer this over to my local machine for further inspection.
 
-![](../assets/img/2026-04-23-Puppy/13.png)
+![](/assets/img/2026-04-23-Puppy/13.png)
 
 ### Credentials in Site Backup ZIP
 This file is not password protected, so we can just dump the contents right away. Other than some generic resources, we find an Network Management System (NMS) configuration file that contains bind credentials for the _steph.cooper_ user inside.
@@ -221,22 +221,22 @@ $ cd puppy
 $ cat nms-auth-config.xml.bak
 ```
 
-![](../assets/img/2026-04-23-Puppy/14.png)
+![](/assets/img/2026-04-23-Puppy/14.png)
 
 Testing these for his domain account over SMB succeeds and we can grab a shell as him. BloodHound did not show any interesting privileges over other accounts, however there is a separate admin account for _steph.cooper_adm_ which we may be able to pivot to. 
 
-![](../assets/img/2026-04-23-Puppy/15.png)
+![](/assets/img/2026-04-23-Puppy/15.png)
 
 ### Decrypting DPAPI Creds
 It's reasonable to assume that this user may have accidentally typed in their password for the admin account at some point or has saved credentials somewhere in their home directory, so I take a look around there.
 
 It looks like PowerShell isn't logging any commands with the PSReadlineOption module, however I do find a Microsoft credential saved inside of his AppData directory.
 
-![](../assets/img/2026-04-23-Puppy/16.png)
+![](/assets/img/2026-04-23-Puppy/16.png)
 
 There is a master key for it in the usual place as well, but downloading it fails.
 
-![](../assets/img/2026-04-23-Puppy/17.png)
+![](/assets/img/2026-04-23-Puppy/17.png)
 
 I end up converting these to Base64 and copy/pasting them to a file on my local machine, then decoding them once secured.
 
@@ -264,10 +264,10 @@ $ impacket-dpapi masterkey -file decodedKey -sid S-1-5-21-1487982659-1829050783-
 $ impacket-dpapi credential -file decodedCreds -key 0xd9a570722fbaf7149f9f9d691b0e137b7413c1414c452f9c77d6d8a8ed9efe3ecae990e047debe4ab8cc879e8ba99b31cdb7abad28408d8d9cbfdcaf319e9c84
 ```
 
-![](../assets/img/2026-04-23-Puppy/18.png)
+![](/assets/img/2026-04-23-Puppy/18.png)
 
 Finally, we can authenticate over WinRM to grab a shell and find that this account does indeed belong to an Administrator. We can grab the final flag under the Administrator's Desktop folder to complete this challenge.
 
-![](../assets/img/2026-04-23-Puppy/19.png)
+![](/assets/img/2026-04-23-Puppy/19.png)
 
 This box was a good mix of abusing ACLs and enumerating the file system in order to make our way towards admin, which was a nice. I hope this was helpful to anyone following along or stuck and happy hacking!

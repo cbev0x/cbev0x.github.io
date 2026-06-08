@@ -135,60 +135,60 @@ aux                     [Status: 403, Size: 303, Words: 22, Lines: 10, Duration:
 ## Web Enumeration
 Checking out the landing page on port 80 shows a login panel for some type of voting system. It uses an ID number to validate sign ins, making it a bit harder to brute-force or enumerate usernames.
 
-![](../assets/img/2026-04-16-Love/1.png)
+![](/assets/img/2026-04-16-Love/1.png)
 
 ### Restricted Pages
 Both pages on ports 443/5000 return a 403 Forbidden code upon navigating to them. They don't seem to be very helpful unless we come across a way to make requests from a higher privileged standpoint (i.e. SSRF or forging an Admin cookie).
 
-![](../assets/img/2026-04-16-Love/2.png)
+![](/assets/img/2026-04-16-Love/2.png)
 
 Taking a peek at the self-signed certificate shows domain names of `staging.love.htb` and `love.htb` which I add to my `/etc/hosts` file. The email address used also namedrops Roy as a potential user on the system.
 
-![](../assets/img/2026-04-16-Love/3.png)
+![](/assets/img/2026-04-16-Love/3.png)
 
 Guest/Null authentication over SMB is disabled as well so public shares are out of the question. WinRM is enabled with and without SSL on this machine, making it easy to grab a shell once credentials are discovered.
 
-![](../assets/img/2026-04-16-Love/4.png)
+![](/assets/img/2026-04-16-Love/4.png)
 
 ### Discovering SSRF
 My scans found an Admin panel on the original site which uses a username instead of the voter ID number to authenticate. Testing for names like Admin and Roy shows that we have a way to enumerate users but only the former works.
 
-![](../assets/img/2026-04-16-Love/5.png)
+![](/assets/img/2026-04-16-Love/5.png)
 
 Checking the 'staging' virtual host reveals a separate site for free file scanning. It's purpose is similar to VirusTotal and will check supplied files and hashes for known malicious fingerprints.
 
-![](../assets/img/2026-04-16-Love/6.png)
+![](/assets/img/2026-04-16-Love/6.png)
 
 Interestingly, we're allowed to demonstrate how it works by supplying a URL for the page to fetch the file from. After hosting an HTTP server on my local machine and forcing the site to fetch a nonexistent resource, it's apparent that this function is prone to Server-Side Request Forgery.
 
-![](../assets/img/2026-04-16-Love/7.png)
+![](/assets/img/2026-04-16-Love/7.png)
 
 This is huge as we've already found several pages that have returned a 403 Forbidden code back at us, namely the spot on port 5000. My next request reflects exactly that and we find plaintext admin credentials for the login panel on port 80. 
 
-![](../assets/img/2026-04-16-Love/8.png)
+![](/assets/img/2026-04-16-Love/8.png)
 
 ## Voting System Vulnerability
 I also tried fuzzing for other internal web servers with Ffuf, but the three found in our Nmap scan seemed to be the only ones present. Logging into the admin dashboard doesn't give a whole lot of functionality to exploit on the site, but we can see that it's made by SourceCodeSter.
 
-![](../assets/img/2026-04-16-Love/9.png)
+![](/assets/img/2026-04-16-Love/9.png)
 
 A quick Google search for "SourceCodeSter Voting System" leads me to an [Exploit-DB entry](https://www.exploit-db.com/exploits/49445), disclosing an authenticated Remote Code Execution vulnerability. Further inspection shows that we can upload arbitrary code via the site's image upload feature whilst adding new voters.
 
 ### Altering Exploit
 For this PoC to work, we need to alter the settings at the top of the code, specifically the website's IP, username/password, and local machine's IP and port number. Along with that, the section containing the URLs needs the `/votesystem` directory part cut out of each, since it needs to match our applications.
 
-![](../assets/img/2026-04-16-Love/10.png)
+![](/assets/img/2026-04-16-Love/10.png)
 
 After that's taken care of, we can standup a Netcat listener and execute the Python script to get a reverse shell on the machine as Phoebe.
 
-![](../assets/img/2026-04-16-Love/11.png)
+![](/assets/img/2026-04-16-Love/11.png)
 
 At this point, we can grab the user flag and start internal enumeration to escalate privileges towards administrator.
 
 ## Privilege Escalation
 Light enumeration on the filesystem does not give me a ton of information to work with. There was nothing in the PowerShell history, no service binaries or DLLs prone to hijacking, and credential reuse failed. I decide to upload WinPEAS to search for any low-hanging fruit I may have missed.
 
-![](../assets/img/2026-04-16-Love/12.png)
+![](/assets/img/2026-04-16-Love/12.png)
 
 ### AlwaysInstallElevated Enabled
 Parsing the output shows a few instances of unquotes service paths, however we didn't have the ability to write to any of the corresponding directories. It seems like both the **HKLM** and **HKCU** registers have _AlwaysInstallElevated_ enabled, meaning that users of any privilege can install and execute `.msi` files as _NT AUTHORITY\SYSTEM_.
@@ -206,6 +206,6 @@ After transferring that to the vulnerable machine, I standup another Netcat list
 $ msiexec /quiet /qn /i privesc.msi
 ```
 
-![](../assets/img/2026-04-16-Love/13.png)
+![](/assets/img/2026-04-16-Love/13.png)
 
 That's all y'all, this box was relatively short and used some interesting methods to exploit the system. I hope this was helpful to anyone following along or stuck and happy hacking!

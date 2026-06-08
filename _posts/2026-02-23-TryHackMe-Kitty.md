@@ -45,11 +45,11 @@ There are just two ports open:
 
 Before heading over to the website, I fire up Gobuster to search for subdirectories/subdomains in the background. Checking out the landing page shows a plain login panel for the site.
 
-![](../assets/img/2026-02-23-Kitty/1.png)
+![](/assets/img/2026-02-23-Kitty/1.png)
 
 Attempting to use default credentials doesn't succeed to log us in and also supplying bad characters such as a single quote throws an error saying that it's detected SQL injection and that the incident will be logged. Since we don't have a way to bypass this panel to get a session as anyone else, I register a new account under my name.
 
-![](../assets/img/2026-02-23-Kitty/2.png)
+![](/assets/img/2026-02-23-Kitty/2.png)
 
 There's not much to do once we're in except log out and our name doesn't get reflected anywhere, so vulnerabilities like SSTI or Second-Order SQL Injection can be ruled out. Curious as to how the site tracks our login, I check my browser's local storage to find a `PHPSESSID` cookie with the httponly flag set to false. That means if we find any form that gets reflected to another user, we may be able to hijack their sessions with a Cross-Site Scripting payload.
 
@@ -64,7 +64,7 @@ Attempting to enumerate users via the register page doesn't give us any common o
 ## Blind-Based SQL Injection
 Stumped as to what we could really go about exploiting, I revisit the login panel for further SQL Injection testing. Strangely, if we use a valid account to login without a password and also used a SQL operator that isn't blacklisted such as `AND`, it works to bypass the login panel.
 
-![](../assets/img/2026-02-23-Kitty/3.png)
+![](/assets/img/2026-02-23-Kitty/3.png)
 
 Confirming that this succeeds to inject queries into the preexisting statement means that we can carry out a blind-based boolean SQL injection attack in order to enumerate the database. First we must figure out how many columns there are for the server to not respond with an error every time.
 
@@ -123,7 +123,7 @@ while True:
 
 Running that shows that our current database is named mywebsite, which we'll use in further queries.
 
-![](../assets/img/2026-02-23-Kitty/4.png)
+![](/assets/img/2026-02-23-Kitty/4.png)
 
 Next, we'll want all tables under that database. We can do so by utilizing the `information_schema` database to pull information from such. For the rest of these attacks, I simply update the query template to contain our newest parameters.
 
@@ -131,7 +131,7 @@ Next, we'll want all tables under that database. We can do so by utilizing the `
 ' UNION SELECT 1,2,3,4 FROM information_schema.tables WHERE table_schema = 'mywebsite' and table_name like '{prefix}%' -- -
 ```
 
-![](../assets/img/2026-02-23-Kitty/5.png)
+![](/assets/img/2026-02-23-Kitty/5.png)
 
 I discover a table named siteusers which we can most likely dump to grab credentials each account. Next, I prep a query to dump the usernames from it
 
@@ -139,7 +139,7 @@ I discover a table named siteusers which we can most likely dump to grab credent
 ' UNION SELECT 1,2,3,4 from siteusers where username like '{prefix}%'-- -
 ```
 
-![](../assets/img/2026-02-23-Kitty/6.png)
+![](/assets/img/2026-02-23-Kitty/6.png)
 
 _Note: This script is pretty crude so if it only returns your registered username from earlier, update the statement to contain something along the lines of `where username like '{prefix}%' and username != 'CREATED_USER'` to exclude that result._
 
@@ -149,7 +149,7 @@ There are probably more tables and we could also potentially enumerate column na
 ' UNION SELECT 1,2,3,4 from siteusers where username = 'kitty' and password like '{prefix}%'-- -
 ```
 
-![](../assets/img/2026-02-23-Kitty/7.png)
+![](/assets/img/2026-02-23-Kitty/7.png)
 
 That rewards us with a valid password for the kitty user. Logging in on the website shows nothing different and these credentials don't work over SSH, which means something went wrong in my script. After some thought, I realized that it just matches for characters and isn't case sensitive. A bit of research on SQL statements reveals that we can supply the `BINARY` operator beforehand to get an exact match.
 
@@ -162,7 +162,7 @@ Now we can use that recovered password to authenticate via SSH to grab a shell o
 ## Privilege Escalation
 As there are no other users on the box, I'll be looking for things owned/being executed by root or places where backup credentials may be insecurely stored. There is a bash script under `/opt` which is used to log IPs into a new directory.
 
-![](../assets/img/2026-02-23-Kitty/8.png)
+![](/assets/img/2026-02-23-Kitty/8.png)
 
 If we display the contents of `/var/www/development/logged`, it is empty which either means that this script is being executed regularly or the site isn't properly logging stuff. I'm going to guess the former, but uploading a tool like [pspy](https://github.com/DominicBreuker/pspy/releases) will confirm that root user has a cronjob running this every minute or so.
 
@@ -207,7 +207,7 @@ If the server detects one of the evil characters listed, then it parses the requ
 
 I was confident that my payloads were functional so I searched for any other web servers that may be running on the box. As suspected, there were two config files inside of `/etc/apache2/sites-enabled/` and printing the `dev_site` one showed a server running internally on port 8080 that also contains a matching `DocumentRoot` value to root user's script.
 
-![](../assets/img/2026-02-23-Kitty/9.png)
+![](/assets/img/2026-02-23-Kitty/9.png)
 
 Since cURL was installed on the box and we only needed to provide a header, there's no need to port forward this or anything too crazy. We'll need to provide the following necessary info and make sure that that our username contains an evil character so that the site will store our arbitrary command in the `$IP` variable. I test it out with a non-malicious header first to confirm it works.
 
@@ -217,7 +217,7 @@ curl -X POST -H "Content-Type: application/x-www-form-urlencoded" \
 http://127.0.0.1:8080/index.php
 ```
 
-![](../assets/img/2026-02-23-Kitty/10.png)
+![](/assets/img/2026-02-23-Kitty/10.png)
 
 Perfect, now all that's left is to supply a malicious command to be ran by root. An important thing to note here is that we'll need to use a trick I just learned recently, which is command substitution. As the script is executing the echo binary, anything we give it won't be executed as of now, however when using this technique, our command gets evaluated before the original one is ran which leads to RCE.
 
@@ -233,6 +233,6 @@ curl -X POST \
 
 After that cURL payload is sent, checking the `/tmp` directory shows our bash clone with the SUID bit, which I use to spawn a root shell and grab the final flag at `/root/root.txt`.
 
-![](../assets/img/2026-02-23-Kitty/11.png)
+![](/assets/img/2026-02-23-Kitty/11.png)
 
 That's all y'all, this box was a nice change of pace from the typical reflected SQL injections and enjoyed the privilege escalation vector. I hope this was helpful to anyone following along or stuck and happy hacking!

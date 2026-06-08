@@ -61,15 +61,15 @@ There are only three ports open:
 
 Let's enumerate Samba shares and see about grabbing credentials for an account. Guest logon is enabled however we have no permissions for shares. 
 
-![](../assets/img/2026-01-18-Binex/1.png)
+![](/assets/img/2026-01-18-Binex/1.png)
 
 Next I run enum4linux to find valid users on the system, which returns: kel, des, tryhackme, and noentry.
 
-![](../assets/img/2026-01-18-Binex/2.png)
+![](/assets/img/2026-01-18-Binex/2.png)
 
 I use hydra to brute force a password for these users and get a login for tryhackme. 
 
-![](../assets/img/2026-01-18-Binex/3.png)
+![](/assets/img/2026-01-18-Binex/3.png)
 
 ## SUID Binary
 Now let's SSH in and begin with the first binary. First, I use `find / -perm /4000 2>/dev/null` to check all binaries with an SUID bit set and see that we have permission to execute `/usr/bin/find` as des. [GTFOBins](https://gtfobins.github.io/gtfobins/find/#file-read) has a method of reading a file with this:
@@ -78,7 +78,7 @@ Now let's SSH in and begin with the first binary. First, I use `find / -perm /40
 find /home/des/flag.txt -exec cat {} \;
 ```
 
-![](../assets/img/2026-01-18-Binex/4.png)
+![](/assets/img/2026-01-18-Binex/4.png)
 
 This gives us the first flag along with his credentials. The next challenge is buffer overflow. After switching users I find a binary named bof in his home dir and see that Gnu debugger is installed on the box.
 
@@ -87,15 +87,15 @@ Refer to [this article](https://medium.com/@buff3r/basic-buffer-overflow-on-64-b
 ## Buffer Overflow
 First I double check that the `GNU_STACK` is executable with the readelf utility.
 
-![](../assets/img/2026-01-18-Binex/5.png)
+![](/assets/img/2026-01-18-Binex/5.png)
 
 Next, I use Gnu debugger and print an insanely long string to check what the base pointer is overwritten with.
 
-![](../assets/img/2026-01-18-Binex/6.png)
+![](/assets/img/2026-01-18-Binex/6.png)
 
 Now, I analyze the stack with x/100x $rsp which prints the first 100 bytes on top of the stack and increase the starting point to 700 with x/100x $rsp-700 . 
 
-![](../assets/img/2026-01-18-Binex/7.png)
+![](/assets/img/2026-01-18-Binex/7.png)
 
 Take note of any address where the stack is filled with A's (0x58585858) as we'll need to jump there later on. Locate metasploit's `pattern_create.rb` tool and use it to create a string that's 1000 characters long.
 
@@ -105,11 +105,11 @@ Take note of any address where the stack is filled with A's (0x58585858) as we'l
 
 Run the debugger again and input the string to overwrite the register yet again. Now let's recheck the register to confirm.
 
-![](../assets/img/2026-01-18-Binex/8.png)
+![](/assets/img/2026-01-18-Binex/8.png)
 
 We can check the byte offset by providing the base pointer value using metasploit's `pattern_offset.rb` tool. In this case it's 608 bytes plus another 8 for the return address.
 
-![](../assets/img/2026-01-18-Binex/9.png)
+![](/assets/img/2026-01-18-Binex/9.png)
 
 We'll also need a payload to use. You can grab some shellcode from [this site](https://shell-storm.org/shellcode/index.html) or use the one provided for the box which spawns a shell.
 
@@ -138,15 +138,15 @@ We supply a bunch of NOP bytes (which tell the CPU to do nothing and go to the n
 
 Finally we place our new return address so the CPU knows to execute our shellcode. Putting this all together spawns a shell as Kel and we can display the flag in his home directory, which gives us his credentials in turn.
 
-![](../assets/img/2026-01-18-Binex/10.png)
+![](/assets/img/2026-01-18-Binex/10.png)
 
 ## $PATH Injection
 Onto the final binary where we must exploit a PATH vulnerability to grab a root shell. Executing the 'exe' binary prints the stdout for what seems to be the `ps` command. 
 
-![](../assets/img/2026-01-18-Binex/11.png)
+![](/assets/img/2026-01-18-Binex/11.png)
 
 Since we can execute this binary as root, it's possible to inject the current directory into our $PATH variable and host a malicious ps binary there. You can make ps execute whatever, but I decide to spawn a shell as root.
 
-![](../assets/img/2026-01-18-Binex/12.png) 
+![](/assets/img/2026-01-18-Binex/12.png) 
 
 All that's left is to grab the root flag and complete the box. This box was great practice, especially the BO portion as I don't come across it all that often. I hope this was helpful to anyone stuck or following along and happy hacking!

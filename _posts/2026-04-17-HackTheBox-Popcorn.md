@@ -74,53 +74,53 @@ rename                  [Status: 301, Size: 311, Words: 20, Lines: 10, Duration:
 
 Checking out the landing page shows that no content has been added to the index page yet. 
 
-![](../assets/img/2026-04-17-Popcorn/1.png)
+![](/assets/img/2026-04-17-Popcorn/1.png)
 
 ### Rename API
 My scans discovered three very interesting things. The first of which is an API endpoint that takes in an old file path and moves it to a new file path location, similar to the mv command in Linux, it will rename certain things.
 
-![](../assets/img/2026-04-17-Popcorn/2.png)
+![](/assets/img/2026-04-17-Popcorn/2.png)
 
 ### phpinfo() page
 Second is a test page that holds the web server's phpinfo() page. This is very useful for discovering critical information about the Apache environment.
 
-![](../assets/img/2026-04-17-Popcorn/3.png)
+![](/assets/img/2026-04-17-Popcorn/3.png)
 
 ### Torrent Hosting Application
 Lastly, there is a torrent directory that redirects us to a Torrent Hoster website. Torrents use a peer-to-peer (P2P) system where files are split into pieces and downloaded from multiple users (peers) instead of a single central server. 
 
 A torrent hosting application (like a torrent client) manages these connections - downloading, uploading, verifying pieces, and coordinating with trackers or distributed hash tables (DHT) to find peers. This makes file distribution more efficient and resilient, especially for large files.
 
-![](../assets/img/2026-04-17-Popcorn/4.png)
+![](/assets/img/2026-04-17-Popcorn/4.png)
 
 We can see a few posts made by the site's Admin and there is a spot to login and register as well. I tried brute-forcing the administrator's login with a quick wordlist but got nothing out of it.
 
 ## File Upload Vulnerability
 From the looks of it so far, we most likely need to upload a file via this torrent hosting application and then use the API to either overwrite another file or expose it to get a reverse shell in order to get a foothold. I start by registering an account on the site, this shows that only one torrent file containing a Kali Linux ISO has been uploaded to the site.
 
-![](../assets/img/2026-04-17-Popcorn/5.png)
+![](/assets/img/2026-04-17-Popcorn/5.png)
 
 ### Failed Torrent Attempts
 Attempting to upload files other than valid Torrents will return an error saying such. The POST request is sent in **multipart/form-data** content which gives us some control over the upload, however messing with file extensions and _Content-Type_ headers did not work.
 
-![](../assets/img/2026-04-17-Popcorn/6.png)
+![](/assets/img/2026-04-17-Popcorn/6.png)
 
 Attempting to upload a valid torrent file (I grabbed one from [Kali.org](https://www.kali.org/)) hangs for a good bit and then redirects us to a page hosting our Torrent for downloading purposes.
 
-![](../assets/img/2026-04-17-Popcorn/7.png)
+![](/assets/img/2026-04-17-Popcorn/7.png)
 
 ### Screenshot Route
 Along with the information about our uploaded Torrent file, we're given an option to change the screenshot provided. It seems only valid image types are allowed so I rename a PHP reverse shell from [PentestMonkey](https://www.revshells.com/) to meet this criteria.
 
-![](../assets/img/2026-04-17-Popcorn/8.png)
+![](/assets/img/2026-04-17-Popcorn/8.png)
 
 Looks like our file has been successfully uploaded to the site.
 
-![](../assets/img/2026-04-17-Popcorn/9.png)
+![](/assets/img/2026-04-17-Popcorn/9.png)
 
 Refreshing the page will not work to execute this reverse shell, however we did discover that rename API that can be used to strip the extension from the uploaded file and format it to be executable.
 
-![](../assets/img/2026-04-17-Popcorn/10.png)
+![](/assets/img/2026-04-17-Popcorn/10.png)
 
 After some time messing with that, I just couldn't get the API to work at all, making me think it was a rabbit hole. Either way, heading back to the file upload showed something strange.
 
@@ -130,29 +130,29 @@ Attempting to upload PHP files with the correct extension worked as long as we c
 Content-Type: image/png
 ```
 
-![](../assets/img/2026-04-17-Popcorn/11.png)
+![](/assets/img/2026-04-17-Popcorn/11.png)
 
 ### Initial Foothold
 After navigating to the uploads directory, we can find our PHP reverse shell renamed to be its hash followed by the extension. It seems like this was the APIs function and may not have been exploitable by us. Standing up a Netcat listener and executing the shell gives us a foothold on the box as www-data.
 
-![](../assets/img/2026-04-17-Popcorn/12.png)
+![](/assets/img/2026-04-17-Popcorn/12.png)
 
 At this point, I upgrade my shell with the typical Python import pty method and grab the user flag under George's home directory.
 
 ## Privilege Escalation
 Since we landed on the system as the web service user, we generally won't have many special binary permissions or privileged actions. However, there was a place to login at the Torrent Hoster application and we should own it, so I head over to the web root's directory to dump the config file.
 
-![](../assets/img/2026-04-17-Popcorn/13.png)
+![](/assets/img/2026-04-17-Popcorn/13.png)
 
 ### Database Dump
 Connecting to the MySQL server and dumping the users table in the TorrentHoster database gives us an MD5 hash for the admin. Unfortunately this does not crack and isn't reused for George's account either.
 
-![](../assets/img/2026-04-17-Popcorn/14.png)
+![](/assets/img/2026-04-17-Popcorn/14.png)
 
 ### DirtyCow Exploit
 Displaying the Linux Kernel version reveals that it is extremely old (around September, 2009), making it vulnerable to quite a few dangerous privilege escalation exploits. I proceed with using [DirtyCow](https://github.com/FireFart/dirtycow/blob/master/dirty.c), aka. [CVE-2016–5195](https://nvd.nist.gov/vuln/detail/cve-2016-5195), which is a Linux privilege escalation vulnerability that exploits a race condition in the copy-on-write (COW) mechanism of memory management. It allows a local attacker to gain write access to read-only files, potentially modifying system binaries and escalating privileges to root.
 
-![](../assets/img/2026-04-17-Popcorn/15.png)
+![](/assets/img/2026-04-17-Popcorn/15.png)
 
 I download the exploit written in C and transfer it to the vulnerable machine. Luckily for us, it has gcc installed which makes compiling issues far less frequent than if we were to upload it after-the-fact. This exploit works by creating a new user with root privileges, allowing us to switch to them and have full control over the system.
 
@@ -166,6 +166,6 @@ $ ./dirty
 $ su - toor
 ```
 
-![](../assets/img/2026-04-17-Popcorn/16.png)
+![](/assets/img/2026-04-17-Popcorn/16.png)
 
 That's all y'all, this box wasn't too difficult but locating the correct vulnerability was tricky because of the initial Torrent technology. I hope this was helpful to anyone following along or stuck and happy hacking!

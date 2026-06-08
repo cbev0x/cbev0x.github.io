@@ -62,7 +62,7 @@ Not a whole lot we can do with that version of OpenSSH without credentials, so I
 
 Checking out the landing page shows a site that is dedicated to serving motivational quotes to students.
 
-![](../assets/img/2026-04-14-Mentor/1.png)
+![](/assets/img/2026-04-14-Mentor/1.png)
 
 Inspecting the page and its source code only discloses that this page is purely HTML and doesn't render anything, furthermore, none of my fuzzing attempts are returning anything interesting. 
 
@@ -151,7 +151,7 @@ $ snmpwalk -c internal -v2c mentorquotes.htb > snmpout2.txt
 $ grep -i STRING snmpout2.txt
 ```
 
-![](../assets/img/2026-04-14-Mentor/2.png)
+![](/assets/img/2026-04-14-Mentor/2.png)
 
 Due to this being a script to authenticate, I'm going to guess that this is a password. The only username I've found so far is for an admin, but we still don't really have anywhere to use them at. 
 
@@ -190,7 +190,7 @@ api                     [Status: 404, Size: 22, Words: 2, Lines: 1, Duration: 61
 
 Navigating to it returns JSON data saying that the detail could not be found.
 
-![](../assets/img/2026-04-14-Mentor/3.png)
+![](/assets/img/2026-04-14-Mentor/3.png)
 
 I begin recursively fuzzing for common API endpoints that will let us authenticate or get more information about users.
 
@@ -240,15 +240,15 @@ $ curl -s http://api.mentorquotes.htb/users/
 
 The most interesting one was for documentation, disclosing a list of APIs on the site as well as the schema used to authenticate to each. Towards the top of the page is an email address for a user named James as well.
 
-![](../assets/img/2026-04-14-Mentor/4.png)
+![](/assets/img/2026-04-14-Mentor/4.png)
 
 I capture a request to `/auth/login` and supply the necessary JSON parameters, which in turn grants us an authorization token for the APIs.
 
-![](../assets/img/2026-04-14-Mentor/5.png)
+![](/assets/img/2026-04-14-Mentor/5.png)
 
 Using that in subsequent requests to different API endpoints lets us list the users on the machine, only being James and a service account.
 
-![](../assets/img/2026-04-14-Mentor/6.png)
+![](/assets/img/2026-04-14-Mentor/6.png)
 
 Normally, I'd try and create a new account with that signup place, but there isn't a spot for an admin identifier parameter, so I'll assume that James is already one as his name is only the documentations too. Since I uncovered the admin directory earlier, I'll fuzz it for more further endpoints.
 
@@ -283,7 +283,7 @@ backup                  [Status: 405, Size: 31, Words: 3, Lines: 1, Duration: 52
 ### Command Injection
 Doing so, I discover an `/admin/backup` API that allows POST requests. After troubleshooting the response codes and adding a few headers needed, I get a 200 code while supplying a path parameter.
 
-![](../assets/img/2026-04-14-Mentor/7.png)
+![](/assets/img/2026-04-14-Mentor/7.png)
 
 This API is most likely meant to make a backup of the site and place it in a user-supplied path, ultimately responding with a **"Done!"** message to confirm it took place. If improperly designed, we may be able to inject arbitrary commands into the code. I start out by testing to see if the server would ping my attacking machine.
 
@@ -295,7 +295,7 @@ This API is most likely meant to make a backup of the site and place it in a use
 ```
 {% endraw %}
 
-![](../assets/img/2026-04-14-Mentor/8.png)
+![](/assets/img/2026-04-14-Mentor/8.png)
 
 The trailing semicolon seemed to be the magic trick to getting this to function properly. It's likely that the API is appending some type of string/parameter to the command in place which errors out our input otherwise.
 
@@ -309,14 +309,14 @@ Now that we have confirmed RCE via this endpoint, I standup a Netcat listener an
 ```
 {% endraw %}
 
-![](../assets/img/2026-04-14-Mentor/9.png)
+![](/assets/img/2026-04-14-Mentor/9.png)
 
 ## Docker Container
 Right away, we land on the box as root, however the hostname indicates that this is a Docker container. A bit of light enumeration on the filesystem confirms this and I discover a _db.py_ script under an application's directory that reveals a postgresql server running on another machine.
 
 This `DATABASE_URL` line contains the default credentials to login there.
 
-![](../assets/img/2026-04-14-Mentor/10.png)
+![](/assets/img/2026-04-14-Mentor/10.png)
 
 ### Accessing postgresql Server
 This was the only seemingly useful bit of info I could find on the machine, so I port forward the postgresql server to my local machine using [Chisel](https://github.com/jpillora/chisel) to enumerate the database. PostgreSQL runs on port 5432 by default, indicated by the lack of port number in the `DB_URL` line.
@@ -335,12 +335,12 @@ Once that tunnel is setup, we can connect to the server using the psql tool. 
 $ psql -h localhost -p5432 -U postgres
 ```
 
-![](../assets/img/2026-04-14-Mentor/11.png)
+![](/assets/img/2026-04-14-Mentor/11.png)
 
 ### Grabbing Credentials
 There is only one interesting database named _mentorquotes_db_, and dumping the users table inside grants us MD5 hashes for James and the service account. We can only recover one for the ladder user.
 
-![](../assets/img/2026-04-14-Mentor/12.png)
+![](/assets/img/2026-04-14-Mentor/12.png)
 
 Running out of places to authenticate to, I try these credentials over SSH which finally gives us a foothold on the actual machine. At this point, we can grab the user text inside of their home directory and start internal enumeration to escalate privileges towards root user.
 
@@ -351,10 +351,10 @@ Taking the context of how the service account should be used, I focus on configu
 $ cat /etc/snmp/snmpd.conf
 ```
 
-![](../assets/img/2026-04-14-Mentor/13.png)
+![](/assets/img/2026-04-14-Mentor/13.png)
 
 Displaying the snmpd.conf file reveals a plaintext password that can also be used to switch users to James' account. Finally, by listing sudo permissions for James, we find that we has the capability to execute the `sh` binary as root user.
 
-![](../assets/img/2026-04-14-Mentor/14.png)
+![](/assets/img/2026-04-14-Mentor/14.png)
 
 Dropping into a root shell to grab the final flag under their home directory completes this challenge. I hope this was helpful to anyone following along or stuck and happy hacking!

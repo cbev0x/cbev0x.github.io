@@ -38,7 +38,7 @@ There are just two ports open:
 
 It also reveals that the site redirects us to searcher.htb so I'll add that to my /etc/hosts file. I leave subdirectory and subdomain scans running in the background to save on time and head over to the webpage.
 
-![](../assets/img/2026-01-23-Busqueda/1.png)
+![](/assets/img/2026-01-23-Busqueda/1.png)
 
 Looks like this site is used for querying things using different Search Engines with ease. It seems to function by making a POST request to /search, but that doesn't allow us to read it directly. Looking at the footer, we see that it's powered by Flask (Python) and has a link to the framework being used as well as the version. Since it's open source we'll be able to find any known vulnerabilities to exploit.
 
@@ -63,34 +63,34 @@ def search(engine, query, open, copy):
    
 Let's give it a shot. Make sure to supply searcher.htb, not the IP as it redirects us and set up a listener.
 
-![](../assets/img/2026-01-23-Busqueda/2.png)
+![](/assets/img/2026-01-23-Busqueda/2.png)
 
 ## Privilege Escalation
 I get a shell as svc and can grab the user flag under their home dir. Next, I start looking at ways to escalate privileges to root as that's the only other user on the box.
 
 Looking in the application's directory shows a .git folder which contains a config file. Inside are hardcoded credentials for a user named cody, and since there wasn't a user on the system named that I figured that had to be our svc account password.
 
-![](../assets/img/2026-01-23-Busqueda/3.png)
+![](/assets/img/2026-01-23-Busqueda/3.png)
 
 Using that to list sudo privileges shows that we can run Python3 on a system-checkup script as root user.
 
-![](../assets/img/2026-01-23-Busqueda/4.png)
+![](/assets/img/2026-01-23-Busqueda/4.png)
 
 The script takes allows for three parameters, a full-checkup, docker-ps, and docker-inspect. Seems like it's used for validating whether docker containers are running and inspects their network interfaces.
 
-![](../assets/img/2026-01-23-Busqueda/5.png)
+![](/assets/img/2026-01-23-Busqueda/5.png)
 
 I see the domain of `gitea.searcher.htb` again, so I add that to my /etc/hosts file and login using Cody's credentials found earlier. This discloses the version it's running on and a few commits made by an administrator.
 
 If you don't know, Gitea is a development service similar to GitHub that allows for repository hosting, code review, CI/CD, etc. This will allow us to potentially push a commit to the system as another user or exploit it to grab a shell.
 
-![](../assets/img/2026-01-23-Busqueda/6.png)
+![](/assets/img/2026-01-23-Busqueda/6.png)
 
 This Gitea version seemed a bit outdated so I went searching for known vulnerabilities, using SearchSploit and Google however nothing return for this version.
 
 Checking the sudo permissions again, I noticed that since the command took in parameters to choose the option, there probably wasn't a secure full path set. That meant that it would try to execute `full-checkup.sh` from our current working directory and then onto $PATH variables.
 
-![](../assets/img/2026-01-23-Busqueda/7.png)
+![](/assets/img/2026-01-23-Busqueda/7.png)
 
 I made a full-checkup.sh script on my attacking machine that would copy /bin/bash to our home dir and set an SUID bit on it. Then, I transfered it to the host using a Python HTTP server.
 
@@ -99,6 +99,6 @@ I made a full-checkup.sh script on my attacking machine that would copy /bin/bas
 chmod +s /bin/bash
 ```
 
-![](../assets/img/2026-01-23-Busqueda/8.png)
+![](/assets/img/2026-01-23-Busqueda/8.png)
 
 Finally, running the Sudo command with full-checkup as a parameter would use our malicious script and we could get a root shell on the box. I hope this was helpful to anyone following along or stuck and happy hacking!

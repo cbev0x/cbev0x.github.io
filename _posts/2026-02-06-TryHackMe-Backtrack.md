@@ -71,11 +71,11 @@ There are four ports open:
 
 Ok checking around the webpages shows nothing for the aria2downloader, which makes sense as it's probably just hosting an API to download files at. The Tomcat webpage is a typical boilerplate one that comes by default so I'll run a few Dirsearch scans to find any exposed directories. This site also discloses the version it's running on so I'll take that into account when diving for CVEs or known vulnerabilities later.
 
-![](../assets/img/2026-02-06-Backtrack/1.png)
+![](/assets/img/2026-02-06-Backtrack/1.png)
 
 The last page is a UI site built to interact with the Aria2 service, it is commonly used as a command line download utility that supports many many protocols making it a versatile choice. 
 
-![](../assets/img/2026-02-06-Backtrack/2.png)
+![](/assets/img/2026-02-06-Backtrack/2.png)
 
 A quick scan on the landing page for the UI shows we can provide URIs, Torrents, or Metalinks for the server to download and store elsewhere. A Gobuster dir bust discloses a /flags directory that throws a 500 Internal Server error when I navigate to it:
 
@@ -88,7 +88,7 @@ As we know the Tomcat version and the framework for the download service, I head
 
 At this point I find a [PoC](https://security.snyk.io/vuln/SNYK-JS-WEBUIARIA2-6322148) containing a simple cURL command to test if our version is prone to this attack. 
 
-![](../assets/img/2026-02-06-Backtrack/3.png)
+![](/assets/img/2026-02-06-Backtrack/3.png)
 
 Awesome, we can read files directly from the webserver. This exploit works because of improper validation of user-supplied input, below is a snippet from the [Aria2 GitHub repository](https://github.com/ziahamza/webui-aria2/blob/109903f0e2774cf948698cd95a01f77f33d7dd2c/node-server.js#L10) that contains the vulnerable code (line 4):
 
@@ -131,11 +131,11 @@ LANG=C.UTF-8PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/binHOM
 
 Using that information, I Google sensitive files for Apache Tomcat and find that user credentials are often stored inside of the `/conf/tomcat-users.xml` file.
 
-![](../assets/img/2026-02-06-Backtrack/4.png)
+![](/assets/img/2026-02-06-Backtrack/4.png)
 
 These credentials are actually valid to sign in on the server on port 8080 at the `/manager` panel, however it has been configured so that no one has access to the administration site.
 
-![](../assets/img/2026-02-06-Backtrack/5.png)
+![](/assets/img/2026-02-06-Backtrack/5.png)
 
 Since I couldn't find any credentials in common places that will give us a shell or elevated access to the server, I start playing around with the download function on the web UI page. Then, I realized that the server would simply print the output of the file to the screen but not execute it.
 
@@ -159,14 +159,14 @@ Lastly, I setup a Netcat listener and cURL the location of our shell on the site
 curl http://MACHINE_IP:8080/shell/
 ```
 
-![](../assets/img/2026-02-06-Backtrack/6.png)
+![](/assets/img/2026-02-06-Backtrack/6.png)
 
 This works to get a shell on the system as the tomcat service and I'm able to grab the first of three flags under `/opt/tomcat/`. Now I start internal enumeration in order to escalate privileges to one of the other users or even root.
 
 ## Privilege Escalation
 I don't end up finding anything under the sites' config files or even a database to dump, however there is a strange directory also inside `/opt` that hosts a few playbooks used by Wilbur. Our current Sudo permission also allow us to run the ansible-playbook binary on any `.yml` file in this dir.
 
-![](../assets/img/2026-02-06-Backtrack/7.png)
+![](/assets/img/2026-02-06-Backtrack/7.png)
 
 The presence of that wildcard operator will be our key to getting a shell as Wilbur. To do so, we'll need to utilize path traversal characters again to get the Sudo binary to execute a malicious playbook which points toward a reverse shell.
 
@@ -191,17 +191,17 @@ Before we run the command, we need to `chmod 777` both files so that Wilbur has 
 sudo -u wilbur /usr/bin/ansible-playbook /opt/test_playbooks/../../tmp/cbev.yml
 ```
 
-![](../assets/img/2026-02-06-Backtrack/8.png)
+![](/assets/img/2026-02-06-Backtrack/8.png)
 
 With a successful shell as Wilbur, we can start looking at ways to pivot to Orville.
 
-![](../assets/img/2026-02-06-Backtrack/9.png)
+![](/assets/img/2026-02-06-Backtrack/9.png)
 
 There a few important file in his home directory, the first being a note left by Orville containing credentials for us to login at an image gallery web app still under development. The second are backup credentials for Wilbur's account inside of a hidden file that we can use to login via SSH.
 
 I check the services running internally and find a web server on port 80, this is most likely that site Orville was speaking of.
 
-![](../assets/img/2026-02-06-Backtrack/10.png)
+![](/assets/img/2026-02-06-Backtrack/10.png)
 
 I use SSH to port forward this to my attacking machine so I have more tools at my disposal.
 
@@ -211,21 +211,21 @@ ssh -L 9999:127.0.0.1:80 wilbur@MACHINE_IP
 
 Logging in at the website using Orville's credentials grants us access to a file upload function. Testing a `.php` file discloses that only `JPG, JPEG, PNG, and GIF` files are allowed as valid attempts.
 
-![](../assets/img/2026-02-06-Backtrack/11.png)
+![](/assets/img/2026-02-06-Backtrack/11.png)
 
 Capturing an upload request shows that we are sending a POST request to dashboard.php using `multipart/form-data` as our content type. I upload a simple .png file to play around with extension names/magic numbers and find that appending `.php` to the filename works. 
 
 _Note: Use Burp Suite's built-in browser if you're having trouble capturing requests on localhost._
 
-![](../assets/img/2026-02-06-Backtrack/12.png)
+![](/assets/img/2026-02-06-Backtrack/12.png)
 
 These get stored in the /uploads directory, so it's pretty easy to have the server execute whatever we want. I use Pentestmonkey's PHP reverse shell and name it so that it contains `.png` within the extension. This will allow our file to bypass the filter but maintain functionality.
 
-![](../assets/img/2026-02-06-Backtrack/13.png)
+![](/assets/img/2026-02-06-Backtrack/13.png)
 
 It seems the uploads directory only allows us to download files from it, but not execute/view the contents directly. Thinking back at the overarching theme of this box made me think that we supply more path traversal characters to upload our shell outside of that directory. To test this out, I rename my PHP shell to `../shell.png.php` and hit enter.
 
-![](../assets/img/2026-02-06-Backtrack/14.png)
+![](/assets/img/2026-02-06-Backtrack/14.png)
 
 Checking to see if this uploaded displays that it does not work, however it still didn't get uploaded to `/uploads` like usual, meaning it probably threw an error trying to reach the root folder or discarded the attempt since it contained bad characters. I retry the same method with URL encoding for a quick bypass and find that by double encoding the `../` characters, we can get past this check.
 
@@ -234,7 +234,7 @@ Checking to see if this uploaded displays that it does not work, however it stil
 Content-Disposition: form-data; name="image"; filename="%252e%252e%252fshell.png.php"
 ```
 
-![](../assets/img/2026-02-06-Backtrack/15.png)
+![](/assets/img/2026-02-06-Backtrack/15.png)
 
 With our shell as Orville, I restart enumeration to find anything on the system to use in my efforts to escalate privileges to root user. Inside of his home directory is the second flag as well as a `.zip` file which looks to be a snapshot of the image gallery website. Often times snapshots are captured with automated scripts and I couldn't find one that Orville owns.
 
@@ -242,13 +242,13 @@ With our shell as Orville, I restart enumeration to find anything on the system 
 ## TTY Pushback
 I upload [pspy](https://github.com/DominicBreuker/pspy/releases/tag/v1.2.1) to snoop on background processes and find something pretty interesting. Every minute or so, a user with the UID=0 (presumably root) spawns a bash shell as Orville and makes a zip archive containing all files from the gallery website.
 
-![](../assets/img/2026-02-06-Backtrack/16.png)
+![](/assets/img/2026-02-06-Backtrack/16.png)
 
 The important thing to notice here is the use of that dash when switching users. Instead of supplying the `-u` flag which specifies which user to seamlessly swap to, this will simulate a full login as the following user. During that process, things such as current environment variables get changed and all startup scripts get executed (ie. bashprofile).
 
 This was around the point I got really stuck, there were no other processes running as root that could be hijacked or binaries with special permissions. Once again, the box's theme was backtracking which could also be interpreted as reverting states, so I knew it had to be this. After spending a painfully long time creating symlinks and trying to exploit zip arguments, I took to AI to give me examples of how attackers are able to revert shell privileges to root after switching between a lower-level account. 
 
-![](../assets/img/2026-02-06-Backtrack/17.png)
+![](/assets/img/2026-02-06-Backtrack/17.png)
 
 This gives me the idea to use our .bashrc file to host a malicious startup script that will inject commands into the root shell. It would be as easy as making a python script that grants `/bin/bash` with an SUID bit, however I still couldn't find a way of escalating privileges back to root user before once the script would execute.
 
@@ -273,7 +273,7 @@ for char in 'chmod +s /bin/bash\n':
 
 Finally, I append a command to Orville's `.bashrc` file that will execute the script on shell startup and wait for root to switch users. After a moment of waiting, I spawn a root bash shell and grab the final flag.
 
-![](../assets/img/2026-02-06-Backtrack/18.png)
+![](/assets/img/2026-02-06-Backtrack/18.png)
 
 That's all y'all, this box was a really cool one as every step involved path traversal or reversing steps. This was a very interesting privesc technique that I hadn't known beforehand so big thanks to [0utc4st](https://tryhackme.com/p/0utc4st) and [psechoPATH](https://tryhackme.com/p/psechoPATH) for making this box. 
 

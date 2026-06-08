@@ -41,13 +41,13 @@ There isn't much we can do with that particular version of OpenSSH without crede
 ## Web Enumeration
 Checking out the landing page shows a static webpage for an organization that provides infrastructure for management systems as a service. Most links go nowhere and there doesn't seem to be a login page either.
 
-![](../assets/img/2026-04-06-Snapped/1.png)
+![](/assets/img/2026-04-06-Snapped/1.png)
 
 Oddly enough, my directory searches don't find a single endpoint which makes me think that this site is solely meant to host their business content. 
 
 Scrolling down, we can find an address for their contact email which confirms the structure of it as well as a faint version in the footer which discloses that this is the first production version. We can infer that this site is custom-built and not based on a framework, meaning that the fate of any APIs present is left up to the developer's security awareness. 
 
-![](../assets/img/2026-04-06-Snapped/2.png)
+![](/assets/img/2026-04-06-Snapped/2.png)
 
 I spent some time fuzzing for common API endpoints (e.g. `/api`, `v1`, and `/v2`) but found nothing here. 
 
@@ -86,7 +86,7 @@ admin                   [Status: 200, Size: 1407, Words: 164, Lines: 50, Duratio
 
 Right away, we find an Nginx UI login portal meant for administrators to manage web components directly from this web interface. A few attempts with default credentials such as `admin:admin` or `admin:password` fails and I start my directory searches again.
 
-![](../assets/img/2026-04-06-Snapped/3.png)
+![](/assets/img/2026-04-06-Snapped/3.png)
 
 ```
 $ ffuf -u http://admin.snapped.htb/FUZZ -w /opt/seclists/directory-list-2.3-medium.txt                                       
@@ -169,16 +169,16 @@ user                    [Status: 403, Size: 34, Words: 2, Lines: 1, Duration: 55
 
 That scan returns plenty of APIs that deem us as unauthorized apart from the backup and install endpoints. The ladder only holds information about the Nginx UI install and isn't very interesting.
 
-![](../assets/img/2026-04-06-Snapped/4.png)
+![](/assets/img/2026-04-06-Snapped/4.png)
 
 ## Vulnerable Backup API
 On the other hand, the backup endpoint allows us to download a backup ZIP file of the website to our local machine. This makes finding secrets within the server's configuration and source code very easy.
 
-![](../assets/img/2026-04-06-Snapped/5.png)
+![](/assets/img/2026-04-06-Snapped/5.png)
 
 Unzipping it grants us a hash information text file and two ZIP archives for the UI and regular nginx configuration files, respectively. Reading the contents of them show some type of encryption on it, blocking us from parsing the data just yet.
 
-![](../assets/img/2026-04-06-Snapped/6.png)
+![](/assets/img/2026-04-06-Snapped/6.png)
 
 ### Decrypting Backup Files
 A bit of research on the Nginx UI backup API reveals [CVE-2026–27944](https://nvd.nist.gov/vuln/detail/CVE-2026-27944). This explains that Nginx UI versions prior to 2.3.3 allow unauthenticated access to backup the site and discloses the encryption keys required to decrypt the backup in the `X-Backup-Security` response header.
@@ -189,7 +189,7 @@ The `X-Backup-Security` header contains:
 
 I capture this header's value in Burp Suite, which now allows us to decrypt the data.
 
-![](../assets/img/2026-04-06-Snapped/7.png)
+![](/assets/img/2026-04-06-Snapped/7.png)
 
 It seems like the application decrypts the archives using AES-CBC along which uses the Key and IV from the response header. Knowing this, we can create a simple script that takes in the necessary parameters to get the unciphered files back.
 
@@ -307,30 +307,30 @@ $ python3 decrypt.py nginx-ui.zip --key 'oR2AL6li+5Qwtal9UajoVCJfBz3DzZsMpS97zsh
 
 Once those archives are decrypted, we can unzip them to parse through the files, looking for any sensitive information like hardcoded credentials or even usernames to brute-force.
 
-![](../assets/img/2026-04-06-Snapped/8.png)
+![](/assets/img/2026-04-06-Snapped/8.png)
 
 ### Initial Foothold
 There is a database.db file that was within the nginx_ui.zip archive, formatted for SQLite3. Using the corresponding tool to dump the database contents grants us password hashes for the admin and a user named Jonathan.
 
-![](../assets/img/2026-04-06-Snapped/9.png)
+![](/assets/img/2026-04-06-Snapped/9.png)
 
 Sending those over to JohnTheRipper or Hashcat grants us the unhashed password for Jonathan's account.
 
-![](../assets/img/2026-04-06-Snapped/10.png)
+![](/assets/img/2026-04-06-Snapped/10.png)
 
 These credentials allow us to login to the nginx UI site, but there isn't a whole lot to do there. Checking for password reuse over SSH allows us to get a shell as Jonathan and grab the user flag under his home directory.
 
-![](../assets/img/2026-04-06-Snapped/11.png)
+![](/assets/img/2026-04-06-Snapped/11.png)
 
 ## Privilege Escalation
 It seems that Jonathan is the only other user on the system besides root. The Kernel is up-to-date, we are not allowed to run Sudo commands, and there aren't any interesting services running internally. However, while checking for files with the SUID bit set, I notice a ton that pertain to the snapd daemon.
 
-![](../assets/img/2026-04-06-Snapped/12.png)
+![](/assets/img/2026-04-06-Snapped/12.png)
 
 ### Snap-Confine SUID
 The main thing that stuck out to me is the snap-confine binary, which is an internal, privileged helper tool used by snapd to create secure sandboxes for Snap applications on Linux.
 
-![](../assets/img/2026-04-06-Snapped/13.png)
+![](/assets/img/2026-04-06-Snapped/13.png)
 
 We can find the version by running the snap command with the necessary flag. This reveals a recent, yet vulnerable version of snap installed on the machine. A quick Google search allows me to discover [CVE-2026–3888](https://nvd.nist.gov/vuln/detail/CVE-2026-3888), which is a high-severity local privilege escalation vulnerability in Ubuntu's snapd that arises from an unsafe interaction between snap-confine and systemd-tmpfiles, where a critical `/tmp/.snap` directory can be deleted and improperly recreated.
 

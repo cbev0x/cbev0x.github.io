@@ -47,7 +47,7 @@ Since OpenSSH was running on a non-standard port, I checked to see how it was co
 
 The landing page is just holds text testing if HTML will render. 
 
-![](../assets/img/2026-02-11-Mnemonic/1.png)
+![](/assets/img/2026-02-11-Mnemonic/1.png)
 
 Nmap's default scripts show a disallowed entry for /webmasters/ which is where I'll fuzz for further directories. That responds with two directories at /admin and /backups.
 
@@ -92,45 +92,45 @@ Starting gobuster in directory enumeration mode
 
 I retrieve that archive using wget which shows that there is a note inside, however it's been password protected. We can brute force this by converting the zip file to a crackable format using a tool like zip2john. Letting that run against `rockyou.txt` rewards us with the password and we're able to read the note.
 
-![](../assets/img/2026-02-11-Mnemonic/2.png)
+![](/assets/img/2026-02-11-Mnemonic/2.png)
 
 Inside is a message from someone disclosing James' new username to login on the FTP server.
 
-![](../assets/img/2026-02-11-Mnemonic/3.png)
+![](/assets/img/2026-02-11-Mnemonic/3.png)
 
 I'll use Hydra in my attempts to brute force logins for both James and ftpuser. After a moment of waiting, the tool returns a successful login for ftpuser and we can enumerate files on that server.
 
-![](../assets/img/2026-02-11-Mnemonic/4.png)
+![](/assets/img/2026-02-11-Mnemonic/4.png)
 
 This looks to be the ftpuser's home directory considering the `.bashrc` file, however there are also a bunch of data directories. Inside `data-4` is an RSA key and another note.
 
-![](../assets/img/2026-02-11-Mnemonic/5.png)
+![](/assets/img/2026-02-11-Mnemonic/5.png)
 
 ## Initial Foothold
 This note tells James to change his FTP password (I agree). Attempting to login via SSH with the id_rsa key shows that it's protected by a passphrase. Once again, we can convert this to a crackable format using ssh2john and provide that here.
 
-![](../assets/img/2026-02-11-Mnemonic/6.png)
+![](/assets/img/2026-02-11-Mnemonic/6.png)
 
 This succeeds.
 
-![](../assets/img/2026-02-11-Mnemonic/7.png)
+![](/assets/img/2026-02-11-Mnemonic/7.png)
 
 This does work for the passphrase which is also his password for SSH. Once logged in, I find two text files under his home directory showing that an account named condor has recently had its password changed as well as a list of seemingly random numbers or passwords.
 
-![](../assets/img/2026-02-11-Mnemonic/8.png)
+![](/assets/img/2026-02-11-Mnemonic/8.png)
 
 Every once in a while, the system broadcasts a message alerting us that our unauthorized session has been discovered. Using that list to brute force an SSH login for condor fails and I move on to internal enumeration. The automated script that boots us gets a bit annoying and we don't have access to the `cd` command either. I find that we can list condor's home directory which shows some interesting base64 encoded folder names.
 
-![](../assets/img/2026-02-11-Mnemonic/9.png)
+![](/assets/img/2026-02-11-Mnemonic/9.png)
 
 ## Mnemonic-Based Decryption
 Even though we can not see file permissions, their `.bash_history` shows that it's a symbolic link which is most likely headed for `/dev/null`. Sending those encoded names over to CyberChef gives us our first flag along with a link that points to the thumbnail for Kevin Mitnick's password cracking [video](https://www.youtube.com/watch?v=K-96JmC2AkE).
 
-![](../assets/img/2026-02-11-Mnemonic/10.png)
+![](/assets/img/2026-02-11-Mnemonic/10.png)
 
 **Photo:**
 
-![](../assets/img/2026-02-11-Mnemonic/11.png)
+![](/assets/img/2026-02-11-Mnemonic/11.png)
 
 In this video, Kevin talks about how using easy-to-remember passphrases is more secure than your typical password due to its length factor. Thinking back to the note left for us, the author speaks of an Image based encryption method aptly named Mnemonic which transforms cryptographic keys into memorable passphrases (sound familiar?).
 
@@ -142,14 +142,14 @@ source venv/bin/activate
 sudo pip install opencv-python && sudo pip install colored
 ```
 
-![](../assets/img/2026-02-11-Mnemonic/12.png)
+![](/assets/img/2026-02-11-Mnemonic/12.png)
 
 Once the 6450.txt file is processed, I enter 2 to decypt it and recover condor's password. Now we can login via SSH and start looking at routes for privilege escalation.
 
 ## Privilege Escalation
 Our account doesn't have access to any binaries with SUID bits set or cronjobs running, however I find that we are able to run an example script as root user.
 
-![](../assets/img/2026-02-11-Mnemonic/13.png)
+![](/assets/img/2026-02-11-Mnemonic/13.png)
 
 **Script:**
 
@@ -275,11 +275,11 @@ if select == 0:
 
 Let's test this out to see if we can escape the script by doing just that.
 
-![](../assets/img/2026-02-11-Mnemonic/14.png)
+![](/assets/img/2026-02-11-Mnemonic/14.png)
 
 Supplying the "." allows for one command to to be executed before the process gets dumped. This happens because the program prints a line and then waits for input which is made to an OS system call. Since we're running as root we can effectively execute commands using this function. In my case I set the SUID bit on `/bin/bash` but you can really supply anything.
 
-![](../assets/img/2026-02-11-Mnemonic/15.png)
+![](/assets/img/2026-02-11-Mnemonic/15.png)
 
 With our new root shell, I grab the final flag at `/root/root.txt`. Before turning the flag in, we have to MD5sum the portion within the brackets in order to get the correct format. 
 

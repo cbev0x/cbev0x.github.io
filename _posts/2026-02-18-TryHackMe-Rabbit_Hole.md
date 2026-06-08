@@ -41,18 +41,18 @@ We won't be able to do much with that version of OpenSSH without credentials, so
 
 Checking out the landing page shows a barren login panel for some type of recruitment campaign.
 
-![](../assets/img/2026-02-18-RabbitHole/1.png)
+![](/assets/img/2026-02-18-RabbitHole/1.png)
 
 We're able to register our own account and I do so to enumerate the internal functions on the site. An interesting thing to note here is that instead of a typical create button, it says submit query which may be hinting at a second-order SQLi or for us to use account registration for any exploits in the future.
 
-![](../assets/img/2026-02-18-RabbitHole/2.png)
+![](/assets/img/2026-02-18-RabbitHole/2.png)
 
 Hitting the dashboard after logging in shows that we the site was built using PHP. Another thing to note is that upon login the site hangs for a tiny bit, each time seeming random so maybe a sleep command is being ran in order to rate limit logins as their way of an anti-bruteforce measure.
 
 ## XSS Payloads
 The only thing displayed here is the last login times for all users registered on the site. The main page says that the login functionality is being monitored (presumably by the admin) so maybe we're supposed to use cross-site scripting in order to steal the administrator's cookie.
 
-![](../assets/img/2026-02-18-RabbitHole/3.png)
+![](/assets/img/2026-02-18-RabbitHole/3.png)
 
 This is a bit obvious and almost feels like a trap, however my scans haven't found anything else so I proceed. My go-to payload when testing for XSS is the following:
 
@@ -72,7 +72,7 @@ Reverting to a simpler payload shows that the image gets loaded, but another int
 ```
 {% endraw %}
 
-![](../assets/img/2026-02-18-RabbitHole/4.png)
+![](/assets/img/2026-02-18-RabbitHole/4.png)
 
 ## Second-Order SQL Injection
 The register page doesn't reflect queries being made, however the username is being loaded upon login so we can swap between registering accounts and loading the dashboard to confirm queries.
@@ -90,7 +90,7 @@ Typically, we'd first need to enumerate the correct amount of columns in the cur
 " UNION SELECT 1,2-- -
 ```
 
-![](../assets/img/2026-02-18-RabbitHole/5.png)
+![](/assets/img/2026-02-18-RabbitHole/5.png)
 
 Seems the second one is, now let's enumerate the database name with help from the `information_schema` DB.
 
@@ -98,7 +98,7 @@ Seems the second one is, now let's enumerate the database name with help from th
 " UNION SELECT 1,schema_name from information_schema.schemata-- -
 ```
 
-![](../assets/img/2026-02-18-RabbitHole/6.png)
+![](/assets/img/2026-02-18-RabbitHole/6.png)
 
 There is just one database by the name of web on the system. Next, let's find all tables inside of it.
 
@@ -106,7 +106,7 @@ There is just one database by the name of web on the system. Next, let's find al
 " UNION SELECT 1,table_name FROM information_schema.tables WHERE table_schema='web'-- -
 ```
 
-![](../assets/img/2026-02-18-RabbitHole/7.png)
+![](/assets/img/2026-02-18-RabbitHole/7.png)
 
 We probably want the users table as it may hold any passwords/hashes for all registered accounts on the site. Next, let's find all columns in that table and see which fields to extract. Note that we should use the `group_concat` operator as longer strings may be cut off due to how the site's built.
 
@@ -114,7 +114,7 @@ We probably want the users table as it may hold any passwords/hashes for all reg
 " UNION SELECT 1,group_concat(column_name) FROM information_schema.columns WHERE table_schema= 'web' and table_name ='users'-- -
 ```
 
-![](../assets/img/2026-02-18-RabbitHole/8.png)
+![](/assets/img/2026-02-18-RabbitHole/8.png)
 
 Due to there not being an admin identifier present and the fact that we already know there is an admin account on the site, this output just seemed too short. We'll need to use a second command to display the second portion of the columns. The substring function allows us to do so while specifying how many characters to print. Only 16 characters worked the first time so we'll work our way up from there.
 
@@ -122,7 +122,7 @@ Due to there not being an admin identifier present and the fact that we already 
 " UNION SELECT 1,SUBSTRING((SELECT group_concat(column_name) FROM information_schema.columns WHERE table_schema = 'web' and table_name ='users'), 17, 16)-- -
 ```
 
-![](../assets/img/2026-02-18-RabbitHole/9.png)
+![](/assets/img/2026-02-18-RabbitHole/9.png)
 
 So the columns are `id, username, password`, and `group`. Due to the print space being relatively small, we probably won't be able to fit all that info in one output. I want to enumerate all users on the box before dumping their passwords in case something stands out.
 
@@ -142,7 +142,7 @@ There are three other users being **admin**, **foo**, and **bar**. We can utiliz
 
 I grab the admin hash but it never ends up cracking. Moving onto the other users, resolving their MD5 hashes to their plaintext version states a rather disappointing message.
 
-![](../assets/img/2026-02-18-RabbitHole/10.png)
+![](/assets/img/2026-02-18-RabbitHole/10.png)
 
 ### Stealing Admin password via INFO column
 My enumeration was pretty thorough if I do say so myself, so I kind of figured this had to be the correct attack vector. Praying that this wasn't a very sophisticated rabbit hole and I wasn't just missing something obvious, I refreshed my knowledge on SQL injection and how it could be used in ways other than dumping database information.
@@ -151,7 +151,7 @@ In some cases, SQLi can be used to write files to the system using the `INTO OUT
 
 After taking a little break and a deep dive on  MariaDB's information_schema database revealed the [PROCESSLIST table](https://mariadb.com/docs/server/reference/system-tables/information-schema/information-schema-tables/information-schema-processlist-table). This contains detailed information about running threads, which including their current state and execution time. Most of the columns inside that table are just technical data being used by the process in order to perform tasks, however the INFO column holds a statement that the thread is executing (potentially being NULL if none is provided).
 
-![](../assets/img/2026-02-18-RabbitHole/11.png)
+![](/assets/img/2026-02-18-RabbitHole/11.png)
 
 Alright, how does this really help us? We know that the site is being monitored by the administrator every minute or so and that the sleep function is being called during the login process. That means that every time the administrator logs in, there is a small window for us to read the statement that thread is executing and just maybe the admin's password. 
 
@@ -259,11 +259,11 @@ Now we just need to provide it with the target host as well as our SQL query tha
 SELECT INFO_BINARY from information_schema.PROCESSLIST WHERE INFO_BINARY NOT LIKE "%INFO_BINARY%" LIMIT 1
 ```
 
-![](../assets/img/2026-02-18-RabbitHole/12.png)
+![](/assets/img/2026-02-18-RabbitHole/12.png)
 
 Running this a few times until getting the response we're looking for shows that it's a success. It's far from perfect but it still works to grab the plaintext string from the statement. As suspected, the site itself does not handle the hashing process which leaves this susceptible to our attack. All that's left is to SSH onto the box as the admin user and grab our well-earned flag to complete this challenge.
 
-![](../assets/img/2026-02-18-RabbitHole/13.png)
+![](/assets/img/2026-02-18-RabbitHole/13.png)
 
 That's all y'all, man this box went from 0–100 real quick and there were definitely times where I thought SQL injection was not the way to go. It seemed way above my skill level until coming to the realization that it's almost like a MITM attack where we snoop on HTTP traffic to capture creds, obviously this being a bit harder to execute. 
 

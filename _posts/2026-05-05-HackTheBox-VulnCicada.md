@@ -103,11 +103,11 @@ Looks like a Windows machine with Active Directory components installed on it, m
 ## Service Enumeration
 Checking out the landing page on port 80 shows the standard Microsoft IIS index, so the web server will most likely host nothing unless we get an interesting hit back from the scans. 
 
-![](../assets/img/2026-05-05-VulnCicada/1.png)
+![](/assets/img/2026-05-05-VulnCicada/1.png)
 
 Testing for Guest/Null authentication over SMB and RPC show that both are not supported. Judging from the Netexec output, NTLM authentication is disabled on this domain, making things a bit trickier.
 
-![](../assets/img/2026-05-05-VulnCicada/2.png)
+![](/assets/img/2026-05-05-VulnCicada/2.png)
 
 ### NFS Profiles Share
 Nmap discloses an NFS server bound to port 2049, and by listing all available mounts that are exported, we find a profiles share.
@@ -120,7 +120,7 @@ Nmap discloses an NFS server bound to port 2049, and by listing all available mo
 └─$ sudo mount 10.129.234.48:/profiles /mnt/nfs_share
 ```
 
-![](../assets/img/2026-05-05-VulnCicada/3.png)
+![](/assets/img/2026-05-05-VulnCicada/3.png)
 
 After mounting it, I list all files present which just gives us two images for the Administrator and a user named Rosie.Powell. 
 
@@ -149,7 +149,7 @@ find: './Rosie.Powell/Documents': Permission denied
 ### Password in Image
 The first is just a photo of a man parachuting, however the second contains what looks to be a password on a stickynote.
 
-![](../assets/img/2026-05-05-VulnCicada/4.png)
+![](/assets/img/2026-05-05-VulnCicada/4.png)
 
 ## Exploitation
 
@@ -162,7 +162,7 @@ Since NTLM authentication is disabled, we will need to grab a TGT using these us
 └─$ export KRB5CCNAME=Rosie.ccache
 ```
 
-![](../assets/img/2026-05-05-VulnCicada/5.png)
+![](/assets/img/2026-05-05-VulnCicada/5.png)
 
 At this point, we can brute-force RIDs to get a list of user accounts on the domain, opening up a few doors for us.
 
@@ -170,7 +170,7 @@ At this point, we can brute-force RIDs to get a list of user accounts on the dom
 └─$ nxc smb DC-JPQ225.cicada.vl -k --rid-brute 4000
 ```
 
-![](../assets/img/2026-05-05-VulnCicada/6.png)
+![](/assets/img/2026-05-05-VulnCicada/6.png)
 
 I spend some time attempting to Kerberoast and AS-REP Roast these accounts, however nothing comes of it so I fire up Bloodhound to map the domain along with any permissions our current user may have. Enumerating SMB shares shows one named CertEnroll which reveals that Active Directory Certificate Services is installed as well.
 
@@ -178,7 +178,7 @@ I spend some time attempting to Kerberoast and AS-REP Roast these accounts, howe
 └─$ nxc smb DC-JPQ225.cicada.vl -u 'Rosie.Powell' -p 'Cicada123' -k --shares
 ```
 
-![](../assets/img/2026-05-05-VulnCicada/7.png)
+![](/assets/img/2026-05-05-VulnCicada/7.png)
 
 I use [Certipy-AD](https://github.com/ly4k/Certipy) to discover any vulnerable templates the our current user is allowed to enroll with.
 
@@ -301,7 +301,7 @@ Finally, we can use this PFX to authenticate to the DC and grab the computer acc
 └─$ certipy-ad auth -pfx DC-JPQ225.pfx -dc-ip 10.129.234.48
 ```
 
-![](../assets/img/2026-05-05-VulnCicada/8.png)
+![](/assets/img/2026-05-05-VulnCicada/8.png)
 
 Using the ccache file, we can recover the domain administrator's hash via Impacket's [secretsdump.py](https://github.com/fortra/impacket/blob/master/examples/secretsdump.py) script:
 
@@ -311,7 +311,7 @@ Using the ccache file, we can recover the domain administrator's hash via Impack
 └─$ impacket-secretsdump -k -no-pass cicada.vl/'dc-jpq225$'@'dc-jpq225.cicada.vl' -just-dc-user administrator
 ```
 
-![](../assets/img/2026-05-05-VulnCicada/9.png)
+![](/assets/img/2026-05-05-VulnCicada/9.png)
 
 We can now use this to get a TGT for the administrator and after a bit of Kerberos configuration, we can grab a shell via WinRM.
 
@@ -327,6 +327,6 @@ We can now use this to get a TGT for the administrator and after a bit of Kerber
 └─$ evil-winrm -i dc-jpq225.cicada.vl -r cicada.vl
 ```
 
-![](../assets/img/2026-05-05-VulnCicada/10.png)
+![](/assets/img/2026-05-05-VulnCicada/10.png)
 
 Grabbing both flags under the administrator's desktop folder will complete this challenge. I hope this was helpful to anyone following along or stuck and happy hacking!

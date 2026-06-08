@@ -76,7 +76,7 @@ $ nxc smb dc.cooctus.corp -u '' -p '' --shares
 $ nxc smb dc.cooctus.corp -u 'Guest' -p '' --shares
 ```
 
-![](../assets/img/2026-04-25-Crocc_Crew/1.png)
+![](/assets/img/2026-04-25-Crocc_Crew/1.png)
 
 ### No Guest Authentication
 RPC is not configured for null logons and LDAP doesn't allow anonymous binds, really only leaving us with the web server to grab initial domain creds.
@@ -87,11 +87,11 @@ $ rpcclient dc.cooctus.corp -U ''
 $ netexec ldap dc.cooctus.corp -u '' -p '' --query "(objectClass=*)" ""
 ```
 
-![](../assets/img/2026-04-25-Crocc_Crew/2.png)
+![](/assets/img/2026-04-25-Crocc_Crew/2.png)
 
 Checking out the landing page on port 80 reveals a defaced website showing that they have been hacked by the Crocc Crew. Near the page's footer, we are given a list of aliases belonging to that group, which I create a wordlist out of in case any artefacts left behind match these names.
 
-![](../assets/img/2026-04-25-Crocc_Crew/3.png)
+![](/assets/img/2026-04-25-Crocc_Crew/3.png)
 
 ### Web Rabbit Holes
 Looking at **robots.txt** gives us a few interesting endpoints.
@@ -128,7 +128,7 @@ echo "Connected Successfully";
 
 The **backdoor.php** page prompts us with an interactive console that doesn't seem to take in any commands.
 
-![](../assets/img/2026-04-25-Crocc_Crew/4.png)
+![](/assets/img/2026-04-25-Crocc_Crew/4.png)
 
 Taking a peek at the source code shows a script in the HTML that describes a function named "what".
 
@@ -147,7 +147,7 @@ $('body').terminal({
 
 A bit of messing around with it shows that we can use the hello command along with a parameter, resulting in a line that greets us by name of the argument.
 
-![](../assets/img/2026-04-25-Crocc_Crew/5.png)
+![](/assets/img/2026-04-25-Crocc_Crew/5.png)
 
 Since it reflected our user-supplied input, I tried testing for command injection but nothing really came of it. It seemed like everything we've found so far were rabbit holes and no credentials worked to authenticate, which got me thinking how we could login without being a user.
 
@@ -208,7 +208,7 @@ We can do the same for other services, eventually finding Visitor credentials on
 $ rdesktop -f -u '' 10.67.131.168
 ```
 
-![](../assets/img/2026-04-25-Crocc_Crew/6.png)
+![](/assets/img/2026-04-25-Crocc_Crew/6.png)
 
 ### Mapping AD with BloodHound
 These do not work to grab an RDP session since they aren't apart of the Remote Desktop Users group, but we can authenticate to the domain now. I immediately spin up BloodHound while using [BloodHound-Python](https://github.com/dirkjanm/bloodhound.py) to collect the domain data.
@@ -342,7 +342,7 @@ LDAP        10.67.131.168   389    DC               $krb5tgs$23$*password-reset$
 
 Sending that krb5tgs over to Hashcat or JohnTheRipper rewards us with the plaintext version almost instantly.
 
-![](../assets/img/2026-04-25-Crocc_Crew/7.png)
+![](/assets/img/2026-04-25-Crocc_Crew/7.png)
 
 Seeing what permissions this account has shows that we struck a goldmine. This obviously serves as the domain's password reset account, meaning we have the _ForceChangePassword_ permission over almost all domain users, however this account is also trusted for _Constrained Delegation_.
 
@@ -387,7 +387,7 @@ Finally, we can utilize this Administrator TGT to dump all domain hashes via Imp
 $ impacket-secretsdump -k -no-pass DC.COOCTUS.CORP
 ```
 
-![](../assets/img/2026-04-25-Crocc_Crew/8.png)
+![](/assets/img/2026-04-25-Crocc_Crew/8.png)
 
 We're granted the Administrator's NTLM which can be used in a Pass-The-Hash over SMB or another service to get a shell on the domain with full privileges.
 
@@ -395,7 +395,7 @@ We're granted the Administrator's NTLM which can be used in a Pass-The-Hash over
 $ impacket-smbexec -hashes ':[REDACTED]' COOCTUS.CORP/administrator@DC.COOCTUS.CORP
 ```
 
-![](../assets/img/2026-04-25-Crocc_Crew/9.png)
+![](/assets/img/2026-04-25-Crocc_Crew/9.png)
 
 Grabbing the root flag under `C:\Perflogs\Admin` as well as the other flags under `C:\Shares\Home` will complete this box. It seems like we may have skipped a few steps with the delegation abuse, but I'll take any shortcut to Domain Admin.
 

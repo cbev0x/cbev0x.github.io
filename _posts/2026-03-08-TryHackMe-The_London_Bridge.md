@@ -75,22 +75,22 @@ dejaview                [Status: 200, Size: 823, Words: 226, Lines: 33, Duration
 
 Checking out the landing page shows some tourist information for London. Navigating to the other tabs reveals that only the gallery and contact buttons work to redirect us elsewhere.
 
-![](../assets/img/2026-03-08-TheLondonBridge/1.png)
+![](/assets/img/2026-03-08-TheLondonBridge/1.png)
 
 The contact form shows allows us to message the team and doesn't filter any characters. Submitting a test request responds with a message saying that the staff will review our message whenever they get around to it. This may be vulnerable to XSS, however my scans didn't find a login page, so session hijacking is out of the question.
 
-![](../assets/img/2026-03-08-TheLondonBridge/2.png)
+![](/assets/img/2026-03-08-TheLondonBridge/2.png)
 
 On the other hand, the gallery tab shows plenty of pictures of London and gives us the option to upload images in addition to them. If unsecured, we may be able to put a reverse shell on the box as our foothold.
 
-![](../assets/img/2026-03-08-TheLondonBridge/3.png)
+![](/assets/img/2026-03-08-TheLondonBridge/3.png)
 
 Capturing a POST request to the upload in Burp Suite shows that just supplying code won't work. I try changing the extension to be valid, but it seems like the website is checking our file's MIME type and only allowing real photos. I spent some time playing with the magic bytes and got a few to upload, however none of them are executed so I move on.
 
 ## SSRF
 My scans found one other directory at `/dejaview` which prompts us to enter an image URL in order to view it. A quick test for Server-Side Request Forgery by providing my attacking IP shows that it makes a request to the fake file on my web server, opening up a few doors for us.
 
-![](../assets/img/2026-03-08-TheLondonBridge/4.png)
+![](/assets/img/2026-03-08-TheLondonBridge/4.png)
 
 Next, I tried fuzzing with the localhost IP in order to enumerate internal services on the box, however it would still point back to my attacking web server when attempting to fetch files for some reason. A bit longer of trying to get this to work revealed that this was the extent of what I could to right now.
 
@@ -137,7 +137,7 @@ _Note: I use the value of a valid image from the site's gallery which should ret
 ### Internal Service Enumeration
 We get a hit back from the `www` parameter. Let's try to use this to enumerate internal services on the box with the same method from earlier.
 
-![](../assets/img/2026-03-08-TheLondonBridge/5.png)
+![](/assets/img/2026-03-08-TheLondonBridge/5.png)
 
 Supplying the parameter with `localhost` or `127.0.0.1` returns a 403 Forbidden code, however other valid URLs respond with the normal 200 OK that we've seen. It looks like there's a filter in place, however there are more ways to point locally and since other requests work, it's most likely using a blacklist instead of whitelisting all possible other ones.
 
@@ -159,7 +159,7 @@ http://127.0.1
 
 Testing a few payloads as well as specifying port 8080 rewards us with a valid request to the page, confirming a bypass on this filter.
 
-![](../assets/img/2026-03-08-TheLondonBridge/6.png)
+![](/assets/img/2026-03-08-TheLondonBridge/6.png)
 
 Now let's automate this in Ffuf or Wfuzz by giving it a wordlist of all possible ports which should return a 200 for any existing services. I create a sequence of numbers from 1–65365 and save it to a file used in the requests.
 
@@ -201,7 +201,7 @@ ________________________________________________
 ### Reading SSH Key
 We can see an internal web server on port 80 that may hold a few other secrets, considering it's probably still in development. I'll leave another scan running in hopes of finding any secret directories on that server, but let's check out the landing page.
 
-![](../assets/img/2026-03-08-TheLondonBridge/7.png)
+![](/assets/img/2026-03-08-TheLondonBridge/7.png)
 
 It just holds the London Bridge nursery rhyme with no other functionality, the interesting thing here is the final line which states _"My fair Beth"_ instead of the original _"My fair lady"_. This could be a potential username that we can use to brute force SSH, read private keys, etc.
 
@@ -211,7 +211,7 @@ Checking back on my internal directory scan reveals that we're inside of someone
 www=http://127.1:80/.ssh/id_rsa
 ```
 
-![](../assets/img/2026-03-08-TheLondonBridge/8.png)
+![](/assets/img/2026-03-08-TheLondonBridge/8.png)
 
 Attempting to use this key with Beth's username is successful and we grab a proper shell on the box. 
 
@@ -221,7 +221,7 @@ Listing the `/home` directory shows one other user named Charles, besides root. 
 ### Service Hijacking Fail
 I couldn't find any SUID bits set on sensitive binaries or hardcoded credentials due to there not being a login page or SQL database. I figured that since the internal web server was being ran on port 80, systemd was probably using the webroot directory in its attempts to find use the config file. Checking /etc/systemd/system/ reveals the app.service file which shows the working directory to be /home/beth, which we have write access to of course.
 
-![](../assets/img/2026-03-08-TheLondonBridge/9.png)
+![](/assets/img/2026-03-08-TheLondonBridge/9.png)
 
 Beth also had full control over the Gunicorn binary, which meant that if we could get the service to restart or be called, a malicious replacement would run it as root (confirmed by listing process owner) and we'd have the capability to escalate privileges. The only problem was that we had no direct way to reload the daemon and even if we crashed the service, there's no insurance that it would come back up to call our binary.
 
@@ -242,12 +242,12 @@ $ gcc exploit.c -o exploit -lpthread
 
 Now we just need to run it while providing the Linux distro as a parameter.
 
-![](../assets/img/2026-03-08-TheLondonBridge/10.png)
+![](/assets/img/2026-03-08-TheLondonBridge/10.png)
 
 ## Flag Retrieval
 Inside of the `/root` directory is a `flag.py` script which holds a Base64 encoded RSA key for persistence on the box and our final flag under in the .root.txt file. The user flag is in `/__pycache__` under Beth's home directory, but getting Charles' password is a bit more nuanced. Just trying to crack the hash from `/etc/shadow` doesn't work, however listing hidden objects in his home directory shows a Mozilla directory. 
 
-![](../assets/img/2026-03-08-TheLondonBridge/11.png)
+![](/assets/img/2026-03-08-TheLondonBridge/11.png)
 
 This holds all cached passwords and secrets from the Firefox browser which we can dump by using a tool like [Firefox_Decrypt](https://github.com/unode/firefox_decrypt).
 

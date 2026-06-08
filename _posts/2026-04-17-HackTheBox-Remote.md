@@ -94,7 +94,7 @@ Looks like a Windows machine with a few interesting ports open. I'll mainly focu
 ## Service Enumeration
 The FTP server allows for anonymous login, however there is nothing in it and we don't have the capability to upload a shell to proc it from the web server. Using Netexec to test SMB and RPC for Guest/Null authentication both fail, so we're not left with much.
 
-![](../assets/img/2026-04-17-Remote/1.png)
+![](/assets/img/2026-04-17-Remote/1.png)
 
 We can see that port 2049 is open and hosts a Network File System server, which is interesting since SMB does relatively the same thing and is more common on Windows. This could be due to an environment mixed between Windows and Unix-like systems to work out compatibility.
 
@@ -109,12 +109,12 @@ $ sudo mkdir -p /mnt/nfs_share
 $ sudo mount 10.129.230.172:/site_backups /mnt/nfs_share
 ```
 
-![](../assets/img/2026-04-17-Remote/2.png)
+![](/assets/img/2026-04-17-Remote/2.png)
 
 ### Mounted Site Backup
 With a site backup on our machine, we find an Umbraco CMS instance installed on the site. Inside of the `/App_Data` directory is an .sdf (Structured Data File) that gives us a few hashes when grabbing the strings from it.
 
-![](../assets/img/2026-04-17-Remote/3.png)
+![](/assets/img/2026-04-17-Remote/3.png)
 
 ### Site Admin Creds
 Sending them over to Hashcat only cracks the Administrator's since it was using SHA1, now letting us login to the Umbraco site with elevated permissions.
@@ -123,28 +123,28 @@ Sending them over to Hashcat only cracks the Administrator's since it was using 
 $ hashcat -m 100 hashes /opt/seclists/rockyou.txt --force
 ```
 
-![](../assets/img/2026-04-17-Remote/4.png)
+![](/assets/img/2026-04-17-Remote/4.png)
 
 Heading over to the landing page on port 80 shows standard business content for Acme Widgets, although most of it is Lorem Ipsum filler wording.
 
-![](../assets/img/2026-04-17-Remote/5.png)
+![](/assets/img/2026-04-17-Remote/5.png)
 
 ## Umbraco Exploitation
 We can head straight to `/Umbraco` to sign in as the credentials found should validate to give us control over it anyways. The password fails for the username admin, but a few others were listed in the .sdf file and `admin@htb.local` eventually succeeds.
 
 A quick look around the Admin dashboard discloses the version in use, which is v7.12.4.
 
-![](../assets/img/2026-04-17-Remote/6.png)
+![](/assets/img/2026-04-17-Remote/6.png)
 
 ### Authenticated RCE
 Using this to search for known vulnerability PoCs on Exploit-DB shows two Python scripts that allow for Authenticated Remote Code Execution.
 
-![](../assets/img/2026-04-17-Remote/7.png)
+![](/assets/img/2026-04-17-Remote/7.png)
 
 ### Altering Script
 After copying that to my home directory, I start by making a few changes to this script since it currently just launches the calculator app. I swap the value of `proc.StartInfo.FileName` from **calc.exe** to **cmd.exe**, and supply all necessary strings in login, password, and host parameters below it.
 
-![](../assets/img/2026-04-17-Remote/8.png)
+![](/assets/img/2026-04-17-Remote/8.png)
 
 As of now, this will just start up a command line, but we can utilize the string cmd = line to pass in arguments to be executed in the CLI. In my case, I have it download [Nishang's](https://github.com/samratashok/nishang/blob/master/Shells/Invoke-PowerShellTcp.ps1) PowerShell reverse shell from my machine and execute to give me a foothold.
 
@@ -206,19 +206,19 @@ $ python3 -m http.server 80
 $ python ./exploit.py
 ```
 
-![](../assets/img/2026-04-17-Remote/9.png)
+![](/assets/img/2026-04-17-Remote/9.png)
 
 Once executed, we get a shell on the box as _defaultapppool_ and can start internal enumeration to escalate privileges towards Administrator.
 
 ## Privilege Escalation
 Checking the Users directory shows that the only real person on this system is the administrator. We can grab the user flag under the Public user's Desktop folder too.
 
-![](../assets/img/2026-04-17-Remote/10.png)
+![](/assets/img/2026-04-17-Remote/10.png)
 
 ### Finding TeamViewer
 Light enumeration on the filesystem reveals that _TeamViewer_ is installed under `C:\Program Files (x86)` and seems to be running version 7.
 
-![](../assets/img/2026-04-17-Remote/11.png)
+![](/assets/img/2026-04-17-Remote/11.png)
 
 A quick Google search reveals that _TeamViewer_ is a secure, cloud-based platform for remote access, control, and support purposes. Metasploit also has a post-exploitation module that will grab passwords from certain files and use AES128-CBC to decrypt them along with a static iv and key.
 
@@ -238,10 +238,10 @@ $ .\safe.exe
 
 Once we have a Meterpreter session up and running, I use the `post/windows/gather/credentials/teamviewer_passwords` module to gather passwords from TeamViewer.
 
-![](../assets/img/2026-04-17-Remote/12.png)
+![](/assets/img/2026-04-17-Remote/12.png)
 
 This reveals just one unattended password for us and attempting to authenticate via WinRM succeeds, showing that we're able to get a shell on the system as Administrator. I end up using [Evil-WinRM](https://www.kali.org/tools/evil-winrm/) to catch one and grab the root flag under their desktop folder to complete this challenge.
 
-![](../assets/img/2026-04-17-Remote/13.png)
+![](/assets/img/2026-04-17-Remote/13.png)
 
 Overall, the hardest part of this box was getting a reverse shell through altering the exploit, but I enjoyed it plenty. I hope this was helpful to anyone following along or stuck and happy hacking!

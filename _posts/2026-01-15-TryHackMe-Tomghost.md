@@ -13,7 +13,7 @@ _Identify recent vulnerabilities to try exploit the system or read files that yo
 ## Scanning & Enumeration
 Kicking it off with an Nmap scan on the attached IP to find running services on the host.
 
-![](../assets/img/2026-01-15-Tomghost/1.png)
+![](/assets/img/2026-01-15-Tomghost/1.png)
 
 We have the following:
 - SSH on port 22
@@ -23,11 +23,11 @@ We have the following:
 
 Looking at the web server, we find a boilerplate page for Tomcat. Let’s run a gobuster scan to find more endpoints on it.
 
-![](../assets/img/2026-01-15-Tomghost/2.png)
+![](/assets/img/2026-01-15-Tomghost/2.png)
 
 I don’t find much with the directory bust, however the /manager page discloses a default password for Tomcat, being s3cret for any potential login.
 
-![](../assets/img/2026-01-15-Tomghost/3.png)
+![](/assets/img/2026-01-15-Tomghost/3.png)
 
 ## Exploitation
 After doing some research on vulnerabilities for Tomcat and AJP, I find a CVE that we can use to read files on the system. Here are some sources for it:
@@ -42,29 +42,29 @@ Using the GitHub PoC attached above, we specify the port, file, and target in or
 
 _You can also run this via Metasploit which may be easier._
 
-![](../assets/img/2026-01-15-Tomghost/4.png)
+![](/assets/img/2026-01-15-Tomghost/4.png)
 
 By requesting the file `WEB-INF/web.xml`, we gather a username and password for a user named skyfuck.
 
-![](../assets/img/2026-01-15-Tomghost/5.png)
+![](/assets/img/2026-01-15-Tomghost/5.png)
 
 At this point, logging in via SSH is possible and we can start looking for privesc on the system.
 
 ## Privilege Escalation
 There is a PGP encrypted file as well as a PGP credentials key in their home directory. Let’s decrypt this using the Gnu Privacy Guard (gpg) tool.
 
-![](../assets/img/2026-01-15-Tomghost/6.png)
+![](/assets/img/2026-01-15-Tomghost/6.png)
 
 The .asc file is passphrase protected so we’ll need to use gpg2john in order to crack the phrase with a wordlist.
 
-![](../assets/img/2026-01-15-Tomghost/7.png)
+![](/assets/img/2026-01-15-Tomghost/7.png)
 
 Import the credential.pgp key with gpg and use it to decrypt the tryhackme.asc file to grab our password. This points to another user on the system named merlin.
 
-![](../assets/img/2026-01-15-Tomghost/8.png)
+![](/assets/img/2026-01-15-Tomghost/8.png)
 
 After switching to merlin’s account, I try the typical methods for root privesc and find that they’re allowed to use the zip binary. Zip can be used to privesc on the system because it is able to access the file system without dropping sudo permissions. [GTFOBins](https://gtfobins.github.io/gtfobins/zip/#sudo) has a good exploit for this.
 
-![](../assets/img/2026-01-15-Tomghost/9.png)
+![](/assets/img/2026-01-15-Tomghost/9.png)
 
 Using that method to read root.txt finishes out the box. This was a fun box to solve so thanks to stuxnet for making it. I hope this was helpful to anyone following along and happy hacking!

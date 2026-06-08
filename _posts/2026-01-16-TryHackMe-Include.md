@@ -87,65 +87,65 @@ We can gather a few things here:
 
 There are lots of protocols pertaining to mailing which gives us a good idea as to what we’re working with. The SysMon portal on port 50000 says the typical “Unauthorized access will be addressed”, but I’m more interested in the login panel.
 
-![](../assets/img/2026-01-16-Include/1.png)
+![](/assets/img/2026-01-16-Include/1.png)
 
 Seeing as there are no verbose errors, exposed info in the source code, and isn’t prone to injection, let’s head on over to the main login page on port 4000.
 
-![](../assets/img/2026-01-16-Include/2.png)
+![](/assets/img/2026-01-16-Include/2.png)
 
 ## Exploitation
 We are allowed to sign in as a guest which is nice. After adding the two other users as friends and checking all profiles, I find that under Friend Details looks like JSON formatting. However, we also have a function that displays a recommendation to the details.
 
-![](../assets/img/2026-01-16-Include/3.png)
+![](/assets/img/2026-01-16-Include/3.png)
 
 At first I went about abusing the obvious IDOR vulnerability and trying to find something like an admin page, but that yielded no results.
 
 Judging from these values and information, the page takes these JSON and passes them as input for the webpage. Note the `isAdmin` value under the details section, this will be our key to escalating privileges as guest.
 
-![](../assets/img/2026-01-16-Include/4.png)
+![](/assets/img/2026-01-16-Include/4.png)
 
 A quick test shows that the Activity type is our first value and Activity name is the second. Let’s override the `isAdmin` value to true and see if we get more functionality on the webpage.
 
-![](../assets/img/2026-01-16-Include/5.png)
+![](/assets/img/2026-01-16-Include/5.png)
 
 The API page exposes a couple internal APIs for both a secretKey which may be used for signing and another one that lists credentials for admin on the current page as well as the SysMon portal on port 50000.
 
 This is great info, but without a way to execute it internally, we can’t really exploit it to grab those creds.
 
-![](../assets/img/2026-01-16-Include/6.png)
+![](/assets/img/2026-01-16-Include/6.png)
 
 ## Server Side Request Forgery
 As luck has it, the settings page contains a URL update function which we can use to change the banner of the page. Smells like an SSRF vulnerability, let’s change the picture currently set to an internal API and read the admin credentials.
 
-![](../assets/img/2026-01-16-Include/7.png)
+![](/assets/img/2026-01-16-Include/7.png)
 
 This returns a base64 encoded string; sending that over to CyberChef containing credentials in JSON format. With our newfound access, let’s login to the SysMon portal and see what we can do there.
 
-![](../assets/img/2026-01-16-Include/8.png)
+![](/assets/img/2026-01-16-Include/8.png)
 
 Here we find our first flag for the box as well as some standard system monitoring statistics.
 
-![](../assets/img/2026-01-16-Include/9.png)
+![](/assets/img/2026-01-16-Include/9.png)
 
 At this point I was a bit clueless as to going about grabbing a shell or arbitrary file reading. I messed around with the mailing protocols until realizing that was a dead end.
 
 ## Local File Inclusion
 Then I checked the source code for the SysMon page and found that the img source for the profile picture contained an LFI vulnerability.
 
-![](../assets/img/2026-01-16-Include/10.png)
+![](/assets/img/2026-01-16-Include/10.png)
 
 _Note: We must double up when executing directory traversal (towards / directory) as the site searches and replaces `../` with `""` . This technique allows us to bypass the page’s filter._
 
-![](../assets/img/2026-01-16-Include/11.png)
+![](/assets/img/2026-01-16-Include/11.png)
 
 ## Initial Foothold
 I tried some other spots that could potentially be useful but found nothing. I ended up using Hydra to brute force SSH login for the two users found in /etc/passwd.
 
-![](../assets/img/2026-01-16-Include/12.png)
+![](/assets/img/2026-01-16-Include/12.png)
 
 From here we can cd to /var/ww/html and find our second/final flag for the box in `505eb0fb8a9f32853b4d955e1f9123ea.txt` .
 
-![](../assets/img/2026-01-16-Include/13.png)
+![](/assets/img/2026-01-16-Include/13.png)
 
 Another way to read this file instead of brute forcing SSH, would be include uploading a basic php webshell via SMTP. I think this gets stored somewhere in /var/log, and then our LFI vulnerability turns into command execution.
 

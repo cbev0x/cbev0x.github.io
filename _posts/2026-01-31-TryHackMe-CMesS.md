@@ -44,7 +44,7 @@ There are just two ports open:
 
 Default nmap scripts show that there are three disallowed entries for the site at `/src`, `/themes`, and `/lib`. With this box being web-heavy, I fire up Gobuster to scan for subdomains/subdirectories in the background to save on time. Checking the page shows that it's running Gila CMS and has only one test post.
 
-![](../assets/img/2026-01-31-CMesS/1.png)
+![](/assets/img/2026-01-31-CMesS/1.png)
 
 Looking at all the entries under robots.txt return a 403 Forbidden error so we can't outright look at the source code. The footer also discloses a website date of 2017, which would be when Gila CMS was releasing 1.3.X versions. I keep that in mind if we end up looking for known vulnerabilities without finding the version somewhere.
 
@@ -97,11 +97,11 @@ dev                     [Status: 200, Size: 934, Words: 191, Lines: 31, Duration
 ## Exploitation
 After adding that subdomain to my /etc/hosts and navigating to it, I find what looks like a chat log for developers. They disclose a misconfiguration in the .htaccess file as well as a temporary password for andre's account used to sign into the admin panel.
 
-![](../assets/img/2026-01-31-CMesS/2.png)
+![](/assets/img/2026-01-31-CMesS/2.png)
 
 That's good info as we know the live site is most likely prone to some type of attack regarding HTTP requests or header modification. Next, I try to sign into the admin panel they spoke of.
 
-![](../assets/img/2026-01-31-CMesS/3.png)
+![](/assets/img/2026-01-31-CMesS/3.png)
 
 ## Initial Foothold
 That password is still viable to sign in as Andre and we can now see that the site's running `Gila CMS v1.10.9`. Some quick research on Exploit-DB shows that this version is prone to [CVE-2024–7657](https://nvd.nist.gov/vuln/detail/cve-2024-7657), I use [this PoC](https://www.exploit-db.com/exploits/51569) to get RCE on the box.
@@ -110,12 +110,12 @@ This exploit works due to how the site handles HTTP POST requests in an unknown 
 
 That python script made things easy and spawned a quick shell for us as www-data. Now let's look around for potential routes to escalate privileges to Andre or root user. It also looks like the devs hadn't changed the site's `.htaccess` file to deny files with the `.php` extension, which led to us grabbing a shell.
 
-![](../assets/img/2026-01-31-CMesS/4.png)
+![](/assets/img/2026-01-31-CMesS/4.png)
 
 ## Privilege Escalation
 I discover a backup tar archive in the `/tmp` directory. A crontab makes a copy from a backup folder in Andre's home dir and converts it to a tar archive for later use.
 
-![](../assets/img/2026-01-31-CMesS/5.png)
+![](/assets/img/2026-01-31-CMesS/5.png)
 
 I grab this from my attacking machine for further inspection and only find a note that says any file within the directory will be backed up by root.
 
@@ -138,7 +138,7 @@ This isn't much use to us right now as we can't write files to the backup direct
 
 We still need access to Andre's account first, so I go back to enumerating. I find a config.php file in `/var/www` that contains a password for the site's root user. 
 
-![](../assets/img/2026-01-31-CMesS/6.png)
+![](/assets/img/2026-01-31-CMesS/6.png)
 
 This is the same for the MySQL service on the machine so I use those creds to dump the Gila database, which gives me a hash for Andre's admin account. I sent that to JohnTheRipper but nothing returned, meaning I wasted some time in a rabbit hole.
 
@@ -170,7 +170,7 @@ echo "" > --checkpoint=1
 
 The first is a standard mkfifo reverse shell using netcat that points toward my attacking machine, where I have a listener set up at. The second and third are empty files which are named so that they will be passed into the command as arguments.
 
-![](../assets/img/2026-01-31-CMesS/7.png)
+![](/assets/img/2026-01-31-CMesS/7.png)
 
 _Note: Make sure the first two files in the backup dir are the flags starting with double dash as that's important for the exploit to function correctly._
 
@@ -188,6 +188,6 @@ So in our case, the binary will execute `cd /home/andre/backup && tar -zcf /tmp/
 
 Finally, once the cronjob executes that chain we get a shell on the box as root and can grab the final flag at `/root/root.txt`.
 
-![](../assets/img/2026-01-31-CMesS/8.png)
+![](/assets/img/2026-01-31-CMesS/8.png)
 
 This box was pretty fun so thanks to [optional](https://tryhackme.com/p/optional) for creating it. I hope this was helpful to anyone following along or stuck and happy hacking!

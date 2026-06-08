@@ -67,29 +67,29 @@ There are 14 ports open and it looks like we're dealing with a Windows machine w
 
 A lot of the open ports pertain to LDAP auth and web functionality so I'll mainly focus on SMB and HTTP/HTTPS. Starting with the former since it's a bit quicker, I use netexec to test for guest authentication.
 
-![](../assets/img/2026-02-10-StreamIO/1.png)
+![](/assets/img/2026-02-10-StreamIO/1.png)
 
 Looks like the guest account has been disabled, meaning that we'll almost certainly need credentials to get anywhere on this box. Knowing that, I head over to the web servers to see if there are any auth mechanisms to bypass or a potential database to dump via injection payloads.
 
 I also fire up Gobuster to search for subdirectories/subdomains to run in the background in order to save on time. Checking out port 80 shows the typical Microsoft IIS Server landing page which means this will be useless unless our scans return any interesting endpoints to check out.
 
-![](../assets/img/2026-02-10-StreamIO/2.png)
+![](/assets/img/2026-02-10-StreamIO/2.png)
 
 There is a movie streaming site over on port 443 which gives us a username for an employee in the footer. Among the tabs which disclose that the site is built on PHP, is a login/registration panel for the site's internal access.
 
-![](../assets/img/2026-02-10-StreamIO/3.png)
+![](/assets/img/2026-02-10-StreamIO/3.png)
 
 I attempt to make a new account which displays a success message, however trying to login with it fails. Testing the other input forms on the site like the newsletter and contact forms show that we need to check our inbox, which doesn't seem too likely to work as the login failed.
 
 Swapping to the watch subdomain shows a separate site prompting us to enter our Email ID to get added to their subscription list. I figured that the site must have a way of keeping track of who is and isn't subscribed to the list, meaning a new database.
 
-![](../assets/img/2026-02-10-StreamIO/4.png)
+![](/assets/img/2026-02-10-StreamIO/4.png)
 
 Here is where I was stuck for a while, the only thing I could think to exploit was some kind of second-order SQLi by having the subscription list store our malicious query and have it be executed at some other point. There was no evidence that this was happening at all, nor any form that would query a DB successfully, so I went back to enumerating.
 
 After a dozen scans, brute forcing `/admin/` endpoints on the main site with PHP extensions rewards me with a message. This states that master.php is only accessible to us through includes.
 
-![](../assets/img/2026-02-10-StreamIO/5.png)
+![](/assets/img/2026-02-10-StreamIO/5.png)
 
 ```
 $ gobuster dir -u https://streamIO.htb/admin/ -w /opt/SecLists/Discovery/Web-Content/raft-medium-words.txt -k -x php 
@@ -128,7 +128,7 @@ Starting gobuster in directory enumeration mode
 
 Since this page isn't meant to be accessed directly from our browser, we must find another page that loads or uses an include statement to call `master.php`. Fuzzing for PHP pages was a hit on the main page, so I swapped back to the watch subdomain to do the same. This returns a promising result at `search.php`.
 
-![](../assets/img/2026-02-10-StreamIO/6.png)
+![](/assets/img/2026-02-10-StreamIO/6.png)
 
 ```
 $ gobuster dir -u https://watch.streamIO.htb/ -w /opt/SecLists/Discovery/Web-Content/raft-medium-words.txt -k -x php 
@@ -165,7 +165,7 @@ This search function queries the movies database to return results, letting us w
 ## SQL Injection
 A few tries later gives me a solid understanding of how it works. There are certain statements such as OR which are blocked by a WAF, redirecting us to a message saying that malicious activity has been detected and our session has been timed out for 5 minutes. This isn't actually true but may be a good deterrent for some hackers.
 
-![](../assets/img/2026-02-10-StreamIO/7.png)
+![](/assets/img/2026-02-10-StreamIO/7.png)
 
 I capture a POST request to the search.php page and find that UNION statements haven't been blacklisted. Using that, I enumerate the amount of columns by increasing them until the page returns to baseline.
 
@@ -173,7 +173,7 @@ I capture a POST request to the search.php page and find that UNION statements h
 q=test' UNION SELECT 1,2,3,4,5,6-- -
 ```
 
-![](../assets/img/2026-02-10-StreamIO/8.png)
+![](/assets/img/2026-02-10-StreamIO/8.png)
 
 I gather that it has six columns and that numbers 2 and 3 are displayed to the output. Supplying a version command to double check that MSSQL is running shows that we can indeed enumerate the database through this function.
 
@@ -186,7 +186,7 @@ Microsoft SQL Server 2019 (RTM) - 15.0.2000.5 (X64)
 
 Repeating the same for things like `db_name()` and `user` show that we are in the `STREAMIO` database as a `db_user`. I'll refer to [PayloadsAllTheThings](https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/SQL%20Injection/MSSQL%20Injection.md) as well as [Pentestmonkey's SQL injection cheat-sheet](https://pentestmonkey.net/cheat-sheet/sql-injection/mssql-sql-injection-cheat-sheet) to help me enumerate the DB manually.
 
-![](../assets/img/2026-02-10-StreamIO/9.png)
+![](/assets/img/2026-02-10-StreamIO/9.png)
 
 Next, I want the tables from the streamIO DB. I make sure to specify the `xtype='u'` which selects the user-defined table.
 
@@ -194,7 +194,7 @@ Next, I want the tables from the streamIO DB. I make sure to specify the `xtype
 q=test' UNION SELECT 1,concat(name,':',id),3,4,5,6 from streamio..sysobjects where xtype='u'-- -
 ```
 
-![](../assets/img/2026-02-10-StreamIO/10.png)
+![](/assets/img/2026-02-10-StreamIO/10.png)
 
 That gives us the user's ID number which we can use to grab columns next. I had to switch to using the string aggregation function to output it to a single line, without it nothing would pop up (I think this was because the application could handle multiple rows, but not too sure).
 
@@ -202,7 +202,7 @@ That gives us the user's ID number which we can use to grab columns next. I had 
 q=test' UNION SELECT 1,(select string_agg(name, '|') from streamio..syscolumns where id=901578250),3,4,5,6-- -
 ```
 
-![](../assets/img/2026-02-10-StreamIO/11.png)
+![](/assets/img/2026-02-10-StreamIO/11.png)
 
 Finally, a lot of trial and error grants me the usernames and passwords from the users table in the streamIO database.
 
@@ -210,7 +210,7 @@ Finally, a lot of trial and error grants me the usernames and passwords from the
 q=test' UNION SELECT 1,(select string_agg(concat(username,':', password),'|') from users),3,4,5,6-- -
 ```
 
-![](../assets/img/2026-02-10-StreamIO/12.png)
+![](/assets/img/2026-02-10-StreamIO/12.png)
 
 _Note: The string_agg function will force all info on one line, all we need to do after is specify which fields and where we're pulling from. Definitely keep that in your arsenal when pentesting MSSQL databases as it has saved me plenty._
 
@@ -219,7 +219,7 @@ Now that we have around thirty hashes, I send them over to Hashcat in hopes to c
 ## Initial Foothold
 The only one I found to work was yoshihide's password, and navigating to `/admin` shows that they have higher privileges as well.
 
-![](../assets/img/2026-02-10-StreamIO/13.png)
+![](/assets/img/2026-02-10-StreamIO/13.png)
 
 We can do a few things here, such as delete users and manage movies, but the main thing that stuck out to me was the option to leave a message for admin. All of these were reflected in the URL via their respective parameter names. I started fuzzing for more parameters in an attempt to discover more functionality to leverage and found that the debug option was enabled for admins.
 
@@ -257,11 +257,11 @@ user                    [Status: 200, Size: 3186, Words: 325, Lines: 99, Duratio
 
 This was huge as it may just let us read files on the web server. Whenever I see a parameter like this that probably accepts many inputs, I start testing for different ways to have it execute things. Starting with different PHP wrappers shows that only developers have access to use this. 
 
-![](../assets/img/2026-02-10-StreamIO/14.png)
+![](/assets/img/2026-02-10-StreamIO/14.png)
 
 The server threw an error when I included a known file to load, which didn't happen for other bad requests. I think this means that the server is actually attempting to load the file, but the WAF detects it and snipes the request before it gets displayed.
 
-![](../assets/img/2026-02-10-StreamIO/15.png)
+![](/assets/img/2026-02-10-StreamIO/15.png)
 
 I try to circumvent this by using the PHP base64 wrapper to read local files, testing the `master.php` file we found earlier. Decoding this gives us the contents of the file and we can move to exploit 
 
@@ -387,12 +387,12 @@ The flow will be:
 - The PHP file is executed which will grab the .ps1 reverse shell and execute it
 - Successful shell connection on our listener as the user yoshihide
 
-![](../assets/img/2026-02-10-StreamIO/16.png)
+![](/assets/img/2026-02-10-StreamIO/16.png)
 
 ## Privilege Escalation
 Checking inside C:\Users shows that we do not have an account, so I'll start by dumping the database since we already have the db_admin password from the SQLi attack. This didn't yield much until I realized that there was a backup database as well, which holds a few password hashes. One of them being a local user on the system.
 
-![](../assets/img/2026-02-10-StreamIO/17.png)
+![](/assets/img/2026-02-10-StreamIO/17.png)
 
 Throwing that hash into [crackstation.net](https://crackstation.net/) or [hashes.com](https://hashes.com/en/decrypt/hash) gives us the plaintext password, in turn letting us [Evil-WinRM](https://github.com/Hackplayers/evil-winrm) onto the box.
 
@@ -400,15 +400,15 @@ At this point we can grab the user flag under her desktop folder and start privi
 
 I download these files to my attacking machine and use a great tool called [firefox decrypt](https://github.com/unode/firefox_decrypt/blob/main/firefox_decrypt.py) that let's me decrypt Mozilla protected passwords. To use this script, we need at least these four files downloaded from the remote machine:
 
-![](../assets/img/2026-02-10-StreamIO/18.png)
+![](/assets/img/2026-02-10-StreamIO/18.png)
 
 This grants us four new passwords for the slack subdomain, however this isn't actually running so I attempt to authenticate to other accounts by password spraying with these.
 
-![](../assets/img/2026-02-10-StreamIO/19.png)
+![](/assets/img/2026-02-10-StreamIO/19.png)
 
 The admin password works for the user JDgodd, but they aren't a local user on the system. I didn't see any other privesc vectors within the WinPEAS output, so I fired up BloodHound to map out the domain and see what permissions this account has.
 
-![](../assets/img/2026-02-10-StreamIO/20.png)
+![](/assets/img/2026-02-10-StreamIO/20.png)
 
 It seems like JDGodd has WriteOwner permissions over the Core Staff group, which are able to ReadLAPSPassword on the DC. To exploit this, I use the abuse info under the WriteOwner privilege inside bloodhound. Basically, I just upload powerview.ps1 to the box which will let us add JDGodd to the Core Staff group via our shell as nikk37.
 
@@ -434,10 +434,10 @@ Add-DomainGroupMember -Identity "Core Staff" -Members Nikk37 -cred $cred
 
 After JDGodd is added to the Core Staff group with all permissions set, we can authenticate using the LDAP module on netexec to read the DC's password (changes upon machine startup).
 
-![](../assets/img/2026-02-10-StreamIO/21.png)
+![](/assets/img/2026-02-10-StreamIO/21.png)
 
 Finally, we can Evil-WinRM onto the box once again as administrator and grab the final flag under Martin's desktop folder to complete the box. 
 
-![](../assets/img/2026-02-10-StreamIO/22.png)
+![](/assets/img/2026-02-10-StreamIO/22.png)
 
 This was a very long box for me as enumerating Windows is not my forte at all. I enjoyed the initial foothold portion as connecting the debug parameter with the include payload was creative. I hope this was helpful to anyone following along or stuck like I was and happy hacking!

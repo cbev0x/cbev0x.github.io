@@ -72,12 +72,12 @@ Looks like a Windows machine with Active Directory components installed on it, m
 ## Service Enumeration
 This is an assumed breach scenario, meaning we start out with user credentials on the domain. Using these to list SMB shares reveals that we have write and read permissions to the non-standard IT share.
 
-![](../assets/img/2026-04-24-Fluffy/1.png)
+![](/assets/img/2026-04-24-Fluffy/1.png)
 
 ### SMB Share PDF
 Connecting to it with SMBClient shows files pertaining to KeePass and a binary named "everything". Along with it is a PDF that outlines the upgrade process for domain machines, focusing on patches for the latest applicable CVEs.
 
-![](../assets/img/2026-04-24-Fluffy/2.png)
+![](/assets/img/2026-04-24-Fluffy/2.png)
 
 ### CVE-2025–24071 Exploit
 Looking through the list of recent vulnerabilities, the second one stands out most because we have access to write files on an SMB share. [CVE-2025–24071](https://nvd.nist.gov/vuln/detail/CVE-2025-24071) is a Windows vulnerability where specially crafted .library-ms files can force a victim's system to automatically authenticate to an attacker-controlled SMB server. This causes the victim to unknowingly send a NetNTLMv2 challenge-response, which the attacker can capture. The stolen hash can then be relayed or cracked to gain unauthorized access or escalate privileges.
@@ -115,20 +115,20 @@ smb: \> quit
 
 We'll also need to configure an SMB server to grab the hash, so I'll use Responder for its ease of use and wide range of capabilities. After waiting a bit, we capture an NTLMv2 hash for the user _p.agila_, who is also the author of that Upgrade_Notice.pdf file.
 
-![](../assets/img/2026-04-24-Fluffy/3.png)
+![](/assets/img/2026-04-24-Fluffy/3.png)
 
 Sending that over to Hashcat or JohnTheRipper will recover the plaintext password which gives us credentials for her account.
 
-![](../assets/img/2026-04-24-Fluffy/4.png)
+![](/assets/img/2026-04-24-Fluffy/4.png)
 
 ## Abusing ACLs
 Heading back to BloodHound and checking for outbound object control shows that they are apart of the Service Managers group, meaning we have _GenericAll_ permissions over the Service Accounts group. 
 
-![](../assets/img/2026-04-24-Fluffy/5.png)
+![](/assets/img/2026-04-24-Fluffy/5.png)
 
 It seems that anyone in this group has _GenericWrite_ over the CA, LDAP, and WINRM service accounts. The presence of that _CA_SVC_ account reveals that Active Directory Certificate Services is installed on this domain, which is a common place to escalate privileges if misconfigured.
 
-![](../assets/img/2026-04-24-Fluffy/6.png)
+![](/assets/img/2026-04-24-Fluffy/6.png)
 
 ### Adding Ourselves to Service Accts
 First, I'll use Samba's net tool in order to add ourselves to the Service Accounts group.
@@ -211,7 +211,7 @@ $ certipy shadow auto -u p.agila@fluffy.htb -p [REDACTED] -account ca_svc
 
 That will automatically add a shadow credential for each account and attempt to obtain the NTLM hash. We can use those in a Pass-The-Hash attack over WinRM to get a shell as the _WINRM_SVC_ account and grab the user flag under their Desktop folder.
 
-![](../assets/img/2026-04-24-Fluffy/7.png)
+![](/assets/img/2026-04-24-Fluffy/7.png)
 
 ## Privilege Escalation
 We can use the _CA_SVC_ account to search for vulnerable AD CS templates and any misconfigurations in the domain.
@@ -359,6 +359,6 @@ Certipy v5.0.2 - by Oliver Lyak (ly4k)
 [*] Got hash for 'administrator@fluffy.htb': aad3b435b51404eeaad3b435b51404ee:8da83a3fa618b6e3a00e93f676c92a6e
 ```
 
-![](../assets/img/2026-04-24-Fluffy/8.png)
+![](/assets/img/2026-04-24-Fluffy/8.png)
 
 That's all, I had a lot of trouble getting Certipy to even work half of the time and needed to reset this machine a few times to get anything to validate. Not sure if this is a universal problem or if I got unlucky but I hope this was helpful to anyone following along or stuck and happy hacking!

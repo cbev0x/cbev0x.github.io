@@ -93,14 +93,14 @@ $ nxc smb authority.htb.corp -u 'Guest' -p '' --shares
 $ smbclient //authority.htb.corp/Development -U 'Guest'
 ```
 
-![](../assets/img/2026-04-21-Authority/1.png)
+![](/assets/img/2026-04-21-Authority/1.png)
 
 As guests, we are allowed to read the Development share, which contains a few Ansible playbooks. I take a look around and transfer the interesting YAML files as well as any that seem to hold configuration settings or credentials.
 
 ### Password Self-Service Site
 Hopping over to the Tomcat webpage on port 8443 reveals a login panel that uses serves from the /pwm directory. A quick Google search shows that PWM is an open-source password self-service application for LDAP directories.
 
-![](../assets/img/2026-04-21-Authority/2.png)
+![](/assets/img/2026-04-21-Authority/2.png)
 
 Looking back at the SMB shares, there was a PWM directory that had quite a few files in it. Apart from a pair of administrator credentials that didn't work anywhere, there were AES256 password hashes inside the `/defaults/main.yml` file.
 
@@ -148,7 +148,7 @@ ldap_admin_password: !vault |
 ### Cracking Ansible Vault Passwords
 We could try and crack these by first converting them each to the proper format. I use [ansible2john](https://github.com/openwall/john/blob/bleeding-jumbo/run/ansible2john.py) for this step and format them by the header (containing the $ANSIBLED_VAULT info) and then the hex values below it.
 
-![](../assets/img/2026-04-21-Authority/3.png)
+![](/assets/img/2026-04-21-Authority/3.png)
 
 Repeating the same for every secure string reveals that the same password has been reused on each account. Note that this is just the password for the vault that unlocks them, not directly for each account.
 
@@ -158,7 +158,7 @@ $ ansible2john ldap_passwd > ldaphash
 $ john ldaphash --wordlist=/opt/seclists/rockyou.txt
 ```
 
-![](../assets/img/2026-04-21-Authority/4.png)
+![](/assets/img/2026-04-21-Authority/4.png)
 
 To unlock the vaults, we need to install ansible-core which contains the ansible-vault tool used to decrypt these strings.
 
@@ -181,11 +181,11 @@ Decryption successful
 ### LDAP Auth Capture
 Using these credentials for the Self-Service password site only works for the configuration manager/editor.
 
-![](../assets/img/2026-04-21-Authority/5.png)
+![](/assets/img/2026-04-21-Authority/5.png)
 
 Under the configuration editor, we gain quite a lot of power over the service. We are now able to redirect LDAP authentication wherever we please and also discover the _svc_ldap_ account as the proxy user in place.
 
-![](../assets/img/2026-04-21-Authority/6.png)
+![](/assets/img/2026-04-21-Authority/6.png)
 
 If we were to change that LDAP URL to point towards our local machine and await for an authentication event, we can capture credentials for that proxy user. Make sure to use the cleartext protocol on port 389 as apposed to 636 since we can't decrypt the traffic.
 
@@ -195,11 +195,11 @@ For this step, I stand up a Responder server, but you could get the same results
 $ sudo Responder -I tun0
 ```
 
-![](../assets/img/2026-04-21-Authority/7.png)
+![](/assets/img/2026-04-21-Authority/7.png)
 
 This grants us plaintext credentials for that account, which we can confirm over SMB. This also works to grab a shell on the machine via WinRM, allowing us to capture the user flag under their Desktop folder and start internal enumeration to escalate privileges to administrator.
 
-![](../assets/img/2026-04-21-Authority/8.png)
+![](/assets/img/2026-04-21-Authority/8.png)
 
 ## Privilege Escalation
 Checking the users directory shows that the only other account on the box is Administrator, which is where I set my sights to. Recalling the SMB shares from earlier, there was a directory regarding Active Directory Certificate Services. 
@@ -317,7 +317,7 @@ In practice, an attacker with enrollment rights submits a certificate request sp
 
 I start out by checking if domain users can create machine accounts through Netexec's MachineAccountQuota module.
 
-![](../assets/img/2026-04-21-Authority/9.png)
+![](/assets/img/2026-04-21-Authority/9.png)
 
 Awesome, we are allowed 10 total machines per user. 
 
@@ -416,6 +416,6 @@ Adding user: svc_ldap to group Administrators result: OK
 
 Finally, creating a new session over WinRM as the _svc_ldap_ user confirms that we have administrative access on the box and can grab the root flag under the Desktop folder to complete this challenge.
 
-![](../assets/img/2026-04-21-Authority/10.png)
+![](/assets/img/2026-04-21-Authority/10.png)
 
 That's all y'all, this box was a ton of fun as the steps taken were fairly realistic and goes to show how password reuse can be fatal. I hope this was helpful to anyone following along or stuck and happy hacking!

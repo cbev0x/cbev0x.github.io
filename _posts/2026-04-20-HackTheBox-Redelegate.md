@@ -102,7 +102,7 @@ Looks like a Windows machine with Active Directory components installed on it, m
 ## Service Enumeration
 Quickly checking the web server on port 80 shows the standard Microsoft IIS landing page; My scans don't find any other subdirectories, letting me safely rule out this attack vector for now.
 
-![](../assets/img/2026-04-20-Redelegate/1.png)
+![](/assets/img/2026-04-20-Redelegate/1.png)
 
 It seems that Guest/Null authentication has also been disabled for SMB and RPC alike.
 
@@ -112,12 +112,12 @@ $ rpcclient dc.redelegate.vl -U ''
 $ nxc smb dc.redelegate.vl -u 'Guest' -p '' --shares
 ```
 
-![](../assets/img/2026-04-20-Redelegate/2.png)
+![](/assets/img/2026-04-20-Redelegate/2.png)
 
 ### FTP Server Anon Logins
 Right away, we can see that the FTP server allows for anonymous logins. Inside are a couple text files containing audit and training documents, but along with them is a .kdbx (KeePass database) file. Be sure to change the transfer type to binary as to preserve the file's contents.
 
-![](../assets/img/2026-04-20-Redelegate/3.png)
+![](/assets/img/2026-04-20-Redelegate/3.png)
 
 After transferring them to our local machine, we can have a look inside. The Cyber Audit file discloses the organization's findings for their cybersecurity posture, noting that only two of the four recommended remediation steps have been completed.
 
@@ -273,12 +273,12 @@ Stopped: Mon Apr 20 02:27:42 2026
 
 That recovers the plaintext variant with ease. I'll use the [keepass2](https://keepass.info/download.html) tool to view the database, which can be installed with `sudo apt-get install keepass2` on Kali machines.
 
-![](../assets/img/2026-04-20-Redelegate/4.png)
+![](/assets/img/2026-04-20-Redelegate/4.png)
 
 ## Exploitation
 This gives us a few user credentials, however the web server did not have any login panels, leaving us with only the SQL server. Attempting to authenticate to it failed at first, but appending the `--local-auth` flag succeeds.
 
-![](../assets/img/2026-04-20-Redelegate/5.png)
+![](/assets/img/2026-04-20-Redelegate/5.png)
 
 After connecting to the server with Impacket's [MSSQLclient.py](https://github.com/fortra/impacket/blob/master/examples/mssqlclient.py) script, we find that there are only the default Microsoft SQL Server databases in place. Luckily for us, the fact that we can authenticate at all to it opens up some doors. 
 
@@ -309,7 +309,7 @@ This now gives us a list of accounts to spray known passwords against, as well a
 $ nxc smb dc.redelegate.vl -u ./usernames.txt -p ./passwords.txt --continue-on-success
 ```
 
-![](../assets/img/2026-04-20-Redelegate/6.png)
+![](/assets/img/2026-04-20-Redelegate/6.png)
 
 In an ideal situation, I would use pre-existing credentials to check the domain's password policy, ensuring that we aren't going to lock ourselves out here. Either way, this eventually gives us a valid login for Marie.Curie and we can begin enumerating where trust is established.
 
@@ -345,12 +345,12 @@ INFO: Done in 00M 12S
 
 Checking Marie.Curie's Outbound Object Control reveals that she is apart of the helpdesk group. This means that we have the _ForceChangePassword_ right over six other domain accounts.
 
-![](../assets/img/2026-04-20-Redelegate/7.png)
+![](/assets/img/2026-04-20-Redelegate/7.png)
 
 ### Exploit Chain
 Following this pattern of outbound object control and enumerating domain ACLs reveals that we can effectively change the password for Helen.Frost's account, who has _GenericAll_ permissions over the FS01$ account.
 
-![](../assets/img/2026-04-20-Redelegate/8.png)
+![](/assets/img/2026-04-20-Redelegate/8.png)
 
 This means that once we have assumed control of Helen's account, we can perform a Resource-Based Constraint Delegation attack in order to escalate our privileges.
 
@@ -370,16 +370,16 @@ rpcclient $> quit
 
 Confirming that the password change succeeded also reveals that she is apart of the Remote Management group, allowing us to grab a shell on the box via WinRM.
 
-![](../assets/img/2026-04-20-Redelegate/9.png)
+![](/assets/img/2026-04-20-Redelegate/9.png)
 
 ### Finding SeEnableDelegationPrivilege
 At this point we can grab the user flag and internal enumeration. Contrarily to what I thought before, it seems like FS01$ isn't a real machine we can access in order to perform RBCD against, plus we aren't allowed to add computer accounts or DNS records in order to carry out an unconstrained delegation attack either.
 
-![](../assets/img/2026-04-20-Redelegate/10.png)
+![](/assets/img/2026-04-20-Redelegate/10.png)
 
 I do find that Helen has `SeEnableDelegationPrivilege` on the domain, meaning that we possibly execute a Constrained Delegation attack.
 
-![](../assets/img/2026-04-20-Redelegate/11.png)
+![](/assets/img/2026-04-20-Redelegate/11.png)
 
 In case this is getting a bit confusing, allow me to explain the different types of delegation in Active Directory. 
 - **Unconstrained delegation**: Allows a service to impersonate a user to any service once the user authenticates to it, by storing the user's TGT in memory. It's highly permissive and dangerous because compromise of the service effectively exposes all delegated user credentials.
@@ -427,10 +427,10 @@ $ export KRB5CCNAME=dc@ldap_dc.redelegate.vl@REDELEGATE.VL.ccache
 $ impacket-secretsdump -k -no-pass dc.redelegate.vl
 ```
 
-![](../assets/img/2026-04-20-Redelegate/12.png)
+![](/assets/img/2026-04-20-Redelegate/12.png)
 
 Finally, we can utilize the administrator's NTLM in a Pass-The-Hash attack over the service of our choosing to get a shell on the box. Grabbing the root flag under their Desktop folder will complete this challenge.
 
-![](../assets/img/2026-04-20-Redelegate/13.png)
+![](/assets/img/2026-04-20-Redelegate/13.png)
 
 That's all y'all, this box was surprisingly fun and had us perform a mix of Active Directory and regular Windows exploitation. I hope this was helpful to anyone following along or stuck and happy hacking!

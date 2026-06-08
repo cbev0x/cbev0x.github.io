@@ -61,19 +61,19 @@ Starting gobuster in directory enumeration mode
 
 Checking out the landing page shows an upload form where we can select images in order to create a custom valentine's card. There are also a few text fields which may be prone to some dangerous vulnerabilities.
 
-![](../assets/img/2026-02-18-CupidCards/1.png)
+![](/assets/img/2026-02-18-CupidCards/1.png)
 
 Attempting to upload files other than valid PNG, JPG, or GIFs blocks our request, throwing an error that says invalid filename format. I tried playing with magic bytes and extra extensions to bypass this filter but couldn't get anything to work.
 
 Next, I wanted to get a successful request to see what we could exploit regarding the text fields and what happens with our card once created.
 
-![](../assets/img/2026-02-18-CupidCards/2.png)
+![](/assets/img/2026-02-18-CupidCards/2.png)
 
 Again, I test for HTML injection in hopes that one of the fields is vulnerable to Cross-Site Scripting, however most special characters and operators get filtered as well.
 
 Hovering the download button shows that we're able to retrieve files from the `/cards/` directory upon creation, however the string appended seems randomly generated so we probably won't have any luck with an IDOR vulnerability there.
 
-![](../assets/img/2026-02-18-CupidCards/3.png)
+![](/assets/img/2026-02-18-CupidCards/3.png)
 
 Since my directory scans haven't returned anything other than this `/generate` API endpoint, It's safe to say we must exploit this as our first step. Testing for any type of LFI or command injection in a captured POST request shows that everything gets sanitized properly upon upload and we already know that only valid images work here as well.
 
@@ -101,7 +101,7 @@ x="0" y="0" height="640px" width="480px"/>
 
 Simply slapping that payload in a filename supported by the site and uploading it proves that this does work.
 
-![](../assets/img/2026-02-18-CupidCards/4.png)
+![](/assets/img/2026-02-18-CupidCards/4.png)
 
 For larger files, we can size up the image by altering the width/height pixel values in our payload.
 
@@ -117,7 +117,7 @@ x="0" y="0" height="640px" width="480px"/>
 </svg>
 ```
 
-![](../assets/img/2026-02-18-CupidCards/5.png)
+![](/assets/img/2026-02-18-CupidCards/5.png)
 
 _Note: we can also append an index value like [0] or [1] to our filename in order to force the image loader to read certain pages of a document in case they're too long for a singular page._
 
@@ -137,12 +137,12 @@ x="0" y="0" height="1800px" width="2000x"/>
 </svg>
 ```
 
-![](../assets/img/2026-02-18-CupidCards/6.png)
+![](/assets/img/2026-02-18-CupidCards/6.png)
 
 ## Reading Cupid's PrivKey
 Retrying this method with a few more names shows that his private key is saved under the name cupid.priv instead of something more generic.
 
-![](../assets/img/2026-02-18-CupidCards/7.png)
+![](/assets/img/2026-02-18-CupidCards/7.png)
 
 _Note: I used Snipping Tool's text actions feature to copy/paste this output instead of having to manually type it out._
 
@@ -168,18 +168,18 @@ Content-Disposition: form-data; name="photo"; filename="x;cat /home/cupid/.ssh/c
 Content-Type: image/jpeg
 ```
 
-![](../assets/img/2026-02-18-CupidCards/8.png)
+![](/assets/img/2026-02-18-CupidCards/8.png)
 
 I didn't know this was possible until after completing the box so, shout out to [Djalil Ayed](https://github.com/djalilayed) for sharing this method. I recommend checking his walkthroughs for any help.
 
 ## Privilege Escalation
 Awesome, now we can login over SSH to get a shell and start internal enumeration for privilege escalation. At this point we can grab the first flag under our home directory too.
 
-![](../assets/img/2026-02-18-CupidCards/9.png)
+![](/assets/img/2026-02-18-CupidCards/9.png)
 
 I notice that we're in the lovers group, however there doesn't seem to be any important files or directories owned by that group. We are also denied access to Aphrodite's home directory.
 
-![](../assets/img/2026-02-18-CupidCards/10.png)
+![](/assets/img/2026-02-18-CupidCards/10.png)
 
 I also find that we're able to read a log file for the heartbreak process which shows that it's being executed regularly.
 
@@ -191,12 +191,12 @@ cupid@tryhackme-2404:/opt/heartbreak/matcher$ cat /var/log/heartbreak/matcher.lo
 
 Checking the usual routes for privesc shows a binary with the SUID bit set named heartstring. This is owned by root but only accessible to members of the hearts group, so we'll have to save this later and see if Aphrodite can use it.
 
-![](../assets/img/2026-02-18-CupidCards/11.png)
+![](/assets/img/2026-02-18-CupidCards/11.png)
 
 ### Copying SSH Key via Pickle Deserialization
 Whilst checking which files that we had permissions to read that were also owned by Aphrodite, I discover a strange python script under `/opt/heartbreak/matcher/` which looks to be obfuscated in Russian and Chinese
 
-![](../assets/img/2026-02-18-CupidCards/12.png)
+![](/assets/img/2026-02-18-CupidCards/12.png)
 
 Translating this script resolves to:
 
@@ -407,15 +407,15 @@ scp -i cupid.priv exploit.love cupid@10.65.150.183:/var/spool/heartbreak/inbox/.
 ### Loading Malicious lib with Heartstring
 Checking the `matcher.log` file again shows that our payload was processed and we can now login as Aphrodite. At this point, we can grab the second flag under her home dir too.
 
-![](../assets/img/2026-02-18-CupidCards/13.png)
+![](/assets/img/2026-02-18-CupidCards/13.png)
 
 Now we can move to escalating privileges to root user via that heartstring binary found earlier. Checking our privileges, it seems that we are apart of the hearts group and can also write to the plugins' `manifest.json` file.
 
-![](../assets/img/2026-02-18-CupidCards/14.png)
+![](/assets/img/2026-02-18-CupidCards/14.png)
 
 A test run with the binary shows a few options that we can use as arguments, most notably being the plugin one which allows us to load plugins.
 
-![](../assets/img/2026-02-18-CupidCards/15.png)
+![](/assets/img/2026-02-18-CupidCards/15.png)
 
 Since we have access to write to the manifest file and can run this binary as root, we can effectively execute commands as root user by loading a malicious library to be utilized.
 
@@ -462,16 +462,16 @@ EOF
 
 We can rename our lib to be `rosepetal.so` or whichever one you replaced earlier and then use the binary to load it from our home directory. Attempting to run the it now shows that an integrity check failed which is blocking us from loading it.
 
-![](../assets/img/2026-02-18-CupidCards/16.png)
+![](/assets/img/2026-02-18-CupidCards/16.png)
 
 That's a bit of a problem as we won't be able use our new plugin unless those two strings are matching. Spending some more time enumerating the system didn't grant me any more files that would help us so I move onto figuring out how the binary checks the hashes.
 
 Whilst using the Strings utility on the binary, I find this `--dev` flag which looks to be used in order to load local plugins.
 
-![](../assets/img/2026-02-18-CupidCards/17.png)
+![](/assets/img/2026-02-18-CupidCards/17.png)
 
 Finally, running the same command to load our malicious plugin along with that option works to execute the command in our library and lets us spawn a root shell using the bash clone under `/tmp`.
 
-![](../assets/img/2026-02-18-CupidCards/18.png)
+![](/assets/img/2026-02-18-CupidCards/18.png)
 
 Grabbing the last flag under the root directory completes this challenge. The advanced track is pretty hard but I'm learning a ton through it so thanks to everyone who worked on creating it for us. I hope this was helpful to anyone following along or stuck and happy hacking!

@@ -44,7 +44,7 @@ The box's scope information also provides us with a domain of `wekor.thm`, so I'
 
 Checking out the landing page only shows a welcome message for new visitors.
 
-![](../assets/img/2026-03-03-Wekor/1.png)
+![](/assets/img/2026-03-03-Wekor/1.png)
 
 Our scan's default scripts reveal that their `robots.txt` page gives us a few directories to snoop around at. 
 
@@ -63,11 +63,11 @@ Disallow: /interesting
 
 Most of these had little to nothing in them except for the `/comingreallysoon` endpoint which disclosed that their new IT site was hosted at `/it-next`.
 
-![](../assets/img/2026-03-03-Wekor/2.png)
+![](/assets/img/2026-03-03-Wekor/2.png)
 
 A quick look around showed that this was just a static webpage with some filler content to make it look busier. My scans also failed to discover things like a login page or any crazy vulnerabilities that stuck out to me. I mark this as a dead end for now, but may revisit it later if other routes don't pan out.
 
-![](../assets/img/2026-03-03-Wekor/3.png)
+![](/assets/img/2026-03-03-Wekor/3.png)
 
 On the other hand, my Ffuf scans found a subdomain for the server at `site.wekor.thm`. I'll add that to my `/etc/hosts` file as well and start enumeration there.
 
@@ -102,11 +102,11 @@ site                    [Status: 200, Size: 143, Words: 27, Lines: 6, Duration: 
 
 This once again just displayed a message saying that the site was still under development and to come back in a couple weeks. This made me think that perhaps the web admin just had the site hidden for now and would move it to be indexed in the coming days. We can also gather a username as Jim left his name with the message.
 
-![](../assets/img/2026-03-03-Wekor/4.png)
+![](/assets/img/2026-03-03-Wekor/4.png)
 
 A quick Gobuster scan rewards me with the `/wordpress` page that wasn't totally fledged out, but still functioned at a basic level. 
 
-![](../assets/img/2026-03-03-Wekor/5.png)
+![](/assets/img/2026-03-03-Wekor/5.png)
 
 As always, whenever I come across a site running Wordpress, I break out WPScan to find vulnerable plugins, themes, and users listed. 
 
@@ -228,13 +228,13 @@ This doesn't show any vulnerable installations on the page, but also shows that 
 ## SQL Injection
 So as of now, we only a WP site that we need credentials for and another seemingly static site that hosts a storefront for all things IT related. A bit more enumeration on the `/it-next` page reveals something interesting. When checking out with certain things in our cart, it will display the status of such items and whether they're in stock or not.
 
-![](../assets/img/2026-03-03-Wekor/6.png)
+![](/assets/img/2026-03-03-Wekor/6.png)
 
 Typically, pages will do this by querying a database to find out how many items are listed in the table. That tells me that there's most likely an internal MariaDB or MySQL server that hosts this information.
 
 If we can find somewhere on the site that is vulnerable to SQL injection, then we may just be able to dump user credentials in another table and get a login for the Wordpress page. Simply scrolling down a bit shows a checkout coupon field that returns an error in our SQL syntax when supplied with a single quote.
 
-![](../assets/img/2026-03-03-Wekor/7.png)
+![](/assets/img/2026-03-03-Wekor/7.png)
 
 Since it's reflected to the page, we should be able to dump the database too. I'll start by finding out how many columns there are so we're not getting an error every time.
 
@@ -242,7 +242,7 @@ Since it's reflected to the page, we should be able to dump the database too. I'
 ' UNION SELECT 1,2,3-- -
 ```
 
-![](../assets/img/2026-03-03-Wekor/8.png)
+![](/assets/img/2026-03-03-Wekor/8.png)
 
 Looks like three is the magic number, plus all columns are displayed, so we can use any of them to return SQL info. For the sake of time, I'll capture a request in Burp Suite and send it over to SQLMap. If you'd like to do this step manually, I will provide a few great articles to go about doing so.
 
@@ -254,7 +254,7 @@ Looks like three is the magic number, plus all columns are displayed, so we can 
 sqlmap -r itnext.req --batch --dbs
 ```
 
-![](../assets/img/2026-03-03-Wekor/9.png)
+![](/assets/img/2026-03-03-Wekor/9.png)
 
 Lucky for us, that returns a database for the wordpress site. Now let's list all tables within it in hopes to gather credentials for the admin or any other registered users that may be of use.
 
@@ -262,7 +262,7 @@ Lucky for us, that returns a database for the wordpress site. Now let's list all
 sqlmap -r itnext.req --batch -D wordpress --tables
 ```
 
-![](../assets/img/2026-03-03-Wekor/10.png)
+![](/assets/img/2026-03-03-Wekor/10.png)
 
 ## Foothold via WP 404.php
 The wp_users table should contain all information about listed usernames, emails, and either plaintext or hashed passwords for that website. Let's dump it and see what works.
@@ -271,27 +271,27 @@ The wp_users table should contain all information about listed usernames, emails
 sqlmap -r itnext.req --batch -D wordpress -T wp_users --dump
 ```
 
-![](../assets/img/2026-03-03-Wekor/11.png)
+![](/assets/img/2026-03-03-Wekor/11.png)
 
 That returns four hashes for users Admin, Jeffrey, Yura, and Eagle. Sending those over to Hashcat or JohnTheRipper rewards us with the plaintext variants for all users except the Admin and discloses that the site stores passwords as phpass hashes.
 
 Signing in as all users shows that Yura's account is also an administrator on the site. At this point, I'll be changing the 404 page's PHP code to get a reverse shell on the box as the web server. If you're unfamiliar with this attack angle, [this article](https://medium.com/@akshadjoshi/from-wordpress-to-reverse-shell-3857ee1f4896) explains it a bit further.
 
-![](../assets/img/2026-03-03-Wekor/12.png)
+![](/assets/img/2026-03-03-Wekor/12.png)
 
 ## Privilege Escalation
 With a basic foothold on the box, we can start internal enumeration to escalate privileges and pivot to other users. Whenever landing on a box as `www-data`, we're usually limited to few things, so I like checking for hardcoded credentials in config files, loosely secured backups, or dumping databases.
 
 I found some MySQL credentials for the databases' root user, however dumping it failed to give us anything we didn't already know. The only other user on the system was named Orka, but deep enumeration showed that we didn't have access to read/write to any of their files. Password reuse from the WP site also failed to swap users, so I turned to enumerating the internal services.
 
-![](../assets/img/2026-03-03-Wekor/13.png)
+![](/assets/img/2026-03-03-Wekor/13.png)
 
 I'll upload Chisel to port forward this internal service to my local machine. Note that the box is built on x86 architecture, so keep that in mind when downloading the correct version. Upon setting it up and using Netcat to connect, I realized that it wasn't even a web server and my brain was on autopilot (whoops). 
 
 ### Memory Cache Dump
 A quick google search revealed some information on the default TCP port 11211 - Memcached is a high-performance, open-source distributed memory object caching system. It is commonly used to speed up dynamic web applications by caching data in RAM. Alright, maybe we can grab some sensitive info if we're allowed to dump the memory cache as our current user. 
 
-![](../assets/img/2026-03-03-Wekor/14.png)
+![](/assets/img/2026-03-03-Wekor/14.png)
 
 Using a script named memchaced-tool under `/usr/share/memcached/scripts` on the localhost port dumps the password for Orka and we can use that to switch users.
 
@@ -382,11 +382,11 @@ undefined4 main(void)
 
 The main part we should focus on here is the fact that when it makes a call to the `transfer.py` script, it fails to specify a full path for Python. This potentially means that we can host a malicious binary through path injection or if we have write permissions to where they are hosted.
 
-![](../assets/img/2026-03-03-Wekor/15.png)
+![](/assets/img/2026-03-03-Wekor/15.png)
 
 By listing the directory permissions under `/usr`, I discover that Orka has the capability to write to both bin and sbin. This makes it a bit easier as we won't have to add a working directory to our path in order for it to find the fake Python script.
 
-![](../assets/img/2026-03-03-Wekor/16.png)
+![](/assets/img/2026-03-03-Wekor/16.png)
 
 Since the original Python is located in `/usr/bin` and `/usr/sbin` comes before it in the `$PATH`, I'll write to sbin so that we still have access to use it later on. Now we simply need to create a bash script for the binary to run, which can be anything, but I'll create a clone of bash in the `/tmp` directory and give it an SUID bit.
 
@@ -397,6 +397,6 @@ cp /bin/bash /tmp/bash; chmod +s /tmp/bash
 
 After making sure that it's executable, we can simply run the binary with Sudo and use the newly cloned Bash to spawn a root shell. Grabbing the final flag under the root directory completes this challenge.
 
-![](../assets/img/2026-03-03-Wekor/17.png)
+![](/assets/img/2026-03-03-Wekor/17.png)
 
 That's all y'all, this box was great in my opinion. I liked the heavy focus on enumeration and the privesc techniques were good practice. I hope this was helpful to anyone following along or stuck and happy hacking!

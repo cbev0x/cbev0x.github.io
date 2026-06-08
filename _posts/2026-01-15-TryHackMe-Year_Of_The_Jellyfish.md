@@ -126,15 +126,15 @@ We find a few things of note from our scan:
 
 Nothing too crazy is popping out so let’s check out the webpage first to gather some more info about our target.
 
-![](../assets/img/2026-01-15-YearOfTheJellyfish/1.png)
+![](/assets/img/2026-01-15-YearOfTheJellyfish/1.png)
 
 Looks like a typical webpage listing animals to be rehomed, including a giraffe and an alligator (wow). I find out that the server is running Pico CMS and also discover an email for staff under the contact us page.
 
-![](../assets/img/2026-01-15-YearOfTheJellyfish/2.png)
+![](/assets/img/2026-01-15-YearOfTheJellyfish/2.png)
 
 Nothing in the source code and no other tabs to navigate to so I hop on over to port 8096 and find a Jellyfin login panel.
 
-![](../assets/img/2026-01-15-YearOfTheJellyfish/3.png)
+![](/assets/img/2026-01-15-YearOfTheJellyfish/3.png)
 
 Attempting a login yields no verbose errors and I can’t find any version disclosure so I run a gobuster directory search here. While that runs I do some research on Jellyfin and discover that it’s a free software media system used to manages and streams your media.
 
@@ -196,37 +196,37 @@ Finished
 
 The health endpoint just stated a single word describing the system health. After about 20 minutes of googling, I struck gold, there was a page at /system/info/public which displayed system information including version and OS.
 
-![](../assets/img/2026-01-15-YearOfTheJellyfish/4.png)
+![](/assets/img/2026-01-15-YearOfTheJellyfish/4.png)
 
 I only found that this version of Jellyfin was vulnerable to attacks via SSRF at the imgURL parameter. Not very useful in our case so I go back to reconnaissance again (so much for striking gold).
 
 I run a Subfinder scan to search subdomains and also check the self-signed SSL certificate on port 443. This gives me three subject alt names to poke around on.
 
-![](../assets/img/2026-01-15-YearOfTheJellyfish/5.png)
+![](/assets/img/2026-01-15-YearOfTheJellyfish/5.png)
 
 Let’s add them to our /etc/hosts file and start enumerating.
 
-![](../assets/img/2026-01-15-YearOfTheJellyfish/6.png)
+![](/assets/img/2026-01-15-YearOfTheJellyfish/6.png)
 
 `beta.robyns-petshop.thm` required a specific ID to access the site as it was currently under development.
 
-![](../assets/img/2026-01-15-YearOfTheJellyfish/7.png)
+![](/assets/img/2026-01-15-YearOfTheJellyfish/7.png)
 
 `dev.robyns-petshop.thm` was a similar page to the landing page for animal rehoming.
 
-![](../assets/img/2026-01-15-YearOfTheJellyfish/8.png)
+![](/assets/img/2026-01-15-YearOfTheJellyfish/8.png)
 
 Finally, at `monitorr.robyns-petshop.thm` we have a monitor panel with things like general system info, a date/time clock, and links to each site (pointed toward localhost so they were unreachable).
 
-![](../assets/img/2026-01-15-YearOfTheJellyfish/9.png)
+![](/assets/img/2026-01-15-YearOfTheJellyfish/9.png)
 
 Looking at the bottom gives us what looks to be a version for Monitorr, let’s find some vulnerabilities to be exploited with exploit-db. There is an [unauthenticated RCE](https://www.exploit-db.com/exploits/48980) vuln available with our version that uses an auth bypass to upload a shell on the system.
 
-![](../assets/img/2026-01-15-YearOfTheJellyfish/10.png)
+![](/assets/img/2026-01-15-YearOfTheJellyfish/10.png)
 
 Seems like the it can’t handle SSL connections so I append `verify=false` to the HTTP POST and GET requests in the script to skip over that part.
 
-![](../assets/img/2026-01-15-YearOfTheJellyfish/11.png)
+![](/assets/img/2026-01-15-YearOfTheJellyfish/11.png)
 
 We can verify that it uploaded by checking the /assets folder and digging for our shell. It should’ve uploaded at /assets/data/usrimg/, however it doesn’t seem to work.
 
@@ -234,45 +234,45 @@ I figured that the server had to have a way to verify we are a real person. Chec
 
 Let’s circumvent this by adding the cookie+value to our POST and GET requests, same way as before. I also added a line under our POST request to print the response we get (in case of any other errors this will help debug).
 
-![](../assets/img/2026-01-15-YearOfTheJellyfish/12.png)
+![](/assets/img/2026-01-15-YearOfTheJellyfish/12.png)
 
 Now I try to execute the script again only to find that it isn’t an image or may exceed the server’s upload size limit.
 
-![](../assets/img/2026-01-15-YearOfTheJellyfish/13.png)
+![](/assets/img/2026-01-15-YearOfTheJellyfish/13.png)
 
 I use the typical method of prepending .jpg to the php file extension to bypass the upload filter.
 
 _Note: It’s good practice to alternate lowercase and capital letters in these situations as it maintains functionality and will help to work around filters in place._
 
-![](../assets/img/2026-01-15-YearOfTheJellyfish/14.png)
+![](/assets/img/2026-01-15-YearOfTheJellyfish/14.png)
 
 ## Initial Foothold
 And we finally get an upload on the system!
 
-![](../assets/img/2026-01-15-YearOfTheJellyfish/15.png)
+![](/assets/img/2026-01-15-YearOfTheJellyfish/15.png)
 
 I forgot to set the port to 443, so reuploading and setting up a listener works like a charm.
 
-![](../assets/img/2026-01-15-YearOfTheJellyfish/16.png)
+![](/assets/img/2026-01-15-YearOfTheJellyfish/16.png)
 
 ## Privilege Escalation
 Now comes the tricky part. I spent almost an hour going about all usual paths of PrivEsc, from checking files for creds, looking for SUID bits, running LinPEAS. and finally discovered that snap-confine had a SGID bit set.
 
 Honestly I only looked at this library because I kept seeing it on boxes and only had a basic understanding that it was responsible for creating isolated environments for snap applications.
 
-![](../assets/img/2026-01-15-YearOfTheJellyfish/17.png)
+![](/assets/img/2026-01-15-YearOfTheJellyfish/17.png)
 
-![](../assets/img/2026-01-15-YearOfTheJellyfish/18.png)
+![](/assets/img/2026-01-15-YearOfTheJellyfish/18.png)
 
 Turns out there is a dirty_sock local privilege escalation we can use to gain a root shell on the system.
 
 _Funny that google only returns writeups for this box when searching for snap 2.32.5+18.04 exploits :)_
 
-![](../assets/img/2026-01-15-YearOfTheJellyfish/19.png)
+![](/assets/img/2026-01-15-YearOfTheJellyfish/19.png)
 
 I download the dirtysockv2.py script from GitHub on the compromised system and ran it. Now we have to switch user to dirty_sock and then sudo su to grab a root shell.
 
-![](../assets/img/2026-01-15-YearOfTheJellyfish/20.png)
+![](/assets/img/2026-01-15-YearOfTheJellyfish/20.png)
 
 Final step is grabbing our well-earned root flag.
 

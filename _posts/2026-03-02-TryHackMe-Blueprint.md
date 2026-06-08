@@ -82,27 +82,27 @@ Looks like this system is running an ancient OS with Windows 7 and has a few web
 
 I fire up Gobuster to search for subdirectories/subdomains in the background before heading over to them. The landing page on port 80 shows a typical 404 page for Microsoft IIS and my scans didn't find anything, so I can safely rule this one out.
 
-![](../assets/img/2026-03-02-Blueprint/1.png)
+![](/assets/img/2026-03-02-Blueprint/1.png)
 
 ## RCE via OsCommerce
 Next up is HTTPS, which discloses that the server is using OsCommerce v2.3.4 to host items on their platform. This port doesn't hold a real webpage but does give us access to this service's folder.
 
-![](../assets/img/2026-03-02-Blueprint/2.png)
+![](/assets/img/2026-03-02-Blueprint/2.png)
 
 The site on port 8080 is the exact same as this one, just without SSL encryption as it's HTTP. Before doing a deep dive on the websites, I want to make sure nothing is sitting on SMB for us. Using Netexec shows that Guest authentication is enabled and that we have read permissions for a Users share. 
 
-![](../assets/img/2026-03-02-Blueprint/3.png)
+![](/assets/img/2026-03-02-Blueprint/3.png)
 
 This looks like the standard folder and there isn't much in here for us. Heading back to the sites OsCommerce directory reveals that whenever we hover over one of the products, the page redirects us to a page that uses the `products_id` parameter to fetch content from the MySQL database. Note that these links only point to localhost, so we'll have to replace that with the box's IP address in order to reach them.
 
-![](../assets/img/2026-03-02-Blueprint/4.png)
+![](/assets/img/2026-03-02-Blueprint/4.png)
 
 Just by looking at it, this seems pretty vulnerable to SQL injection, however I take to Searchsploit and Google for any known vulnerabilities as we already have the version. Those results corroborate my theory that this page can be used to enumerate the database, but I also find this [Github repository](https://github.com/nobodyatall648/osCommerce-2.3.4-Remote-Command-Execution) containing a PoC for remote code execution.
 
 ## Shell as NT AUTHORITY\SYSTEM
 This exploit is made possible when the `/install` directory is not removed by the site's administrator. RCE is done through the `install.php` finish process and by injecting PHP payload into the `db_database` parameter. After arbitrary code is injected, we can read the system command output from the vulnerable `configure.php` page. Let's give it a shot by supplying the URL up until the `/catalogs` directory.
 
-![](../assets/img/2026-03-02-Blueprint/5.png)
+![](/assets/img/2026-03-02-Blueprint/5.png)
 
 This works to get a successful shell on the box as `NT AUTHORITY\SYSTEM` and we can grab the root flag under the `C:\Users\Administrator\Desktop` folder. This shell is kind of crappy since we can't move outside the current working directory, so I switch over to a Metasploit module which does relatively the same thing but allows us to upload a Meterpreter shell much easier.
 
@@ -129,7 +129,7 @@ execute -f shell.exe
 
 Once we finally have a stable shell on the box, we can run the built-in hashdump command in Metsaploit to extract all NTLM hashes. Sending the "Lab" user's over to [crackstation.net](https://crackstation.net/) or [hashes.com](https://hashes.com/en/decrypt/hash) will grant us the plaintext version and complete this box.
 
-![](../assets/img/2026-03-02-Blueprint/6.png)
+![](/assets/img/2026-03-02-Blueprint/6.png)
 
 If you didn't want to go through the hassle of getting another shell working, we could've simply uploaded a tool like [Mimikatz](https://github.com/ParrotSec/mimikatz) to extract user hashes from memory instead.
 

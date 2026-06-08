@@ -57,7 +57,7 @@ Although 29 ports are open, most of these are generally useless for our goal so 
 
 We can find a jpg when logging into FTP as anonymous:
 
-![](../assets/img/2026-01-15-ChocolateFactory/1.png)
+![](/assets/img/2026-01-15-ChocolateFactory/1.png)
 
 Checking the typical routes for image data (strings, exiftool, steganography) shows that there is hidden text within the image.
 
@@ -67,26 +67,26 @@ steghide extract -sf gum_room.jpg
 
 This gives us a text file but it’s base64 encoded so let’s send it over to CyberChef.
 
-![](../assets/img/2026-01-15-ChocolateFactory/2.png)
+![](/assets/img/2026-01-15-ChocolateFactory/2.png)
 
 We get a copy of /etc/shadow , the only user with a hash is charlie so let’s crack it with JohnTheRipper.
 
-![](../assets/img/2026-01-15-ChocolateFactory/3.png)
+![](/assets/img/2026-01-15-ChocolateFactory/3.png)
 
 While that ran I checked the webpage and found a login panel to squirrel room.
 
-![](../assets/img/2026-01-15-ChocolateFactory/4.png)
+![](/assets/img/2026-01-15-ChocolateFactory/4.png)
 
 ## Exploitation
 I tried using the password gained from john to SSH onto the system but that failed. Then I tried the same for our login panel and got a successful request.
 
-![](../assets/img/2026-01-15-ChocolateFactory/5.png)
+![](/assets/img/2026-01-15-ChocolateFactory/5.png)
 
 It contains a box used to execute commands on the system and doesn’t look like there’s a filter either. This oughta be secure huh?
 
 I send the HTTP request to the repeater tab on Burp Suite as the response on the page is tough to see. I use this RCE to catch a shell as www-data with a python reverse shell from [here](https://www.revshells.com/).
 
-![](../assets/img/2026-01-15-ChocolateFactory/6.png)
+![](/assets/img/2026-01-15-ChocolateFactory/6.png)
 
 I upgrade the shell with the typical python method:
 
@@ -101,15 +101,15 @@ stty raw -echo;fg
 ## Privilege Escalation
 There’s an SSH private key in Charlie’s home directory that we can use to get a nicer shell on the box as well as grab the user.txt flag. Be sure to chmod 700 the key file.
 
-![](../assets/img/2026-01-15-ChocolateFactory/7.png)
+![](/assets/img/2026-01-15-ChocolateFactory/7.png)
 
 Finally we see from listing sudo commands that charlie can use the vi binary. [GTFOBins](https://gtfobins.github.io/gtfobins/vi/#sudo) has a great method for a root shell by using this.
 
 _Note: Change the /bin/sh part to /bin/bash for better functionality in our shell_
 
-![](../assets/img/2026-01-15-ChocolateFactory/8.png)
+![](/assets/img/2026-01-15-ChocolateFactory/8.png)
 
-![](../assets/img/2026-01-15-ChocolateFactory/9.png)
+![](/assets/img/2026-01-15-ChocolateFactory/9.png)
 
 Executing this let’s us list /root directory and find that there is a python script instead of the usual text file as the last flag.
 
@@ -117,20 +117,20 @@ Executing this let’s us list /root directory and find that there is a python s
 mv root.py /home/charlie
 ```
 
-![](../assets/img/2026-01-15-ChocolateFactory/10.png)
+![](/assets/img/2026-01-15-ChocolateFactory/10.png)
 
 The root.py is also owned by charlie so we can execute it either way, but I chose to move it to charlie’s home directory.
 
-![](../assets/img/2026-01-15-ChocolateFactory/11.png)
+![](/assets/img/2026-01-15-ChocolateFactory/11.png)
 
-![](../assets/img/2026-01-15-ChocolateFactory/12.png)
+![](/assets/img/2026-01-15-ChocolateFactory/12.png)
 
 Executing it shows we need a key for the Fernet function to decrypt the message. I saw a key when we first landed on the box in /var/www/html/key_rev_key.
 
-![](../assets/img/2026-01-15-ChocolateFactory/13.png)
+![](/assets/img/2026-01-15-ChocolateFactory/13.png)
 
 Executing it requires a name and charlie won’t work so I end up displaying the ELF‘s contents and find the key inside of it (strings works too). I think the intended way was to use the script to decrypt the message, but I had the message in CyberChef already so I typed the key in and got the final flag.
 
-![](../assets/img/2026-01-15-ChocolateFactory/14.png)
+![](/assets/img/2026-01-15-ChocolateFactory/14.png)
 
 This was a fun and simple box with a cool theme. I hope this was helpful or entertaining to anyone following along and happy hacking!

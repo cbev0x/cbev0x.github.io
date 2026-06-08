@@ -55,20 +55,20 @@ FTP anonymous login is disabled, however this could prove useful later on once w
 
 We can't do much else without a username/password so I head over to the webpages. The landing pages show that port 80's is under construction and port 8080's is a login panel for their site.
 
-![](../assets/img/2026-01-20-Intranet/1.png)
+![](/assets/img/2026-01-20-Intranet/1.png)
 
-![](../assets/img/2026-01-20-Intranet/2.png)
+![](/assets/img/2026-01-20-Intranet/2.png)
 
 Checking the source code discloses that the organization has an open bug bounty program and gives us the email for Anders, a senior devops team member.
 
-![](../assets/img/2026-01-20-Intranet/3.png)
+![](/assets/img/2026-01-20-Intranet/3.png)
 
 ## Brute Forcing
 We can confirm that both anders and devops email addresses work for the login page as verbose errors are enabled. I'll run hydra to try and brute force this account.
 
 I spend a long time trying to brute force HTTP and FTP with different wordlists such as rockyou, fasttrack, etc, but nothing returned. I decided to make a bespoke list with the valid usernames I gathered (anders, admin, and devops). When I supply the password with characters like `&, ', ", #` it detects a hacking attempt and logs it, so we can cut out passwords including those.
 
-![](../assets/img/2026-01-20-Intranet/4.png)
+![](/assets/img/2026-01-20-Intranet/4.png)
 
 I create a custom script for this part however you can use tools like JTR's rules feature or premade scripts on GitHub.
 
@@ -118,11 +118,11 @@ if __name__ == "__main__":
     main(args.input, args.output)
 ```
 
-![](../assets/img/2026-01-20-Intranet/5.png)
+![](/assets/img/2026-01-20-Intranet/5.png)
 
 Rerunning hydra grants us a valid login as anders and we can grab the first flag. After logging in, we're prompted with a OTP and capturing the request shows there aren't any safety measures like rate limiting used here.
 
-![](../assets/img/2026-01-20-Intranet/6.png)
+![](/assets/img/2026-01-20-Intranet/6.png)
 
 I run a ffuf command to send POST requests to the /sms endpoint and get a valid OTP.
 
@@ -130,7 +130,7 @@ I run a ffuf command to send POST requests to the /sms endpoint and get a valid 
  ffuf -u http://10.67.160.52:8080/sms -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cookie: session=eyJ1c2VybmFtZSI6ImFuZGVycyJ9.aXAc7A.kzMiLmKhiTNpOdW_w2aT3TRxyUI" -d "sms=FUZZ" -w <(seq -w 0000 9999) -fs 1326
 ```
 
-![](../assets/img/2026-01-20-Intranet/7.png)
+![](/assets/img/2026-01-20-Intranet/7.png)
 
 Passing that check grants us the second flag. Taking a look around internally shows an admin panel we don't yet have access to, an external news tab, and an internal new tab with an update function at the bottom.
 
@@ -139,7 +139,7 @@ Looking at the source code, I see a glaring LFI vulnerability here. The site tak
 
 _Note: Using Burp Suite's repeater tool doesn't work here and will return a 500 internal server error._
 
-![](../assets/img/2026-01-20-Intranet/8.png)
+![](/assets/img/2026-01-20-Intranet/8.png)
 
 I see there only users on the system are anders, devops, and root. Checking some common python names (since the server is running Werkzeug) returns the third flag under /home/devops/app.py.
 
@@ -175,14 +175,14 @@ print("[+] key.txt generated with values secret_key_100000 through secret_key_99
 
 Then I use [flask-unsign](https://github.com/Paradoxis/Flask-Unsign) to grab the secret_key. We can also use this tool to reverse the process and sign a new cookie, changing our username to admin.
 
-![](../assets/img/2026-01-20-Intranet/9.png)
+![](/assets/img/2026-01-20-Intranet/9.png)
 
 After supplying that cookie to Firefox, I'm able to navigate to the admin tab and claim the fourth flag. Now, we need to somehow get a reverse shell or find credentials for SSH.
 
 ## Initial Foothold
 Taking a second look around the website shows that in part of the Admin page's source code, is an HTML form that went missing or didn't get fully deleted. Checking app.py again shows a function that checks if our username is admin and accepts a request form called "debug" that get's called to `os.system`.
 
-![](../assets/img/2026-01-20-Intranet/10.png)
+![](/assets/img/2026-01-20-Intranet/10.png)
 
 ```
 def admin():
@@ -209,7 +209,7 @@ Note: We need to URL encode the '&' in this payload. Other reverse shells could 
 ## Privilege Escalation
 We finally have a shell as devops and can grab the user flag under their home directory.
 
-![](../assets/img/2026-01-20-Intranet/11.png)
+![](/assets/img/2026-01-20-Intranet/11.png)
 
 As the existence of user2 flag implies, we'll need to pivot to anders' account before grabbing root privileges. 
 
@@ -217,7 +217,7 @@ I start internal enumeration, checking for the usual SUID bits set, sudo privs, 
 
 Turns out the web server is being ran directly by anders' account instead.
 
-![](../assets/img/2026-01-20-Intranet/12.png)
+![](/assets/img/2026-01-20-Intranet/12.png)
 
 We got shell as devops and see that this account is running app.py so that server must be the one on port 80 from earlier. If we can somehow force a connection from that server towards our attacking machine, we'll get a shell as anders.
 
@@ -236,7 +236,7 @@ On local machine:
 nc TARGET_IP 4444 < shell.php
 ```
 
-![](../assets/img/2026-01-20-Intranet/13.png)
+![](/assets/img/2026-01-20-Intranet/13.png)
 
 At this point we can grab user2.txt under his home dir and start looking at ways to get root. 
 
@@ -251,16 +251,16 @@ User anders may run the following commands on ip-10-66-175-170:
 find / -type f -writeable 2>/dev/null
 ```
 
-![](../assets/img/2026-01-20-Intranet/14.png)
+![](/assets/img/2026-01-20-Intranet/14.png)
 
 My shell kept bugging out when trying to edit this so I upload my SSH key to /home/anders/.ssh/authorized_keys so we I could do it properly.
 
 Once able to edit the envvars file, input a simple mkfifo reverse shell under the default apache2ctl environment variables section that points towards your attacking IP. Last step is to use sudo /sbin/service apache2 restart to proc the shell.
 
-![](../assets/img/2026-01-20-Intranet/15.png)
+![](/assets/img/2026-01-20-Intranet/15.png)
 
 Now we have root privs over the system and can grab the final flag to complete the box. 
 
-![](../assets/img/2026-01-20-Intranet/16.png)
+![](/assets/img/2026-01-20-Intranet/16.png)
 
 This was a really fun one to do so thanks to toxicat0r for making it. I hope this was helpful to anyone stuck or following along and happy hacking!

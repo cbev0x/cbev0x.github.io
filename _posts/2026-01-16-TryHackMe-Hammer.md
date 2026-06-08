@@ -13,7 +13,7 @@ _Use your exploitation skills to bypass authentication mechanisms on a website a
 ## Scanning & Enumeration
 First things first, I use an Nmap scan to find services running on the host:
 
-![](../assets/img/2026-01-16-Hammer/1.png)
+![](/assets/img/2026-01-16-Hammer/1.png)
 
 There are only two services up:
 - SSH on port 22
@@ -21,17 +21,17 @@ There are only two services up:
 
 Landing on the webpage shows a typical login panel as well as a cookie stored in our browser named PHPSESSID. We’ll most likely have to grab an admin session token to escalate privileges later on.
 
-![](../assets/img/2026-01-16-Hammer/2.png)
+![](/assets/img/2026-01-16-Hammer/2.png)
 
 The source code for the login page discloses a naming convention for subdirectories. We can use this to fuzz for endpoints and find out more about this site.
 
-![](../assets/img/2026-01-16-Hammer/3.png)
+![](/assets/img/2026-01-16-Hammer/3.png)
 
-![](../assets/img/2026-01-16-Hammer/4.png)
+![](/assets/img/2026-01-16-Hammer/4.png)
 
 Running a search with and without the hmr_ string gives us a few endpoints, namely a phpmyadmin login page and an error.logs file under hmr_logs.
 
-![](../assets/img/2026-01-16-Hammer/5.png)
+![](/assets/img/2026-01-16-Hammer/5.png)
 
 _Note: There is another endpoint here at /admin-login, however the email used provided an error saying “Invalid email address” instead of the “password mismatch at /restricted_area._
 
@@ -39,11 +39,11 @@ I could not located the ‘/restricted-area’, so perhaps it was hidden under a
 
 Since we didn’t have a password to match our new email, I tested the “forgot your password” page with it, we can see that it requires us to enter a OTP to reset the password.
 
-![](../assets/img/2026-01-16-Hammer/6.png)
+![](/assets/img/2026-01-16-Hammer/6.png)
 
 I captured a request using 1234 as the OTP, and there are a few things happening here.
 
-![](../assets/img/2026-01-16-Hammer/7.png)
+![](/assets/img/2026-01-16-Hammer/7.png)
 
 First, we have a PHPSESSID cookie to validate our session with the server. Secondly, our recovery_code is provided in the request which makes perfect sense. Finally, there is an “s” parameter which tells the host how many seconds are left on the countdown before the window closes (Bad idea to have this client-side).
 
@@ -64,7 +64,7 @@ This prints a series of numbers ranging from 0–9999 on separate lines and outp
 
 I didn’t want to make a bespoke script just for this page so I went with an automated tool. I tried Burp Suite at first but the community edition rate limits pretty badly, so I decided to go with Ffuf instead.
 
-![](../assets/img/2026-01-16-Hammer/8.png)
+![](/assets/img/2026-01-16-Hammer/8.png)
 
 This command is quite long so let me break it down:
 `ffuf` — The tool we are using to send HTTP requests
@@ -93,40 +93,40 @@ This command is quite long so let me break it down:
 
 Once we have the code and input it, the site redirects us to a password reset for tester@hammer.thm. Now we can log in as him/her and grab the first flag!
 
-![](../assets/img/2026-01-16-Hammer/9.png)
+![](/assets/img/2026-01-16-Hammer/9.png)
 
 Looks like we have a command panel but our role is still user. We’ll have to find a way to escalate to admin or developer.
 
 The page automatically logs you out after 20 seconds, regardless of whether you input a command or not. We also don’t have access to many commands other than a few of the basics.
 
-![](../assets/img/2026-01-16-Hammer/10.png)
+![](/assets/img/2026-01-16-Hammer/10.png)
 
 Listing the files gives us a few endpoints to check out. I found that navigating to the .php files returned an unauthorized error.
 
-![](../assets/img/2026-01-16-Hammer/11.png)
+![](/assets/img/2026-01-16-Hammer/11.png)
 
 This hints at a JWT being used in the request. Let’s check out the other files and see if we can forge a header to allow us access.
 
 I downloaded the 188ade1.key file which gave us a string to work with:
 
-![](../assets/img/2026-01-16-Hammer/12.png)
+![](/assets/img/2026-01-16-Hammer/12.png)
 
 Then I had a look at the source code in hopes for a way to escalate to admin. It uses a hardcoded JWT to submit a POST request to `execute_command.php`.
 
-![](../assets/img/2026-01-16-Hammer/13.png)
+![](/assets/img/2026-01-16-Hammer/13.png)
 
 We can decode this JWT with [this tool](https://www.jwt.io/) using the key downloaded earlier. We can change the role in the token to be admin, but first that kid value in the header checks /var/www/mykey.key to validate the signature of the JWT. We can change this path to the one for out 188ade1.key that we used to decode the token.
 
-![](../assets/img/2026-01-16-Hammer/14.png)
+![](/assets/img/2026-01-16-Hammer/14.png)
 
 After some trial and error, I found the right path for the key at /var/www/html/188ade1.key . Let’s encode the changed headers and payload back to JWT format and submit it via a POST request in Burp Suite.
 
-![](../assets/img/2026-01-16-Hammer/15.png)
+![](/assets/img/2026-01-16-Hammer/15.png)
 
 We can capture a POST request to the execute_command.php endpoint by using the command panel after logging in and running `ls`. Now let’s change the `Authorization: Bearer` value to our altered JWT to escalate to admin.
 
 Now we have RCE on the system via a POST request, and in turn our final flag once we look around the box!
 
-![](../assets/img/2026-01-16-Hammer/16.png)
+![](/assets/img/2026-01-16-Hammer/16.png)
 
 Overall, this was a slightly challenging box that taught me a heap of things regarding web authentication and enumeration. I hope this writeup was helpful to anyone following along and happy hacking!

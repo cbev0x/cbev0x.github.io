@@ -302,7 +302,7 @@ python3 delegator.py -d delegator.lab -u htb-user \
   --dc-ip 192.168.10.10 -p Password123! enum --constrained
 ```
 
-![DeleGator terminal output for Test 1](../assets/img/2026-06-02-DeleGator/1.png)
+![DeleGator terminal output for Test 1](/assets/img/2026-06-02-DeleGator/1.png)
 
 **Events generated (filtered to htb-user):**
 
@@ -317,7 +317,7 @@ Kibana filter:
 winlog.event_data.TargetUserName: "htb-user" AND host.name: "DC01.delegator.lab"
 ```
 
-![Kibana Discover showing 54 events for Test 1](../assets/img/2026-06-02-DeleGator/2.png)
+![Kibana Discover showing 54 events for Test 1](/assets/img/2026-06-02-DeleGator/2.png)
 
 **Total: 54 events**
 
@@ -338,7 +338,7 @@ python3 delegator.py -d delegator.lab -u htb-user \
   --dc-ip 192.168.10.10 --ccache htb-user.ccache enum --constrained
 ```
 
-![DeleGator terminal output for Test 2](../assets/img/2026-06-02-DeleGator/3.png)
+![DeleGator terminal output for Test 2](/assets/img/2026-06-02-DeleGator/3.png)
 
 **Events generated (filtered to htb-user):**
 
@@ -353,7 +353,7 @@ Kibana filter:
 winlog.event_data.TargetUserName: "htb-user" AND host.name: "DC01.delegator.lab" AND event.code: ("4768" OR "4769")
 ```
 
-![Kibana Discover showing 3 events for Test 2 — contrast with Test 1's 54](../assets/img/2026-06-02-DeleGator/4.png)
+![Kibana Discover showing 3 events for Test 2 — contrast with Test 1's 54](/assets/img/2026-06-02-DeleGator/4.png)
 
 **Total: 3 events**
 
@@ -374,7 +374,7 @@ python3 delegator.py -d delegator.lab -u htb-user \
   --dc-ip 192.168.10.10 --ccache htb-user.ccache enum
 ```
 
-![DeleGator terminal output showing all three delegation types enumerated](../assets/img/2026-06-02-DeleGator/5.png)
+![DeleGator terminal output showing all three delegation types enumerated](/assets/img/2026-06-02-DeleGator/5.png)
 
 **Events generated (filtered to htb-user):**
 
@@ -389,7 +389,7 @@ Kibana filter:
 winlog.event_data.TargetUserName: "htb-user" AND host.name: "DC01.delegator.lab"
 ```
 
-![Kibana Discover showing 4 events for Test 3](../assets/img/2026-06-02-DeleGator/6.png)
+![Kibana Discover showing 4 events for Test 3](/assets/img/2026-06-02-DeleGator/6.png)
 
 **Total: 4 events**
 
@@ -411,7 +411,7 @@ python3 delegator.py -d delegator.lab -u svc-mssql \
   --target-spn MSSQLSvc/DC01.delegator.lab:1433
 ```
 
-![DeleGator terminal output showing successful S4U2Self + S4U2Proxy chain and ccache output](../assets/img/2026-06-02-DeleGator/7.png)
+![DeleGator terminal output showing successful S4U2Self + S4U2Proxy chain and ccache output](/assets/img/2026-06-02-DeleGator/7.png)
 
 **Events generated (filtered to svc-mssql):**
 
@@ -427,14 +427,14 @@ Kibana filter:
 winlog.event_data.TargetUserName: "svc-mssql" AND host.name: "DC01.delegator.lab"
 ```
 
-![Kibana Discover showing svc-mssql events](../assets/img/2026-06-02-DeleGator/8.png)
+![Kibana Discover showing svc-mssql events](/assets/img/2026-06-02-DeleGator/8.png)
 
 S4U2Self fingerprint filter:
 ```
 winlog.event_data.TicketOptions: "0x40810000" AND host.name: "DC01.delegator.lab"
 ```
 
-![Kibana Discover showing the 4769 S4U2Self event with TicketOptions 0x40810000 highlighted](../assets/img/2026-06-02-DeleGator/9.png)
+![Kibana Discover showing the 4769 S4U2Self event with TicketOptions 0x40810000 highlighted](/assets/img/2026-06-02-DeleGator/9.png)
 
 **Total: 4 events**
 
@@ -458,7 +458,7 @@ python3 delegator.py -d delegator.lab -u svc-web \
   --impersonate administrator --cleanup
 ```
 
-![DeleGator terminal output showing RBCD write, S4U chain, and ccache output with noise profile](../assets/img/2026-06-02-DeleGator/10.png)
+![DeleGator terminal output showing RBCD write, S4U chain, and ccache output with noise profile](/assets/img/2026-06-02-DeleGator/10.png)
 
 **Events generated (filtered to svc-web and SRV03$):**
 
@@ -477,14 +477,14 @@ Kibana filter:
 winlog.event_data.TargetUserName: ("svc-web" OR "SRV03$") AND host.name: "DC01.delegator.lab"
 ```
 
-![Kibana Discover showing all RBCD events](../assets/img/2026-06-02-DeleGator/11.png)
+![Kibana Discover showing all RBCD events](/assets/img/2026-06-02-DeleGator/11.png)
 
 Computer account modification filter:
 ```
 event.code: "4742" AND winlog.event_data.TargetUserName: "SRV03$" AND host.name: "DC01.delegator.lab"
 ```
 
-![Kibana Discover showing the two 4742 events for the RBCD write and cleanup](../assets/img/2026-06-02-DeleGator/12.png)
+![Kibana Discover showing the two 4742 events for the RBCD write and cleanup](/assets/img/2026-06-02-DeleGator/12.png)
 
 **Total: 24 events**
 

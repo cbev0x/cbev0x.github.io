@@ -44,21 +44,21 @@ There are just two ports open:
 
 Checking the landing page shows a page for Ryan's social media accounts, but not much else. Nothing on robots.txt either, so I fire up gobuster to leave subdirectory/subdomain scans running in the background.
 
-![](../assets/img/2026-01-24-0day/1.png)
+![](/assets/img/2026-01-24-0day/1.png)
 
-![](../assets/img/2026-01-24-0day/2.png)
+![](/assets/img/2026-01-24-0day/2.png)
 
 There are a few hidden pages at /admin and /secret that don't have anything on them.
 
-![](../assets/img/2026-01-24-0day/3.png)
+![](/assets/img/2026-01-24-0day/3.png)
 
 However, checking /backup reveals an RSA private key probably used to gain access to SSH in case of something disastrous. 
 
-![](../assets/img/2026-01-24-0day/4.png)
+![](/assets/img/2026-01-24-0day/4.png)
 
 I use wget on the endpoint to preserve the key's structure and convert it into a hash using `ssh2john`.
 
-![](../assets/img/2026-01-24-0day/5.png)
+![](/assets/img/2026-01-24-0day/5.png)
 
 JohnTheRipper or Hashcat will crack this with ease and we can SSH onto the server. There's just one problem first, we still don't have a username for the server and attempts with `Ryan` or `0day` didn't work.
 
@@ -67,7 +67,7 @@ This version of OpenSSH has an exploit for username enumeration, however I could
 
 Running a vulnerability scanner like Nikto (or Nuclei) on the web server rewards us big time. It appears to be prone to a very old [CVE-2014–6278](https://nvd.nist.gov/vuln/detail/cve-2014-6278) (Shellshock) which allows for RCE on the system due to how bash parses function definitions in the values of environment variables.
 
-![](../assets/img/2026-01-24-0day/6.png)
+![](/assets/img/2026-01-24-0day/6.png)
 
 I use [this page](https://github.com/mubix/shellshocker-pocs) for references to a PoC as the typical python script doesn't function for me here. By curling the webpage and supplying a malicious user-agent payload, we can execute any commands with it.
 
@@ -77,7 +77,7 @@ curl -A "() { :;}; echo Content-Type: text/html; echo; /bin/cat /etc/passwd;" ht
 
 Displaying /etc/passwd gave me a list of users on the box to use with the SSH key found earlier.
 
-![](../assets/img/2026-01-24-0day/7.png)
+![](/assets/img/2026-01-24-0day/7.png)
 
 Attempting it on accounts that have a shell yeilds nothing, looks to be a red herring. I decide to use Shellshock and setup a netcat listener to grab a low level shell on the box.
 
@@ -92,7 +92,7 @@ It looks like the kernel version is a bit on the older side and seems to be vuln
 
 [Here](https://www.exploit-db.com/exploits/37292) is the PoC I used.
 
-![](../assets/img/2026-01-24-0day/8.png)
+![](/assets/img/2026-01-24-0day/8.png)
 
 Attempting to compile the exploit on the system throws an error saying there is no such file or directory of 'cc1'. Since we know that GCC is indeed on the box, this is most likely a `$PATH` issue.
 
@@ -104,7 +104,7 @@ export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 Now we can compile and execute the exploit without further problems.
 
-![](../assets/img/2026-01-24-0day/9.png)
+![](/assets/img/2026-01-24-0day/9.png)
 
 Finally, grabbing the root flag completes this box. This was a pretty cool one to do as it utilized a few popular older exploits to get full access over the machine. 
 

@@ -129,29 +129,29 @@ _Note: Nmap just takes a guess at what is running on the ports that have a defau
 
 I'm sure you could write a script to automate this based on what is returned by the connection but there aren't that many here, so I do it manually. This port also changes every time the box restarts, meaning it won't be the same for yours.
 
-![](../assets/img/2026-01-19-LookingGlass/1.png)
+![](/assets/img/2026-01-19-LookingGlass/1.png)
 
 ## Initial Foothold
 Since we are in 'Wonderland', everything is upside down/backwards meaning that lower actually means higher. Eventually,  I find the correct port and am granted a logon.
 
-![](../assets/img/2026-01-19-LookingGlass/2.png)
+![](/assets/img/2026-01-19-LookingGlass/2.png)
 
 Seems like we need to solve a challenge to presumably gain access on port 22. This ciphertext is an encoded form of the famous poem "Jabberwocky", I thought it was a Rot algorithm at first but since each letter is altered individually, it had to be a Vigenère cipher.
 
 I tried doing this manually for fun and found the key was 'thealphabetcipher', and reading the end of the decoded text displays the secret string. There are automated tools out there such as [boxentriq](https://www.boxentriq.com/code-breaking/vigenere-cipher) or some AI applications that can help.
 
-![](../assets/img/2026-01-19-LookingGlass/3.png)
+![](/assets/img/2026-01-19-LookingGlass/3.png)
 
 Entering this at the prompt gives us SSH creds for a user named Jabberwock. After signing in, we can grab our first flag under their home directory (making sure to reverse it).
 
 ## Privilege Escalation
 I start looking for ways to pivot through other accounts before root. I find an active cronjob where tweedledum executes a script owned by us on reboot. We can echo a reverse shell into the twasBrillig.sh script and setup a listener before rebooting the system.
 
-![](../assets/img/2026-01-19-LookingGlass/7.png)
+![](/assets/img/2026-01-19-LookingGlass/7.png)
 
 Here we see a file named humptydumpty.txt which contains a list of hashes. Cracking them gives us 6 potential passwords, however none of them work. I found it strange that the last line didn't decode so I sent it to CyberChef and discovered that it was his password hex encoded.
 
-![](../assets/img/2026-01-19-LookingGlass/8.png)
+![](/assets/img/2026-01-19-LookingGlass/8.png)
 
 ```
 The password is zyxwvutsrqponmlk
@@ -161,16 +161,16 @@ After switching users, we need to pivot one last time to Alice's account before 
 
 I was a bit stuck at this point until trying to her .bashrc file to check if we actually didn't have perms over it. For some reason, it blocks us from listing them but reading them directly works.
 
-![](../assets/img/2026-01-19-LookingGlass/5.png)
+![](/assets/img/2026-01-19-LookingGlass/5.png)
 
 Using the find command to search for all readable files by us doesn't work either. That's pretty strange! I use this to grab the id_rsa from her .ssh dir and login via SSH using it.
 
-![](../assets/img/2026-01-19-LookingGlass/6.png)
+![](/assets/img/2026-01-19-LookingGlass/6.png)
 
 Logging into alice's account doesn't give us a whole lot to go off of, so I upload LinPEAS to the machine and find a few vulnerabilities with PoCs that didn't pan out.
 
 Eventually, I checked the /etc/sudoers.d/ files and found that Alice actually had access to run sudo /bin/bash on the system, but we had to specify a hostname of ssalg-gnikool for it to run. That will spawn a root shell and we can grab the final flag under the root dir.
 
-![](../assets/img/2026-01-19-LookingGlass/9.png)
+![](/assets/img/2026-01-19-LookingGlass/9.png)
 
 I hope this was still helpful to anyone stuck like I was or gave you clarity if this bug happened to you as well and happy hacking!

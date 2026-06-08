@@ -80,12 +80,12 @@ styles                  [Status: 302, Size: 0, Words: 1, Lines: 1, Duration: 44m
 ## Foothold via File Upload Vuln
 Checking out the landing page shows the standard page for newly installed Apache ActiveMQ instances. Some research reveals that it's a popular, open-source, Java-based multi-protocol message broker that enables asynchronous communication between distributed applications.
 
-![](../assets/img/2026-03-07-Broker/1.png)
+![](/assets/img/2026-03-07-Broker/1.png)
 
 ### Default Credentials
 The default credentials for administrator login is `admin:admin`, which works to sign into the dashboard. This discloses the version running and opens up a few doors for us. Running the info gathered against Searchsploit shows that versions prior to 5.14.0 are vulnerable to an arbitrary file upload that allows us to get a reverse shell.
 
-![](../assets/img/2026-03-07-Broker/2.png)
+![](/assets/img/2026-03-07-Broker/2.png)
 
 ### ActiveMQ File Upload
 The vulnerability being exploited here is [CVE-2016–3088](https://nvd.nist.gov/vuln/detail/cve-2016-3088), which explains that certain implementations of Apache's ActiveMQ service allows remote attackers to upload and execute arbitrary files via an HTTP PUT followed by an HTTP MOVE request. [This article](https://medium.com/@knownsec404team/analysis-of-apache-activemq-remote-code-execution-vulnerability-cve-2016-3088-575f80924f30) gives an in-depth analysis on the vulnerability and how to go about exploiting it.
@@ -108,7 +108,7 @@ Now that we're on the box, we can start internal enumeration in order to pivot b
 ### Abusing Sudo Permissions
 There are no SUID bits set on any interesting binaries or hardcoded credentials in config files, however our current user has the ability to run a Python script as root user without a password. Checking that file also shows that we have write permissions over it.
 
-![](../assets/img/2026-03-07-Broker/3.png)
+![](/assets/img/2026-03-07-Broker/3.png)
 
 This means that we can just append a code to the `subscribe.py` script and run it with Sudo to catch a reverse shell or execute commands as root. In my case, I make a clone of the Bash binary and give it the SUID bit, so that we can spawn an elevated shell whenever we'd like.
 
@@ -120,10 +120,10 @@ $ echo 'import subprocess; subprocess.run("cp /bin/bash /tmp/bash; chmod +s /tmp
 $ sudo sudo /usr/bin/python3.7 /opt/apache-activemq-5.9.0/subscribe.py
 ```
 
-![](../assets/img/2026-03-07-Broker/4.png)
+![](/assets/img/2026-03-07-Broker/4.png)
 
 Listing the `/tmp` directory shows our Bash clone with an SUID owned by root user which we can use to spawn a shell. Grabbing the final flag under the `/root` directory completes this challenge.
 
-![](../assets/img/2026-03-07-Broker/5.png)
+![](/assets/img/2026-03-07-Broker/5.png)
 
 That's all y'all, this box was a pretty short one and I feel we skipped a few steps with the Metasploit module, but that serves as a reason to keep systems updated. I hope this was helpful to anyone following along or stuck and happy hacking!

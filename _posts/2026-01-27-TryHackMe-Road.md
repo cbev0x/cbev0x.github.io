@@ -41,15 +41,15 @@ There are just two ports open:
 
 Looks like this will be web heavy, so I'll leave a few Gobuster scans in the background to find subdirectories/subdomains. Checking out port 80 shows a static webpage for a B2B delivery service.
 
-![](../assets/img/2026-01-27-Road/1.png)
+![](/assets/img/2026-01-27-Road/1.png)
 
 They also have an admin login portal for what seems to be a central hub for merchants. I use the register button to create a new account and have a look around internally.
 
-![](../assets/img/2026-01-27-Road/2.png)
+![](/assets/img/2026-01-27-Road/2.png)
 
 There isn't much functionality on the inside except for a profile update function which also only works sometimes. I tried testing for SSTI vulnerabilities, but that failed. I do find an email for the admin which discloses the address structure and might let us brute force the login.
 
-![](../assets/img/2026-01-27-Road/3.png)
+![](/assets/img/2026-01-27-Road/3.png)
 
 At the top of the page is a search query for AWM/Waybill numbers which most likely means there is a database (goldmine). Entering anything into it returns a page saying _"Due to huge amount of complaints, we are currently working on fixing this. Sorry for the inconvenience."_
 
@@ -59,12 +59,12 @@ These scans ultimately don't return anything, but it's good practice to dig deep
 
 I intercept a request to update our profile to see if it's possible to bypass the lockout on uploading a picture and nothing works.
 
-![](../assets/img/2026-01-27-Road/4.png)
+![](/assets/img/2026-01-27-Road/4.png)
 
 ## Exploitation
 The cookie looks pretty insignificant as well. I move onto the ResetUser page and find that our username is greyed out within the site, however intercepting this shows we have the ability to change the value of that specific form to be whatever we please.
 
-![](../assets/img/2026-01-27-Road/5.png)
+![](/assets/img/2026-01-27-Road/5.png)
 
 This is a pretty dangerous example of Broken Access Control, as it applies to every account in the database, so long as they already exist.
 
@@ -72,27 +72,27 @@ After changing that to `admin@sky.thm`, we can sign in using the newly updated p
 
 It's a bit funky but uploading a file does work. Checking the page's source code discloses that they get stored at `/v2/profileimages/<FILE_NAME>`. 
 
-![](../assets/img/2026-01-27-Road/6.png)
+![](/assets/img/2026-01-27-Road/6.png)
 
 ## Initial Foothold
 I set up a netcat listener and proc it by navigating to that endpoint in my browser and we are in.
 
-![](../assets/img/2026-01-27-Road/7.png)
+![](/assets/img/2026-01-27-Road/7.png)
 
 At this point, we can grab the user flag inside webdeveloper's home dir and start looking at ways to escalate privileges to them or root user. Going about the usual methods of finding SUID bits set, sudo privileges, and exposed backup files yields nothing. I use `grep -iR password` in /var/www/html/ to find any instances of a password being stored on the web server's files.
 
-![](../assets/img/2026-01-27-Road/8.png)
+![](/assets/img/2026-01-27-Road/8.png)
 
 I end up finding mysql creds for root user which we can use to dump the database and perhaps crack hashes for other users. These databases only contain the websites credentials which we had to change to get a shell, whoops!
 
 ## Privilege Escalation
 Checking for files owned by webdeveloper displays a few binaries pretaining to mongodb, which I thought was a little wierd. Using mongo to dump that a user table in a backup DB rewards us with the plaintext password for the webdev account.
 
-![](../assets/img/2026-01-27-Road/9.png)
+![](/assets/img/2026-01-27-Road/9.png)
 
 Let's SSH onto the box for a better shell with more capabilities and start investigating ways to pwn root as well. I notice they have access to run a backup utility for the web server as root and has something very dangerous enabled.
 
-![](../assets/img/2026-01-27-Road/10.png)
+![](/assets/img/2026-01-27-Road/10.png)
 
 This `env_keep+=LD_PRELOAD` option will preload an environment variable that forces the dynamic linker to load a specified library before others. If we set this environ var to point towards a malicious library, we can have it change the SUID bit on `/bin/bash` or change passwords outright.
 
@@ -126,7 +126,7 @@ sudo LD_PRELOAD=/home/webdeveloper/privesc.so /usr/bin/sky_backup_utility
 
 This will print the stdout of that backup utility and checking `/bin/bash` after it does confirms our library was loaded. Last thing is to spawn a bash shell as root and grab the root flag.
 
-![](../assets/img/2026-01-27-Road/11.png)
+![](/assets/img/2026-01-27-Road/11.png)
 
 Overall, this box was pretty fun. Broken Access Controls vulnerabilities always seems to make a bold appearance on [OWASP's top 10 list](https://owasp.org/Top10/2025/A01_2025-Broken_Access_Control/) and this machine was a prime example of how dangerous it can be.
 

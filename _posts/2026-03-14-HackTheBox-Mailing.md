@@ -102,7 +102,7 @@ instructions            [Status: 301, Size: 166, Words: 9, Lines: 2, Duration: 5
 
 Testing for Guest and null authentication over SMB shows that both get denied, meaning we'll have to have credentials before taking a look at the shares or doing anything else here.
 
-![](../assets/img/2026-03-14-Mailing/1.png)
+![](/assets/img/2026-03-14-Mailing/1.png)
 
 Checking out the landing page shows a site dedicated to serving mail and is compatible with any mailing client. Other than a link to an instructions manual, there are a few usernames which we can create a wordlist out of to spray against things like SMB. Judging from the description, this site uses hMailServer in order to handle all the mailing protocols.
 
@@ -112,7 +112,7 @@ Nmap did pick this up as SMTP, IMAP, and POP3 were running on several ports, res
 ### Finding Vulnerability
 Other than crafting emails with [Swaks](https://jetmore.org/john/code/swaks/), I'm not too sure how to go about exploiting it, however I notice something interesting on the main page. It seems like the web server fetches the instructions page via a file parameter on the `download.php` page.
 
-![](../assets/img/2026-03-14-Mailing/2.png)
+![](/assets/img/2026-03-14-Mailing/2.png)
 
 This could be prone to path traversal and allow us to read different files on the system. I start testing this by capturing a request to the download link in Burp Suite and attempting to read the `windows.ini` file, which is on every Windows machine.
 
@@ -120,7 +120,7 @@ This could be prone to path traversal and allow us to read different files on th
 /download.php?file=../../../../../../windows/win.ini
 ```
 
-![](../assets/img/2026-03-14-Mailing/3.png)
+![](/assets/img/2026-03-14-Mailing/3.png)
 
 ### Reading Config Files
 That returns the contents of it, confirming that this site is vulnerable to LFI. We can use this to read hardcoded credentials in certain configuration documents on the filesystem, and since we know the site is using hMailServer, I start there. Google discloses that the default spot for the initialization file is under the `C:\Program Files (x86)\hMailServer\bin\` directory.
@@ -129,11 +129,11 @@ That returns the contents of it, confirming that this site is vulnerable to LFI.
 /download.php?file=../../../../../../Program%20Files%20(x86)/hMailServer/bin/hmailserver.ini
 ```
 
-![](../assets/img/2026-03-14-Mailing/4.png)
+![](/assets/img/2026-03-14-Mailing/4.png)
 
 Reading that gives us an MD5 hash for both the Administrator's password as well as the database password for MSSQLCE. I attempt to crack these at [Crackstation.net](https://crackstation.net/), which gives us the plaintext version for the Admin's credentials.
 
-![](../assets/img/2026-03-14-Mailing/5.png)
+![](/assets/img/2026-03-14-Mailing/5.png)
 
 ## SMTP Exploitation
 This should work for the Administrator's email account, but unfortunately not for any of the other usernames from the site. I use this password with Swaks to test authentication over SMTP which shows that these are indeed valid credentials.
@@ -161,11 +161,11 @@ $ swaks --auth-user 'administrator@mailing.htb' --auth LOGIN --auth-password [RE
 
 Next step took me a long time to discover. Enumerating on the other services doesn't pan out, meaning that we'll likely have to exploit this mailing process to recover credentials or an NTLM hash somehow. Checking the instructions file that was downloaded from the site earlier, I can correctly assume that the other users are either using Windows Mail or Thunderbird (which is more common on Linux).
 
-![](../assets/img/2026-03-14-Mailing/6.png)
+![](/assets/img/2026-03-14-Mailing/6.png)
 
 I also find a potential username at the very bottom of the PDF, which matches one on the site's main page, so it's a good target to begin with.
 
-![](../assets/img/2026-03-14-Mailing/7.png)
+![](/assets/img/2026-03-14-Mailing/7.png)
 
 ### CVE-2024–21413
 Taking to Google for any known vulnerabilities led me to [CVE-2024–21413](https://nvd.nist.gov/vuln/detail/cve-2024-21413), which explains that attackers can gain RCE on Microsoft Outlook by means of a malicious embedded link in provided file attachments.
@@ -202,24 +202,24 @@ $ sudo Responder -I tun0
 ### Initial Foothold
 It takes a little bit, but we're rewarded with the NTLM hash for Maya's account, which we can send over to JohnTheRipper or Hashcat to retreive the plaintext version.
 
-![](../assets/img/2026-03-14-Mailing/8.png)
+![](/assets/img/2026-03-14-Mailing/8.png)
 
 That cracks relatively quick and we can confirm authentication by using Netexec over SMB once again.
 
-![](../assets/img/2026-03-14-Mailing/9.png)
+![](/assets/img/2026-03-14-Mailing/9.png)
 
 Checking if she is in the Remote Management group, which has access to WinRM onto the system responds with **"Pwn3d!"**, confirming that we're able to grab a shell with tools like [Evil-WinRM](https://github.com/Hackplayers/evil-winrm). At this point we can also grab the user flag under her Desktop folder and start internal enumeration to escalate privileges towards the LocalAdmin.
 
-![](../assets/img/2026-03-14-Mailing/10.png)
+![](/assets/img/2026-03-14-Mailing/10.png)
 
 ## Privilege Escalation
 Searching around the filesystem shows a few interesting directories at the root of the `C:\` drive. Notably, **"Important Documents"** and **"cleanup"**, which only contain one executable between the two. I created a file to test if we're able to write to either which shows that it's only possible for the Documents folder. Checking a moment later reveals that it was removed, which is probably the work of a cleanup script running.
 
-![](../assets/img/2026-03-14-Mailing/11.png)
+![](/assets/img/2026-03-14-Mailing/11.png)
 
 Checking what SMB shares Maya has access to reveals that we're able to Read and Write to that directory, which opens up a few doors for us.
 
-![](../assets/img/2026-03-14-Mailing/12.png)
+![](/assets/img/2026-03-14-Mailing/12.png)
 
 ### NTLM Theft Fail
 Keeping with the theme of stealing NTLM hashes over SMB, I'm try to upload malicious files on the Important Documents share using the [NTLM_theft](https://github.com/Greenwolf/ntlm_theft) tool, but nothing returns. 
@@ -272,7 +272,7 @@ I'm confident that we'll have to exploit this share as we don't have access to a
 > type C:\Program Files\LibreOffice\program\version.ini
 ```
 
-![](../assets/img/2026-03-14-Mailing/13.png)
+![](/assets/img/2026-03-14-Mailing/13.png)
 
 Searching around for common vulnerabilities in this implementation leads me to discovering [CVE-2023–2255](https://nvd.nist.gov/vuln/detail/cve-2023-2255), which explains that an attacker could craft craft special documents that would load external links unprompted. This fits what we're looking for, because if the LocalAdmin had viewed the Important Documents folder before, we would've at least captured their hash.
 
@@ -304,7 +304,7 @@ Once the `.odt` file and the Netcat binary are uploaded, we'll need to move `nc
 > copy "\Important Documents\nc.exe" nc.exe
 ```
 
-![](../assets/img/2026-03-14-Mailing/14.png)
+![](/assets/img/2026-03-14-Mailing/14.png)
 
 Checking our privileges shows that we now have a shell as the LocalAdmin and can grab the final flag under their Desktop directory to complete this challenge.
 

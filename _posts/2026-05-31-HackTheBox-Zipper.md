@@ -72,16 +72,16 @@ server-status           [Status: 403, Size: 300, Words: 22, Lines: 12, Duration:
 
 Checking out the landing page shows the typical HTML for fresh Apache installs.
 
-![](../assets/img/2026-05-31-Zipper/1.png)
+![](/assets/img/2026-05-31-Zipper/1.png)
 
 ## Zabbix Service
 My directory scans pick up just one hit matching the Zabbix service found earlier.
 
-![](../assets/img/2026-05-31-Zipper/2.png)
+![](/assets/img/2026-05-31-Zipper/2.png)
 
 Attempting the default credentials of `Admin:zabbix` and other quick tests for SQL injection and auth bypasses all fail, however we're allowed to sign in as a guest.
 
-![](../assets/img/2026-05-31-Zipper/3.png)
+![](/assets/img/2026-05-31-Zipper/3.png)
 
 The only real thing of note on the dashboard was the disclosure of the Zabbix version in the page's footer showing that it's running v3.0.21, and after a quick Google search is found to be vulnerable to two critical unauthenticated Remote Code Executions. 
 - [CVE-2017–2824](https://nvd.nist.gov/vuln/detail/CVE-2017-2824) stems from a flaw in the trapper command functionality. A specially crafted packet sent through an active Zabbix proxy can trigger command injection and allow arbitrary commands to be executed on the server. It's caused by improper sanitization of user-controlled input before it is passed to operating system commands, a classic case of command injection.
@@ -90,11 +90,11 @@ The only real thing of note on the dashboard was the disclosure of the Zabbix ve
 ### Valid Credentials
 I spent some time playing around with some PoCs I found online for these two, but I couldn't seem to get either to work. A deeper dive on the monitoring reports shows an event for Zapper's backup script, which looks to be a username.
 
-![](../assets/img/2026-05-31-Zipper/4.png)
+![](/assets/img/2026-05-31-Zipper/4.png)
 
 Attempting to sign in as this user with `zapper:zapper` succeeds, however GUI access has been disabled for them. This might just indicate that they hold elevated privileges and call APIs and other functions directly, so I do some testing.
 
-![](../assets/img/2026-05-31-Zipper/5.png)
+![](/assets/img/2026-05-31-Zipper/5.png)
 
 The [Zabbix documentation](https://www.zabbix.com/documentation/current/en/manual/api) lists an API endpoint at `/zabbix/api_jsonrpc.php` which will allow us to grab an authentication token and use it on other methods directly from our command line via cURL.
 
@@ -111,7 +111,7 @@ A test run by grabbing the Zabbix version with the `apiinfo.version` method conf
 -d '{"jsonrpc":"2.0", "method":"user.login", "id":1,"params":{"user": "zapper", "password": "zapper"}}'
 ```
 
-![](../assets/img/2026-05-31-Zipper/6.png)
+![](/assets/img/2026-05-31-Zipper/6.png)
 
 With the token in hand, we can list all users with the `users.get` method.
 
@@ -344,7 +344,7 @@ The first being the Zabbix server (probably some form of virtualization or conta
 -d '{"jsonrpc":"2.0", "method":"script.execute", "id":1, "auth":"57394b5eb6565eb7019b5e209b0ef74f", "params":{"hostid": 10106, "scriptid": 3}}'
 ```
 
-![](../assets/img/2026-05-31-Zipper/7.png)
+![](/assets/img/2026-05-31-Zipper/7.png)
 
 We do catch a shell on our Netcat listener, but it appears to be a Docker container judging by the lack of binaries and random string for the hostname.
 
@@ -352,12 +352,12 @@ We do catch a shell on our Netcat listener, but it appears to be a Docker contai
 └─$ nc -lvnp 443
 ```
 
-![](../assets/img/2026-05-31-Zipper/8.png)
+![](/assets/img/2026-05-31-Zipper/8.png)
 
 ### Stabilizing Shell
 I lost a lot of time here just trying to create new scripts until eventually noticing the `execute_on` parameter in the scripts already in use. This parameter specifies where to run the script, but since it's optional, it's easy to miss and running it as normal would make us end up on the container.
 
-![](../assets/img/2026-05-31-Zipper/9.png)
+![](/assets/img/2026-05-31-Zipper/9.png)
 
 Updating our malicious script to use the only other possible integer (being 0) succeeds to grab a shell on the actual host, however only for a couple seconds.
 
@@ -373,7 +373,7 @@ Updating our malicious script to use the only other possible integer (being 0) s
 -d '{"jsonrpc":"2.0", "method":"script.execute", "id":1, "auth":"57394b5eb6565eb7019b5e209b0ef74f", "params":{"hostid": 10106, "scriptid": 3}}'
 ```
 
-![](../assets/img/2026-05-31-Zipper/10.png)
+![](/assets/img/2026-05-31-Zipper/10.png)
 
 To grab a stable shell on Zipper, I'll pipe the contents of a perl reverse shell pulled from [revshells.com](https://www.revshells.com/) into my Netcat listener so it will execute upon that initial reception and fix itself. 
 
@@ -394,7 +394,7 @@ I also tried to upload a myriad of different shell files to the machine, executi
 
 _Note: For some reason using bash in the reverse shell will kill the shell almost immediately, but just using sh is fine and stabilizes enough to spawn a pty with the typical `Python3 import pty` method._
 
-![](../assets/img/2026-05-31-Zipper/11.png)
+![](/assets/img/2026-05-31-Zipper/11.png)
 
 With an alright shell on the host machine, we can move to enumerating internally in order to escalate privileges.
 
@@ -407,7 +407,7 @@ A quick look around shows just one home directory for _Zapper_ which holds a bac
 └─$ cat /home/zapper/utils/backup.sh
 ```
 
-![](../assets/img/2026-05-31-Zipper/12.png)
+![](/assets/img/2026-05-31-Zipper/12.png)
 
 Attempting to login over SSH fails since password authentication is disabled, but we this does work to switch users in our existing shell. 
 
@@ -415,12 +415,12 @@ Attempting to login over SSH fails since password authentication is disabled, bu
 └─$ su zapper
 ```
 
-![](../assets/img/2026-05-31-Zipper/13.png)
+![](/assets/img/2026-05-31-Zipper/13.png)
 
 ### Binary Path Hijacking
 At this point we can grab the user flag under their home directory and begin looking at routes to escalate privileges even further to root. The only other thing in the utils folder was a custom binary made stop and start the Zabbix service.
 
-![](../assets/img/2026-05-31-Zipper/14.png)
+![](/assets/img/2026-05-31-Zipper/14.png)
 
 Running strings against it for a rough idea of what it's doing shows that it simply uses `systemctl` to stop or start the service, nothing too crazy.
 
@@ -428,7 +428,7 @@ Running strings against it for a rough idea of what it's doing shows that it sim
 └─$ string zabbix-service
 ```
 
-![](../assets/img/2026-05-31-Zipper/15.png)
+![](/assets/img/2026-05-31-Zipper/15.png)
 
 This looks to be mundane, but the creator didn't specify an absolute file path whilst calling `systemctl` and since this binary runs as root, it becomes vulnerable to path injection.
 
@@ -447,6 +447,6 @@ start or stop?: start
 └─$ /bin/bash -p
 ```
 
-![](../assets/img/2026-05-31-Zipper/16.png)
+![](/assets/img/2026-05-31-Zipper/16.png)
 
 Finally, we can grab the last flag under the root directory to complete this challenge. Overall it wasn't too difficult but did require us to get familiar with API calls and troubleshoot getting reverse shells. I hope this was helpful to anyone following along or stuck and happy hacking!

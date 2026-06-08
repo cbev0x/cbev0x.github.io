@@ -44,7 +44,7 @@ There are just three ports available:
 
 I start enumerating directories/subdomains in the background to save on time and have a look around the webpage.
 
-![](../assets/img/2026-01-21-EnterPrize/1.png)
+![](/assets/img/2026-01-21-EnterPrize/1.png)
 
 There really isn't much to see here, no cookies, nothing on robots.txt, and I can't get a hit on any common endpoints for Apache. Dozens of directory busts later, I find a single page that returns a 200 OK.
 
@@ -101,7 +101,7 @@ This composer.json file tells us what dependencies the site requires in order to
 
 I expand my search while digging for subdomains, eventually finding a valid one at maintest.enterprize.thm.
 
-![](../assets/img/2026-01-21-EnterPrize/2.png)
+![](/assets/img/2026-01-21-EnterPrize/2.png)
 
 After adding that to my /etc/hosts file, I head over there. It looks like the default landing page for installed applications running this CMS. Let's hit Google to find exploits on version 9.5.
 
@@ -112,16 +112,16 @@ There are a few dangerous ones here:
 
 I don't actually find anything that works right now, however more enumeration shows a fileadmin folder which contains a place for user uploads.
 
-![](../assets/img/2026-01-21-EnterPrize/3.png)
+![](/assets/img/2026-01-21-EnterPrize/3.png)
 
 There's also a login panel at /typo3 where we can access the backend, but default credentials don't work and we have yet to find credentials, let alone a username. I do some more digging on vulnerabilities pertaining to this version and end up finding an automated Python scanner for typo3 applications. Here's a [link](https://github.com/whoot/Typo3Scan).
 
-![](../assets/img/2026-01-21-EnterPrize/4.png)
+![](/assets/img/2026-01-21-EnterPrize/4.png)
 
 ## Exploitation
 Gobuster shows a few interesting directories as well. The /typo3conf one contains a LocalConfiguration.old file which conveniently has a line with the old password and a SYS encryption key.
 
-![](../assets/img/2026-01-21-EnterPrize/5.png)
+![](/assets/img/2026-01-21-EnterPrize/5.png)
 
 I find [this article](https://www.synacktiv.com/en/publications/typo3-leak-to-remote-code-execution) which has the steps for RCE almost to a tee. 
 
@@ -144,13 +144,13 @@ print($sig);
 ?>
 ```
 
-![](../assets/img/2026-01-21-EnterPrize/6.png)
+![](/assets/img/2026-01-21-EnterPrize/6.png)
 
 _Be sure to supply the key found in LocalConfiguration.old here_
 
 Now navigate to Content Examples -> Form Elements -> Forms on the site and capture a request from the contact form. Here we replace the first body (the one with __state in it) with our payload + the HMAC and send it to the server.
 
-![](../assets/img/2026-01-21-EnterPrize/7.png)
+![](/assets/img/2026-01-21-EnterPrize/7.png)
 
 The server will throw an error, but our code will already be deserialized 
 
@@ -219,7 +219,7 @@ lrwxrwxrwx 1 root root  28 Jan  3  2021 x86_64-libc.conf -> /home/john/develop/t
 
 I'm thinking that something must be running myapp in the background as this seems to be the only attack vector. I snoop on all running processes by uploading pspy64 to /tmp and find that a cronjob must be executing myapp and saving it to result.txt. Judging by the UID, this is John running it.
 
-![](../assets/img/2026-01-21-EnterPrize/8.png)
+![](/assets/img/2026-01-21-EnterPrize/8.png)
 
 ## Privilege Escalation
 So, as we know John is executing this and since myapp loads libcustom.so, let's upload a malicious library that launches a reverse shell instead of whatever is intended. Let's code this in C and compile it before sending it over to the target.
@@ -253,13 +253,13 @@ $ echo '/home/john/develop' > /home/john/develop/test.conf
 
 All that's left to do is wait for the cronjob to execute and enjoy our shell as John. Let's grab the first flag while we're here, I think it's definitely well earned.
 
-![](../assets/img/2026-01-21-EnterPrize/9.png)
+![](/assets/img/2026-01-21-EnterPrize/9.png)
 
 We're on the home stretch to root now. I was stuck in an awful shell so I quickly copied my local SSH pub key to `/home/john/.ssh/authorized_keys` for a better experience.
 
 Once again, I go through the motions of checking Sudo privs, unique SUID bits set, and any out of ordinary files/binaries in hopes to escalate privileges. Displaying the services on the host showed that port 2049 was listening, which is the default for NFS.
 
-![](../assets/img/2026-01-21-EnterPrize/10.png)
+![](/assets/img/2026-01-21-EnterPrize/10.png)
 
 I use showmount to see what is available.
 
@@ -295,7 +295,7 @@ $ sudo chmod +s share/sh
 
 Finally, execute `./sh` in /var/nfs on your shell as John to get root privs and grab the final flag.
 
-![](../assets/img/2026-01-21-EnterPrize/11.png)
+![](/assets/img/2026-01-21-EnterPrize/11.png)
 
 In all honesty, this box whooped my a** over a couple of days and there's no way I could've done the deserialization attack on my own so huge thanks to [M3n0sD0n4ld](https://m3n0sd0n4ld.github.io/patoHackventuras/EnterPrize) and [noraj](https://blog.raw.pm/en/TryHackMe-EnterPrize-write-up/) for their great writeups regarding that part. Again, the differing PHP versions made this box a bit harder than it was originally but I learned a ton. 
 

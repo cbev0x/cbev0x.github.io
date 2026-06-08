@@ -63,23 +63,23 @@ We get quite a bit back from it:
 
 Looks like a windows box without Active Directory. I’ll start with a dig on the DNS server and then check out the webpages.
 
-![](../assets/img/2026-01-15-IronCorp/1.png)
+![](/assets/img/2026-01-15-IronCorp/1.png)
 
 There are two subdomains we can look at so I add those to my /etc/hosts file as well. The landing page on port 8080 is a static dashboard for an example account with tabs to other components. We have a login/registration page but these have no functionality whatsoever.
 
-![](../assets/img/2026-01-15-IronCorp/2.png)
+![](/assets/img/2026-01-15-IronCorp/2.png)
 
 The webpage on port 11025 is under construction and also has no functioning links/tabs.
 
-![](../assets/img/2026-01-15-IronCorp/3.png)
+![](/assets/img/2026-01-15-IronCorp/3.png)
 
 I tried to exploit the avatar image upload and find known vulnerabilities for Dashtreme but got nothing in return. Both admin.ironcorp.me and internal.ironcorp.me were the same as the original page on port 8080.
 
 Checking those two subdomains on port 11025 showed that we are forbidden with the internal one but are prompted with a login panel with the admin one.
 
-![](../assets/img/2026-01-15-IronCorp/4.png)
+![](/assets/img/2026-01-15-IronCorp/4.png)
 
-![](../assets/img/2026-01-15-IronCorp/5.png)
+![](/assets/img/2026-01-15-IronCorp/5.png)
 
 ## Brute Forcing
 Capturing this request shows that we send a GET request with a base64 encoded Authorization header containing our user and pass. This is relatively easy to brute force so I make a custom script to get it running.
@@ -129,36 +129,36 @@ with open(wordlist, "r", errors="ignore") as f:
 
 This returns a valid password and we can login to the site, finding a query search bar.
 
-![](../assets/img/2026-01-15-IronCorp/6.png)
+![](/assets/img/2026-01-15-IronCorp/6.png)
 
 I run a gobuster dir search supplying the authorization header with our encoded creds and find an /images directory. Inside is a .gif with perhaps a hint at an SSRF vulnerability.
 
-![](../assets/img/2026-01-15-IronCorp/7.png)
+![](/assets/img/2026-01-15-IronCorp/7.png)
 
 Capturing a request to the ultimate search bar query shows that the site is ran on PHP. Another thing of note is that our query is reflected in the URL as a parameter.
 
-![](../assets/img/2026-01-15-IronCorp/8.png)
+![](/assets/img/2026-01-15-IronCorp/8.png)
 
 I checked a 404 page to potentially find more info and gathered a few things. We get the Apache, OpenSSL, and PHP versions, however these aren’t vulnerable. This page also discloses the ‘webmaster’ email and gives us the structure for it.
 
-![](../assets/img/2026-01-15-IronCorp/9.png)
+![](/assets/img/2026-01-15-IronCorp/9.png)
 
 ## SSRF
 Back to the Burp Suite request, I test for basic command injections and eventually find that we can indeed exploit a SSRF vulnerability by supplying the target URL along with a path to a file we want.
 
-![](../assets/img/2026-01-15-IronCorp/10.png)
+![](/assets/img/2026-01-15-IronCorp/10.png)
 
 I used the landing page and got a 401 Authorization required as we didn’t give it the auth header. I try again with the URL pointing towards my attacking machine and confirms we have RCE on the system.
 
-![](../assets/img/2026-01-15-IronCorp/11.png)
+![](/assets/img/2026-01-15-IronCorp/11.png)
 
 I make a request to the internal.ironcorp.me domain and find a line with a link which uses a name parameter to get things
 
-![](../assets/img/2026-01-15-IronCorp/12.png)
+![](/assets/img/2026-01-15-IronCorp/12.png)
 
 We can also confirm that this allows for RCE by piping it to a command, here I do whoami to find out what we are running as.
 
-![](../assets/img/2026-01-15-IronCorp/13.png)
+![](/assets/img/2026-01-15-IronCorp/13.png)
 
 Now let’s use this to grab a shell on the box via this method.
 
@@ -173,20 +173,20 @@ My final payload in Burp Suite looked something like:
 
 Let that run and we finally get a shell on the box as nt authority\system .
 
-![](../assets/img/2026-01-15-IronCorp/14.png)
+![](/assets/img/2026-01-15-IronCorp/14.png)
 
 The user flag is under C:\users\administrator\desktop
 
-![](../assets/img/2026-01-15-IronCorp/15.png)
+![](/assets/img/2026-01-15-IronCorp/15.png)
 
 ## Privilege Escalation
 I look around the C:\Users dir and find accounts for Admin, administrator, and SuperAdmin. I’m unable to list contents for Admin or SuperAdmin but I try to read root.txt anyways for an easy win as I know the file name. This grants us the root flag under C:\Users\SuperAdmin\Desktop .
 
-![](../assets/img/2026-01-15-IronCorp/16.png)
+![](/assets/img/2026-01-15-IronCorp/16.png)
 
 That completes the box, however if we couldn’t read files directly, there is still another way to go about getting the last flag. Running whoami /all lists our privileges and I find that we have access to SeImpersonatePrivilege under our current shell.
 
-![](../assets/img/2026-01-15-IronCorp/17.png)
+![](/assets/img/2026-01-15-IronCorp/17.png)
 
 Next, we can use Metasploit to grab a proper shell and use list_tokens -u to list the tokens on the system. Finally, we can use the impersonate_token command to read SuperAdmin’s files.
 
