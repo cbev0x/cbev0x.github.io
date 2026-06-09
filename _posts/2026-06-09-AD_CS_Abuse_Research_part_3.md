@@ -20,7 +20,7 @@ published: true
 
 ---
 
-## 1. The AD Object Write Class
+## The AD Object Write Class
 
 The AD object write class groups ESC techniques that share a common entry condition: the attacker holds a write primitive on an Active Directory or PKI object, and that primitive is sufficient to introduce or directly exploit a certificate-based authentication path. The write target varies: it might be a certificate template object, the CA computer object, the CA configuration object in the Enrollment Services container, or an arbitrary user or computer account object. What unifies the class is that no pre-existing template misconfiguration is required. The vulnerability is the write access itself.
 
@@ -40,7 +40,7 @@ The practical implication for enumeration is that tooling must look beyond templ
 
 ---
 
-## 2. AD ACL Primer for PKI Objects
+## AD ACL Primer for PKI Objects
 
 Before covering each ESC, it is worth being precise about which ACE types matter and what each grants. AD access control is more granular than file system ACLs and the distinctions matter for both exploitation and detection.
 
@@ -97,7 +97,7 @@ BloodHound models these write paths as edges on the graph. The edges to look for
 
 ---
 
-## 3. ESC4: Template Object Write
+## ESC4: Template Object Write
 
 ### Vulnerability Class
 
@@ -195,7 +195,7 @@ The `User-Force-Change-Password` extended right, for example, is a `WritePropert
 
 ---
 
-## 4. ESC5: PKI Object and CA Computer Write
+## ESC5: PKI Object and CA Computer Write
 
 ### Vulnerability Class
 
@@ -278,7 +278,7 @@ With CIFS access to the CA as Administrator, dump the CA private key via `certsr
 
 ---
 
-## 5. ESC7: CA ACL Abuse (ManageCA / Manage Certificates)
+## ESC7: CA ACL Abuse (ManageCA / Manage Certificates)
 
 ### Vulnerability Class
 
@@ -402,7 +402,7 @@ certipy auth -pfx administrator.pfx -dc-ip 10.10.10.10
 
 ---
 
-## 6. ESC14: altSecurityIdentities Write
+## ESC14: altSecurityIdentities Write
 
 ### Vulnerability Class
 
@@ -528,7 +528,7 @@ This makes ESC14 more robust than ESC9/ESC10 in environments that have deployed 
 
 ---
 
-## 7. OPSEC Profile: AD Object Write Class
+## OPSEC Profile: AD Object Write Class
 
 The AD object write class generates a different log signature than ESC9/ESC10. The suspicious activity appears at the point of object modification (template attribute changes, CA configuration changes, or account attribute writes) rather than only at authentication time. This means there are two distinct detection windows: the modification event and the subsequent certificate issuance/authentication events.
 
@@ -592,7 +592,7 @@ The most important observation: the majority of high-fidelity indicators (5136, 
 
 ---
 
-## 8. Detection and Defensive Indicators
+## Detection and Defensive Indicators
 
 ### Enable Directory Service Change Auditing
 
@@ -647,7 +647,7 @@ $ca.nTSecurityDescriptor.Access | Where-Object {
 
 ---
 
-## 9. Chaining the AD Object Write Class
+## Chaining the AD Object Write Class
 
 These ESCs rarely operate in isolation in real environments. The most impactful chains:
 
