@@ -6,6 +6,8 @@ tags: [Windows, Active Directory, ADCS, Certificates, Privilege Escalation, Rese
 published: true
 ---
 
+This post covers the certificate-to-account mapping layer in Active Directory and how it becomes an attack surface. It walks through the KB5014754 strong mapping changes, the role of the szOID_NTDS_CA_SECURITY_EXT extension, and how ESC9 and ESC10 exploit weak UPN-based mapping to impersonate arbitrary principals without enrollee-supplied SANs or CA-level misconfigurations.
+
 ## Table of Contents
 
 1. [Strong vs Weak Certificate Mapping (KB5014754)](#1-strong-vs-weak-certificate-mapping-kb5014754)
