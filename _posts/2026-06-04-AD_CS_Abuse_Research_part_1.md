@@ -6,6 +6,8 @@ tags: [Windows, Active Directory, ADCS, Certificates, Privilege Escalation, Rese
 published: true
 ---
 
+This post covers the foundational mechanics of Active Directory Certificate Services: how the PKI trust model is structured in AD, where configuration lives in the directory, what certificate template attributes control at the CA level, how the enrollment flow works end to end, and how PKINIT exchanges a certificate for a Kerberos TGT. It closes with a taxonomy of the ESC attack surface as a map for the rest of the series.
+
 ## Table of Contents
 
 1. [What AD CS Actually Is](#1-what-ad-cs-actually-is)
