@@ -6,7 +6,7 @@ tags: [Windows, Active Directory, ADCS, Certificates, Privilege Escalation, Rese
 published: true
 ---
 
-### Table of Contents
+## Table of Contents
 
 1. [The AD Object Write Class](#1-the-ad-object-write-class)
 2. [AD ACL Primer for PKI Objects](#2-ad-acl-primer-for-pki-objects)
