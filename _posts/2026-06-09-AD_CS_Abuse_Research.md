@@ -1,12 +1,10 @@
 ---
-title: "AD CS Abuse Research"
-date: 2026-06-04
+title: "AD CS Abuse Research, Part 3: AD Object Write Primitives"
+date: 2026-06-09
 categories: [Personal]
 tags: [Windows, Active Directory, ADCS, Certificates, Privilege Escalation, Research]
 published: true
 ---
-
-## AD Object Write Class: ESC4, ESC5, ESC7, ESC14
 
 ### Table of Contents
 
