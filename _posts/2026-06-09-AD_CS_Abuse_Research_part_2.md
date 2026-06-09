@@ -16,7 +16,7 @@ published: true
 
 ---
 
-## 1. Strong vs Weak Certificate Mapping (KB5014754)
+## Strong vs Weak Certificate Mapping (KB5014754)
 
 KB5014754 is the Microsoft patch that introduced strong certificate mapping for PKINIT. Understanding its three enforcement phases is essential for knowing when ESC9 and ESC10 apply.
 
@@ -58,7 +58,7 @@ A certificate with `administrator@domain.com` in the SAN UPN and the attacker's 
 
 ---
 
-## 2. ESC9: CT_FLAG_NO_SECURITY_EXTENSION
+## ESC9: CT_FLAG_NO_SECURITY_EXTENSION
 
 ### Vulnerability Class
 
@@ -142,7 +142,7 @@ If the attacker controls a regular domain account and can write their own `userP
 
 ---
 
-## 3. ESC10: Weak Certificate Mapping via Registry
+## ESC10: Weak Certificate Mapping via Registry
 
 ### Vulnerability Class
 
@@ -188,7 +188,7 @@ This chain is less commonly exploitable but represents the "no GenericWrite on u
 
 ---
 
-## 4. OPSEC Profile: ESC9 and ESC10
+## OPSEC Profile: ESC9 and ESC10
 
 ESC9 and ESC10 generate a distinct log pattern compared to ESC1-style attacks because the certificate issuance looks entirely legitimate: the cert contains the attacker-controlled account's (or victim account's) identity, issued from a valid template with no anomalous SAN. The suspicious activity appears in AD object modification events and KDC authentication events, not in CA audit logs.
 
@@ -240,7 +240,7 @@ The UPN modification is the noisiest step. Mitigations:
 
 ---
 
-## 5. Detection and Defensive Indicators
+## Detection and Defensive Indicators
 
 ### For Blue Teams
 
