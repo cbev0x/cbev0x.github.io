@@ -662,3 +662,7 @@ These ESCs rarely operate in isolation in real environments. The most impactful 
 **GenericWrite on account → ESC14 → Account takeover → DCSync**: Write access to an account object enables ESC14. The account obtained via ESC14 is a stepping stone whose value depends on its group memberships, ACL rights, and what further paths it opens. Chaining ESC14 into a group with `DS-Replication-Get-Changes-All` (DCSync rights) is the clearest path to full domain compromise.
 
 **ESC5 (NTAuthCertificates write) → Golden Certificate → Persistent DA**: The highest-persistence chain. Adds a rogue CA to `NTAuthCertificates` and retains the rogue CA private key. Domain password resets, CA re-deployments, and account changes do not invalidate the rogue trust anchor. Persistence survives until `NTAuthCertificates` is audited and the rogue entry removed.
+
+---
+
+*Next: Part 4: Relay-Based Attacks (ESC8, ESC11)*
