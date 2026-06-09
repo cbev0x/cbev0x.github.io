@@ -6,6 +6,8 @@ tags: [Windows, Active Directory, ADCS, Certificates, Privilege Escalation, Rese
 published: true
 ---
 
+This post covers the AD object write attack class, where a write primitive on a PKI or account object is sufficient to introduce or directly exploit a certificate-based authentication path. It walks through ESC4 (template attribute write), ESC5 (PKI container and CA computer write), ESC7 (ManageCA and Manage Certificates abuse), and ESC14 (altSecurityIdentities manipulation), with OPSEC profiles and detection indicators for each.
+
 ## Table of Contents
 
 1. [The AD Object Write Class](#1-the-ad-object-write-class)
