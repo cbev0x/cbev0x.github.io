@@ -18,7 +18,7 @@ published: true
 
 ---
 
-## 1. What AD CS Actually Is
+## What AD CS Actually Is
 
 Active Directory Certificate Services is Microsoft's implementation of a Public Key Infrastructure baked directly into Active Directory. The concept of a PKI is not Microsoft-specific; it is the broader framework of using asymmetric cryptography to establish trust between parties who have never directly negotiated a secret. A Certificate Authority sits at the centre of that framework: it is a trusted third party that signs certificates binding a public key to an identity, and anyone who trusts the CA can trust those bindings.
 
@@ -35,7 +35,7 @@ Of these, PKINIT is the primary attack path. It is the mechanism by which a cert
 
 ---
 
-## 2. The PKI Trust Model in Active Directory
+## The PKI Trust Model in Active Directory
 
 The trust chain in an AD CS deployment has three layers:
 
@@ -55,7 +55,7 @@ This is why ESC exploitation is so impactful relative to effort: a single certif
 
 ---
 
-## 3. Where Everything Lives: The Configuration Partition
+## Where Everything Lives: The Configuration Partition
 
 All AD CS configuration is stored in the Active Directory Configuration partition, which is replicated domain-wide and readable by all authenticated users by default. This is enumerable without elevated privileges using standard LDAP queries, which is why Certipy's `find` command works with any domain account.
 
@@ -77,7 +77,7 @@ The key containers under this path:
 
 ---
 
-## 4. Certificate Templates: The Attributes That Matter
+## Certificate Templates: The Attributes That Matter
 
 A certificate template is an AD object that acts as a policy specification: it tells the CA what kind of certificate to issue, to whom, and with what content. Understanding the key LDAP attributes is essential for both exploitation and for building tooling that correctly identifies vulnerable conditions.
 
@@ -128,7 +128,7 @@ This flag lives on the CA object in `CN=Enrollment Services`, not on individual 
 
 ---
 
-## 5. The Enrollment Flow End to End
+## The Enrollment Flow End to End
 
 Understanding exactly what happens during a certificate request, and which party controls what, is the foundation for understanding why each ESC works.
 
@@ -198,7 +198,7 @@ The client receives and stores the certificate alongside the corresponding priva
 
 ---
 
-## 6. PKINIT: Certificate to TGT
+## PKINIT: Certificate to TGT
 
 PKINIT (RFC 4556) is the Kerberos extension that allows a certificate to serve as the preauthentication credential in an AS exchange. It is the bridge between the PKI layer and the Kerberos authentication layer.
 
@@ -237,7 +237,7 @@ A PKINIT quirk worth noting: the AS-REP in a PKINIT exchange encrypts the sessio
 
 ---
 
-## 7. The ESC Taxonomy: A Map of the Attack Surface
+## The ESC Taxonomy: A Map of the Attack Surface
 
 The ESC numbering (ESC1 through ESC15+) originated in the SpecterOps whitepaper "Certified Pre-Owned" and has been extended by subsequent research. Each ESC identifies a distinct misconfiguration class, though many chains involve multiple ESCs.
 
