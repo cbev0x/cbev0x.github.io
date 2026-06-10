@@ -1,6 +1,6 @@
 ---
 title: "AD CS Abuse Research, Part 2: Weak Mapping and the ESC9/ESC10 Attack Class"
-date: 2026-06-08
+date: 2026-06-06
 categories: [Personal]
 tags: [Windows, Active Directory, ADCS, Certificates, Privilege Escalation, Research]
 published: true
