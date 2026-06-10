@@ -173,6 +173,14 @@ conn.modify(
 
 The linked group must not be marked as a Protected Group and must not have the `adminCount` attribute set to `1` for the `msDS-OIDToGroupLink` mechanism to function. Domain Admins has `adminCount=1` which means the KDC will not inject its SID via this mechanism. The practical targets are groups that have been granted specific high-value rights (DCSync, GenericAll on sensitive objects, membership in other privileged groups) without being in the default protected groups list. This is a real constraint that limits but does not eliminate the attack surface; BloodHound is the right tool for identifying which non-protected groups have paths to DA equivalent rights.
 
+**Group scope requirement**: the target group must have **Universal** scope for `msDS-OIDToGroupLink` to accept it. Global security groups will be rejected with an `ERROR_DS_INVALID_GROUP_TYPE` (8513) error even though the documentation does not explicitly state this requirement. If setting `msDS-OIDToGroupLink` fails with an invalid group type error against a Global group, convert it to Universal scope first:
+
+```powershell
+Set-ADGroup "TargetGroup" -GroupScope Universal
+```
+
+The KDC requires Universal scope because it needs to evaluate the group's membership across potential domain boundaries during PAC construction at PKINIT time. A Global group is not resolvable outside its home domain, making it unsuitable for the authentication mechanism assurance mechanism that `msDS-OIDToGroupLink` underpins.
+
 ---
 
 ## 3. ESC15: Application Policy Substitution (EKUwu)
@@ -477,6 +485,8 @@ certipy auth -pfx administrator.pfx -dc-ip 10.10.10.10
 
 ---
 
+---
+
 ## 6. Complete ESC Taxonomy Table
 
 The table below maps every ESC covered across this series to its vulnerability class, primary prerequisites, available tooling, and relative OPSEC noise. It is intended as a quick reference and cross-index for the full writeup series.
@@ -508,97 +518,101 @@ These three gaps, alongside the chain-aware enumeration design and measured OPSE
 
 ---
 
+*This post concludes the AD CS Abuse Research writeup series. The next phase covers lab setup, tool architecture, and the development of the unified enumeration and exploitation framework.*
+
+---
+
 ## References
- 
+
 ### Primary Research
- 
+
 **Certified Pre-Owned: Abusing Active Directory Certificate Services**
 Will Schroeder and Lee Christensen, SpecterOps (2021)
 The original whitepaper that introduced the ESC taxonomy (ESC1-ESC8), PKI internals analysis, and the foundational research this series builds on.
 https://specterops.io/wp-content/uploads/sites/3/2022/06/Certified_Pre-Owned.pdf
- 
+
 **Certified Pre-Owned (blog post)**
 Will Schroeder and Lee Christensen, SpecterOps (2021)
 Companion blog post to the whitepaper with a condensed overview.
 https://posts.specterops.io/certified-pre-owned-d95910965cd2
- 
+
 **Certificates and Pwnage and Patches, Oh My!**
 Will Schroeder and Lee Christensen, SpecterOps (2022)
 Follow-up post covering KB5014754, strong certificate mapping, and the impact of CVE-2022-26923 on the ESC landscape.
 https://posts.specterops.io/certificates-and-pwnage-and-patches-oh-my-8ae0f4304c1d
- 
+
 **EKUwu: Not Just Another AD CS ESC**
 Justin Bollinger, TrustedSec (2024)
 Original research disclosing ESC15 (EKUwu / CVE-2024-49019), documenting the application policy substitution vulnerability in version 1 schema templates.
 https://trustedsec.com/blog/ekuwu-not-just-another-ad-cs-esc
- 
+
 ---
- 
+
 ### Tooling Documentation
- 
+
 **Certipy Wiki**
 ly4k (2024-2025)
 Comprehensive documentation covering ESC1-ESC16, exploitation steps, terminology, and detection guidance. The primary reference for current Certipy usage and ESC technique details.
 https://github.com/ly4k/Certipy/wiki
- 
+
 **Certipy: Privilege Escalation (ESC1-ESC16)**
 ly4k
 Direct link to the ESC technique breakdown within the Certipy wiki.
 https://github.com/ly4k/Certipy/wiki/06-%E2%80%90-Privilege-Escalation
- 
+
 **Certipy v5 and ESC16 Release Notes**
 ly4k (2025)
 Announcement of Certipy v5 introducing ESC13, ESC15, ESC16 support alongside the new wiki.
 https://github.com/ly4k/Certipy/discussions/270
- 
+
 **Certify Wiki: Escalation Techniques**
 GhostPack / SpecterOps
 Certify's escalation technique documentation, covering ESC1-ESC15 from the Windows-native tooling perspective.
 https://github.com/GhostPack/Certify/wiki/4-%E2%80%90-Escalation-Techniques
- 
+
 ---
- 
+
 ### Microsoft Documentation
- 
+
 **KB5014754: Certificate-based authentication changes on Windows domain controllers**
 Microsoft (2022)
 The patch introducing strong certificate mapping, `szOID_NTDS_CA_SECURITY_EXT`, and `StrongCertificateBindingEnforcement`. Essential reading for ESC9 and ESC10 context.
 https://support.microsoft.com/en-us/topic/kb5014754-certificate-based-authentication-changes-on-windows-domain-controllers-ad2c23b0-15d8-4340-a468-4d4f3b188f16
- 
+
 **MS-WCCE: Windows Client Certificate Enrollment Protocol**
 Microsoft
 Protocol specification for the primary CA enrollment RPC interface.
 https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-wcce
- 
+
 **MS-ICPR: ICertPassage Remote Protocol**
 Microsoft
 Protocol specification for the legacy MS-ICPR enrollment interface targeted by ESC11.
 https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-icpr
- 
+
 **CVE-2024-49019 Security Guidance (ESC15)**
 Microsoft (2024)
 Official MSRC advisory for the EKUwu vulnerability.
 https://msrc.microsoft.com/update-guide/vulnerability/CVE-2024-49019
- 
+
 ---
- 
+
 ### Supplementary Research
- 
+
 **NTLM Relaying to AD Certificate Services**
 Dirk-jan Mollema (dirkjanm), 2021
 Analysis of NTLM relay to HTTP enrollment endpoints, foundational for understanding ESC8.
 https://dirkjanm.io/ntlm-relaying-to-ad-certificate-services/
- 
+
 **PKINITtools**
 Dirk-jan Mollema (dirkjanm)
 Toolset for PKINIT-based attacks and UnPAC-the-Hash, directly relevant to the cert-to-TGT chain.
 https://github.com/dirkjanm/PKINITtools
- 
+
 **The Hacker Recipes: AD CS**
 Shutdown / The Hacker Recipes
 Practical reference documentation covering AD CS attack paths with tooling examples.
 https://www.thehacker.recipes/ad/movement/ad-cs
- 
+
 **Impacket**
 SecureAuth / Impacket contributors
 The Python library underpinning most Linux-native AD CS exploitation tooling, including the ntlmrelayx `--adcs` implementation for ESC8.
@@ -606,4 +620,4 @@ https://github.com/fortra/impacket
 
 ---
 
-*This post concludes the AD CS Abuse Research writeup series. The next phase covers lab setup, tool architecture, and the development of the unified enumeration and exploitation framework.*
+_This post concludes the AD CS Abuse Research writeup series. The next phase covers lab setup, tool architecture, and the development of the unified enumeration and exploitation framework._
