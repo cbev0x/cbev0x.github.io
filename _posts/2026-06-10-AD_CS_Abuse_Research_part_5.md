@@ -485,8 +485,6 @@ certipy auth -pfx administrator.pfx -dc-ip 10.10.10.10
 
 ---
 
----
-
 ## 6. Complete ESC Taxonomy Table
 
 The table below maps every ESC covered across this series to its vulnerability class, primary prerequisites, available tooling, and relative OPSEC noise. It is intended as a quick reference and cross-index for the full writeup series.
@@ -515,10 +513,6 @@ The table below maps every ESC covered across this series to its vulnerability c
 The table makes the tooling gaps explicit. ESC11, ESC13, and ESC16 have no dedicated unified tooling. ESC11 requires combining Certipy and Coercer with no single tool handling the full chain. ESC13 has no enumeration tooling that performs the three-object correlation. ESC16 is not cleanly surfaced by any existing enumeration tool.
 
 These three gaps, alongside the chain-aware enumeration design and measured OPSEC telemetry, define the primary research contributions of the tooling project that follows this series.
-
----
-
-*This post concludes the AD CS Abuse Research writeup series. The next phase covers lab setup, tool architecture, and the development of the unified enumeration and exploitation framework.*
 
 ---
 
