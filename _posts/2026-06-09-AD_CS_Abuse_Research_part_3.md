@@ -1,6 +1,6 @@
 ---
 title: "AD CS Abuse Research, Part 3: AD Object Write Primitives"
-date: 2026-06-09
+date: 2026-06-08
 categories: [Personal]
 tags: [Windows, Active Directory, ADCS, Certificates, Privilege Escalation, Research]
 published: true
