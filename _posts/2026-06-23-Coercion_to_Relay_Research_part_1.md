@@ -1,5 +1,5 @@
 ---
-title: "Coercion-to-relay, part 1: Fundamentals"
+title: "Coercion-to-Relay, Part 1: Fundamentals"
 date: 2026-06-23
 categories: [Personal]
 tags: [Windows, Active Directory, Relay, Privilege Escalation, Research]
