@@ -70,7 +70,7 @@ None of these mechanisms touch the coercion primitives themselves. A fully patch
 
 The pace at which these defenses actually became defaults tells the real story here:
 
-![Timeline of LDAP and SMB default hardening from 2003 to 2025](assets/img/2026-06-23-Coercion_to_Relay_Research/timeline.png)
+![Timeline of LDAP and SMB default hardening from 2003 to 2025](/assets/img/2026-06-23-Coercion_to_Relay_Research/timeline.png)
 
 Two decades pass between the first signing capability shipping and any of it being required by default, and even the 2025 row only applies to fresh installs, not the upgraded domain controllers most environments are actually running.
 
