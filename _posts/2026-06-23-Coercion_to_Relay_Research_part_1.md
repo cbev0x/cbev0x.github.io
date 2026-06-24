@@ -68,6 +68,12 @@ Three mechanisms do that job, each closing a different gap:
 
 None of these mechanisms touch the coercion primitives themselves. A fully patched, fully updated domain controller in 2026 can still have its machine account coerced into authenticating to an attacker by all four primitives covered above. What determines whether that coercion turns into domain compromise is entirely on the relay side: whether the target protocol enforces signing, whether channel binding is configured, whether EPA is enabled on the CA's web enrollment endpoint.
 
+The pace at which these defenses actually became defaults tells the real story here:
+
+![Timeline of LDAP and SMB default hardening from 2003 to 2025](assets/img/2026-06-23-Coercion_to_Relay_Research/timeline.png)
+
+Two decades pass between the first signing capability shipping and any of it being required by default, and even the 2025 row only applies to fresh installs, not the upgraded domain controllers most environments are actually running.
+
 This reframes the interesting question for the rest of this series. The relevant variable is never simply whether PetitPotam itself is patched. It's whether a specific relay target, in a specific environment, enforces the protection that breaks the relay. That question has a different answer for every protocol, every Windows version, and every administrator's actual configuration choices, which is exactly what the matrix in part 3 sets out to answer with real lab data rather than assumptions.
 
 ## What's next
