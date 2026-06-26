@@ -1,5 +1,5 @@
 ---
-title: "Coercion-to-Relay, Part 2: Relay Target Mechanics"
+title: "Windows Authentication Coercion to NTLM Relay, Part 2: Relay Target Mechanics"
 date: 2026-06-23
 categories: [Personal]
 tags: [Windows, Active Directory, Relay, Privilege Escalation, Research]
