@@ -1,5 +1,5 @@
 ---
-title: "Coercion-to-Relay, Part 1: Fundamentals"
+title: "Windows Authentication Coercion to NTLM Relay, Part 1: Fundamentals"
 date: 2026-06-23
 categories: [Personal]
 tags: [Windows, Active Directory, Relay, Privilege Escalation, Research]
