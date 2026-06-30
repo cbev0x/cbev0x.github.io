@@ -142,7 +142,7 @@ certsrv                 [Status: 401, Size: 1293, Words: 81, Lines: 30, Duration
 :: Progress: [119600/119600] :: Job [1/1] :: 722 req/sec :: Duration: [0:03:22] :: Errors: 0 ::
 ```
 
-This just reveals that this machine is apart of the Certificate Authority and that Active Directory Certificate Services is installed on this domain as the /certsrv endpoint is exposed. This page allows for enrollees to request certificates from templates over HTTP. It requires authentication which is why it responds with a 401 code, but I'll revisit this once we have valid credentials.
+This just reveals that this machine is apart of the Certificate Authority and that Active Directory Certificate Services is installed on this domain as the `/certsrv` endpoint is exposed. This page allows for enrollees to request certificates from templates over HTTP. It requires authentication which is why it responds with a 401 code, but I'll revisit this once we have valid credentials.
 
 ## Initial Foothold
 
@@ -363,7 +363,7 @@ To import this PFX into our browser, we navigate to **Firefox Settings-> Certifi
 ![](/assets/img/2026-06-29-Search/24.png)
 
 ### PS Web Access
-After entering the correct password, the certificate is saved and we can head over to the /staff directory. This reveals a Windows PowerShell Web Access portal which will allow us to grab a terminal session once logged in.
+After entering the correct password, the certificate is saved and we can head over to the `/staff` directory. This reveals a Windows PowerShell Web Access portal which will allow us to grab a terminal session once logged in.
 
 ![](/assets/img/2026-06-29-Search/25.png)
 
