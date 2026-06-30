@@ -1,5 +1,5 @@
 ---
-title: "HackTheBox: Phantom"
+title: "HackTheBox: Search"
 date: 2026-06-29
 categories: [HackTheBox]
 tags: [Windows, Active Directory, Certificates, AD CS, Kerberos, Privilege Escalation]
