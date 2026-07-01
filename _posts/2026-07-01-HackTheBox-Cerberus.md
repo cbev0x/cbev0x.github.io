@@ -1,6 +1,6 @@
 ---
 title: "HackTheBox: Cerberus"
-date: 2026-06-29
+date: 2026-07-01
 categories: [HackTheBox]
 tags: [Windows, Linux, Active Directory, Web, Networking, Privilege Escalation]
 published: true
