@@ -2,7 +2,7 @@
 title: "HackTheBox: Haze"
 date: 2026-05-18
 categories: [HackTheBox]
-tags: [Windows, Active Directory, Web, BloodHound, Cryptograhpy, Privilege Escalation]
+tags: [Windows, Active Directory, Web, BloodHound, Cryptography, Privilege Escalation]
 published: true
 ---
 
