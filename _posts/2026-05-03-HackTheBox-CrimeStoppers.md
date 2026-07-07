@@ -2,7 +2,7 @@
 title: "HackTheBox: CrimeStoppers"
 date: 2026-05-03
 categories: [HackTheBox]
-tags: [Linux, Web, LFI, File Upload, Rookit, Privilege Escalation]
+tags: [Linux, Web, LFI, File Upload, Rootkit, Privilege Escalation]
 published: true
 ---
 
