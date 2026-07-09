@@ -117,5 +117,5 @@ twitter:
 og_image: "/assets/img/favicons/cat.png"
 
 # Build
-future: false
+future: true
 show_drafts: false
