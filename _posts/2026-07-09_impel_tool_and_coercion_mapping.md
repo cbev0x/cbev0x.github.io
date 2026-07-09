@@ -6,7 +6,7 @@ tags: [Windows, Active Directory, Coercion, Privilege Escalation, Research]
 published: true
 ---
 
-This post covers **impel**, a Linux-native RPC coercion surface scanner we built as the final tool in our Windows authentication coercion research series. The previous installments documented the reflection and relay classes in detail, covering CVE-2026-24294 and CVE-2025-33073 with full lab detonation against Windows Server 2025 defaults. impel maps the upstream surface those techniques depend on: which RPC interfaces are reachable, which coerce authentication outbound, and what that means for defenders trying to shrink the attack surface.
+This post covers **Impel**, a Linux-native RPC coercion surface scanner we built as the final tool in our Windows authentication coercion research series. The previous installments documented the reflection and relay classes in detail, covering CVE-2026-24294 and CVE-2025-33073 with full lab detonation against Windows Server 2025 defaults. Impel maps the upstream surface those techniques depend on: which RPC interfaces are reachable, which coerce authentication outbound, and what that means for defenders trying to shrink the attack surface.
 
 The tool is available at [github.com/cbev0x/impel](https://github.com/cbev0x/impel).
 
@@ -22,7 +22,7 @@ The design follows the same pattern as DeleGator and CS2: Linux-native, impacket
 
 ## Architecture
 
-impel is structured as four subcommands:
+Impel is structured as four subcommands:
 
 **`enum`** fingerprints the coercion surface. For each target it probes a nine-vector knowledge base across all candidate named pipes, attempting to bind each interface UUID. The probe classifies each outcome as `REACHABLE` (bound), `denied` (pipe present, creds rejected), `no-iface` (pipe present but interface not registered), or `absent` (pipe not found). The EFSR multi-pipe behavior is modeled as first-class: all five candidate pipes (`lsarpc`, `efsrpc`, `samr`, `netlogon`, `lsass`) are probed independently, and the output collapses to only the pipes that answer. MS-WSP uses a separate raw SMB pipe open rather than a DCERPC bind, since the Windows Search Protocol is a binary framing protocol with no UUID-based endpoint registration.
 
