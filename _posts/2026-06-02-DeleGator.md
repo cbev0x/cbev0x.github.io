@@ -1,7 +1,7 @@
 ---
 title: "DeleGator: Building and Testing a Linux-Native Kerberos Delegation Abuse Framework"
 date: 2026-06-02
-categories: [Personal]
+categories: [Personal, Research, Tooling]
 tags: [Windows, Active Directory, Delegation, Privilege Escalation]
 published: true
 ---
