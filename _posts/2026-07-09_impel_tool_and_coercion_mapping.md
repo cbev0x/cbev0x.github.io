@@ -3,7 +3,7 @@ title: "Impel: Mapping the RPC Coercion Surface on Windows Server 2025"
 date: 2026-07-09
 categories: [Personal, Research, Tooling]
 tags: [Windows, Active Directory, Coercion, Privilege Escalation, Research]
-published: true
+published: false
 ---
 
 This post covers **Impel**, a Linux-native RPC coercion surface scanner we built as the final tool in our Windows authentication coercion research series. The previous installments documented the reflection and relay classes in detail, covering CVE-2026-24294 and CVE-2025-33073 with full lab detonation against Windows Server 2025 defaults. Impel maps the upstream surface those techniques depend on: which RPC interfaces are reachable, which coerce authentication outbound, and what that means for defenders trying to shrink the attack surface.
