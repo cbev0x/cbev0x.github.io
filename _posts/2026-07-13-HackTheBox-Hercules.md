@@ -694,7 +694,7 @@ A bit of trial and error along with research for common IIS/ASP.NET config files
 
 ![](/assets/img/2026-07-13-Hercules/21.png)
 
-Once we've read web.config through a file-disclosure bug in a classic ASP.NET (`System.Web`) app, we've got the machineKey - the validationKey/decryptionKey pair the server uses to sign and encrypt its forms-authentication and view-state cookies - which means we now hold the exact secret behind every auth ticket it issues.
+Once we've read web.config through a file-disclosure bug in a classic ASP.NET (`System.Web`) app, we've got the `machineKey` - the `validationKey/decryptionKey` pair the server uses to sign and encrypt its forms-authentication and view-state cookies - which means we now hold the exact secret behind every auth ticket it issues.
 
 ### Forging Legacy FormsAuth Cookie
 With those keys we can forge our own `FormsAuthenticationTicket` for any username we choose (say, one in the admin role) and encrypt and MAC it ourselves, so the server accepts our cookie as genuine because it validates purely against the key rather than any server-side session state. We can automate this with the ysoserial.net/Blacklist3r family - feed in the leaked keys and a target username and it spits out a ready-to-use cookie. The lesson your writeup can drive home is that a hardcoded or farm-shared machineKey turns any config-disclosure bug into full authentication bypass, which is exactly why real deployments should auto-generate keys and keep them out of disclosable files.
@@ -715,7 +715,7 @@ Next we need to add the necessary package which will let us create forged FormsA
 └─$ dotnet add package AspNetCore.LegacyAuthCookieCompat --version 2.0.5
 ```
 
-Now we'll need a quick C# program that will forge the valid cookie from the recovered valdiationKey and decryptionKey. Using the aforementioned repo as a reference and my favorite LLM, I'm left with the following that's dropped into Program.cs:
+Now we'll need a quick C# program that will forge the valid cookie from the recovered `valdiationKey` and `decryptionKey`. Using the aforementioned repo as a reference and my favorite LLM, I'm left with the following that's dropped into Program.cs:
 
 ```
 using System;
