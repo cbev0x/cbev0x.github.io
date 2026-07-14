@@ -1156,6 +1156,6 @@ I'll opt for the ladder since I prefer WinRM.
 
 That's all y'all, this box is definitely worth its insane difficulty rating. Honestly most of the concepts weren't new to me or crazy difficult, but the amount of steps and enumeration it takes to get there is where this machine earns its keep.
 
-It's easily my most favorite box since it covers some very interesting concepts such as NTLM auth being disabled, AD CS abuse, LDAP injection, Antivirus being enabled (although we didn't really touch it) which pulls it together as a realistic environment. It was put together very well and I like how it mimicked a full engagement by breaching the domain through the web server and then moving laterally to get a foothold, ultimately escalating privileges through a few misconfigurations. 
+It's easily my most favorite box since it covers some very interesting concepts such as NTLM auth being disabled, AD CS abuse, LDAP injection, and AntiVirus being enabled (although we didn't really touch it) which pulls it together as a realistic environment. It was put together very well and I like how it mimicked a full engagement by breaching the domain through the web server and then moving laterally to get a foothold, ultimately escalating privileges through a few misconfigurations. 
 
 I hope this was helpful to anyone following along or stuck like I was for a while and happy hacking!
