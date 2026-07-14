@@ -835,7 +835,7 @@ Heading back over to BloodHound we find that Natalie.A is apart of the Web Suppo
 
 If you're unfamiliar with what a Shadow Credential attack is, allow me to break it down.
 
-When we hold GenericWrite over a target account, we can write our own crafted KeyCredential (pointing at a public key we generated) into its msDS-KeyCredentialLink attribute, making the KDC treat our key as legitimately belonging to that account. We then request a Kerberos TGT via PKINIT using our matching private key, authenticating as the target without ever touching its password. Tools like Whisker/Rubeus or the pywhisker + gettgtpkinit chain automate the whole write-and-authenticate flow.
+When we hold GenericWrite over a target account, we can write our own crafted KeyCredential (pointing at a public key we generated) into its `msDS-KeyCredentialLink` attribute, making the KDC treat our key as legitimately belonging to that account. We then request a Kerberos TGT via PKINIT using our matching private key, authenticating as the target without ever touching its password. Tools like Whisker/Rubeus or the pywhisker + gettgtpkinit chain automate the whole write-and-authenticate flow.
 
 Because AD CS is enabled on the domain, PKINIT is available, which lets us go one step further and UnPAC-the-hash: when we authenticate with our certificate, the TGT's PAC contains the account's NTLM hash in the `PAC_CREDENTIAL_INFO` structure, which the KDC includes precisely so certificate-authenticated users can still fall back to NTLM. By requesting a U2U service ticket to ourselves and decrypting that PAC, we recover the target's NTLM hash directly - giving us a durable credential we can reuse for pass-the-hash long after the TGT expires.
 
@@ -843,7 +843,7 @@ Now onto picking a target, none of these users have any glaringly obvious permis
 
 ![](/assets/img/2026-07-13-Hercules/30.png)
 
-I choose to carry out the Shadow Credential attack using Certipy-AD on Bob's account in order to snag his NTLM hash, first grabbing a TGT and exporting the ccache file to my KRB5CCNAME variable.
+I choose to carry out the Shadow Credential attack using Certipy-AD on Bob's account in order to snag his NTLM hash, first grabbing a TGT and exporting the ccache file to my `KRB5CCNAME` variable.
 
 ```
 └─$ nxc smb DC.HERCULES.HTB -u 'natalie.a' -p '[REDACTED]' -k --generate-tgt natalie.a
@@ -1103,7 +1103,7 @@ Next step is to forcefully change the password on the `IIS_WebServer$` account t
 ```
 
 ### SPN-less RBCD
-With full control over the IIS_WebServer$ user account, we can move onto exploiting the RBCD chain. A crucial thing to mention is that even though this account contains a $ sign, it is still a regular user account which lacks an SPN. In typical RBCD scenarios we'd need a service account that holds an SPN in order to exploit it properly, however there is a cool technique that allows us to perform Resource-Based Constrained Delegation with an SPN-less user account.
+With full control over the `IIS_WebServer$` user account, we can move onto exploiting the RBCD chain. A crucial thing to mention is that even though this account contains a `$` sign, it is still a regular user account which lacks an SPN. In typical RBCD scenarios we'd need a service account that holds an SPN in order to exploit it properly, however there is a cool technique that allows us to perform Resource-Based Constrained Delegation with an SPN-less user account.
 
 I recommend reading [this page](https://www.thehacker.recipes/ad/movement/kerberos/delegations/rbcd#rbcd-on-spn-less-users) for a more in-depth look as to how it works but I'll attempt to explain anyways. Fair warning that this method is very destructive to the target account, rendering it completely useless if not reverted correctly so proceed with caution in real engagements.
 
