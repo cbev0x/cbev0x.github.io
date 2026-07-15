@@ -1,9 +1,9 @@
 ---
-title: "Kerberos to an IP Address, Part 1: What IP SPN Actually Does"
+title: "Kerberos to an IP Address, Part 3: Coercion Behavior and What a Ticket Exposes"
 date: 2026-07-15
 categories: [Personal, Research]
 tags: [Windows, Active Directory, Kerberos, Research]
-published: true
+published: false
 ---
 
 For as long as most of us have worked with Active Directory, one rule held: Kerberos needs a
@@ -183,5 +183,4 @@ out to be more interesting, and more reassuring, than it first appears.
 ---
 
 *This series documents original lab research conducted in an isolated environment. It is
-educational and defensive in intent. Later parts that touch coercion behavior and detection are
-written at the behavioral level and were held pending coordinated disclosure where appropriate.*
+educational and defensive in intent.*
