@@ -1,5 +1,5 @@
 ---
-title: "Kerberos to an IP Address, Part 3: Coercion Behavior and What a Ticket Exposes"
+title: "Kerberos to an IP Address, Part 1: What IP SPN Actually Does"
 date: 2026-07-15
 categories: [Personal, Research]
 tags: [Windows, Active Directory, Kerberos, Research]
