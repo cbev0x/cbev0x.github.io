@@ -3,7 +3,7 @@ title: "Kerberos to an IP Address, Part 3: Coercion Behavior and What a Ticket E
 date: 2026-07-15
 categories: [Personal, Research]
 tags: [Windows, Active Directory, Kerberos, Research]
-published: false
+published: true
 ---
 
 Parts 1 and 2 stayed on the mechanism: Kerberos to an IP works, gated on an SPN existing, and
