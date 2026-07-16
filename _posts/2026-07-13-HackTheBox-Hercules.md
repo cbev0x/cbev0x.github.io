@@ -3,7 +3,7 @@ title: "HackTheBox: Hercules"
 date: 2026-07-13
 categories: [HackTheBox]
 tags: [Windows, Web, Cookies, Active Directory, Certificates, ADCS, RBCD, BloodHound, Privilege Escalation]
-published: false
+published: true
 difficulty: insane
 ---
 
