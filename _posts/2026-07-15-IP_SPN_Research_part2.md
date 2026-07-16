@@ -3,7 +3,7 @@ title: "Kerberos to an IP Address, Part 2: Who Can Register an IP SPN"
 date: 2026-07-15
 categories: [Personal, Research]
 tags: [Windows, Active Directory, Kerberos, Research]
-published: true
+published: false
 ---
 
 Part 1 established that Kerberos to an IP address works, and that the single gate between a
