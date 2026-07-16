@@ -3,7 +3,7 @@ title: "Kerberos to an IP Address, Part 4: Why It Is Contained, and Where Detect
 date: 2026-07-15
 categories: [Personal, Research]
 tags: [Windows, Active Directory, Kerberos, Research]
-published: false
+published: true
 ---
 
 Part 3 showed that enabling the IP SPN client path changes coerced authentication from NTLM to
