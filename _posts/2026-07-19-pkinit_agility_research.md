@@ -6,8 +6,6 @@ tags: [Windows, Active Directory, Kerberos, PKINIT, Cryptography, Research]
 published: true
 ---
 
-## Summary
-
 PKINIT gained real cryptographic agility over the last few years. RFC 8636 added
 key-derivation negotiation, RFC 8070 added freshness, and Microsoft's MS-PKCA
 added a stronger request-body checksum. New negotiation always raises the same
