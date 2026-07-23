@@ -14,19 +14,7 @@ That vouching is enforced by signatures. A PAC on a service ticket carries four 
 
 The diagram below is the structure I spent this project mutating. A service ticket's encrypted part holds the PAC, and the PAC is a small header followed by a table of buffers. Some buffers carry identity, and four carry signatures.
 
-<svg width="100%" viewBox="0 0 680 470" role="img"><title>Anatomy of a PAC inside a Kerberos service ticket</title><desc>A service ticket's encrypted part contains authorization data holding the PAC, which is a table of seven buffers: identity buffers and four signatures.</desc>
-<defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
-<g class="c-gray"><rect x="40" y="30" width="600" height="410" rx="20" stroke-width="0.5"/><text class="th" x="60" y="58">EncTicketPart (encrypted with the service key)</text></g>
-<g class="c-blue"><rect x="64" y="78" width="552" height="344" rx="14" stroke-width="0.5"/><text class="th" x="84" y="104">PAC (PACTYPE header + buffer table)</text></g>
-<g class="c-teal"><rect x="88" y="124" width="248" height="52" rx="8" stroke-width="0.5"/><text class="th" x="212" y="145" text-anchor="middle" dominant-baseline="central">LOGON_INFO</text><text class="ts" x="212" y="161" text-anchor="middle" dominant-baseline="central">User RID, groups, SIDs</text></g>
-<g class="c-teal"><rect x="352" y="124" width="248" height="52" rx="8" stroke-width="0.5"/><text class="th" x="476" y="145" text-anchor="middle" dominant-baseline="central">UPN_DNS_INFO</text><text class="ts" x="476" y="161" text-anchor="middle" dominant-baseline="central">UPN, DNS, SID copy</text></g>
-<g class="c-teal"><rect x="88" y="188" width="248" height="52" rx="8" stroke-width="0.5"/><text class="th" x="212" y="209" text-anchor="middle" dominant-baseline="central">CLIENT_INFO</text><text class="ts" x="212" y="225" text-anchor="middle" dominant-baseline="central">Name, auth time</text></g>
-<g class="c-amber"><rect x="352" y="188" width="248" height="52" rx="8" stroke-width="0.5"/><text class="th" x="476" y="209" text-anchor="middle" dominant-baseline="central">SERVER_CHECKSUM</text><text class="ts" x="476" y="225" text-anchor="middle" dominant-baseline="central">Service key (forgeable)</text></g>
-<g class="c-coral"><rect x="88" y="252" width="167" height="52" rx="8" stroke-width="0.5"/><text class="th" x="171" y="273" text-anchor="middle" dominant-baseline="central">KDC_CHECKSUM</text><text class="ts" x="171" y="289" text-anchor="middle" dominant-baseline="central">krbtgt</text></g>
-<g class="c-coral"><rect x="271" y="252" width="167" height="52" rx="8" stroke-width="0.5"/><text class="th" x="354" y="273" text-anchor="middle" dominant-baseline="central">TICKET_CHECKSUM</text><text class="ts" x="354" y="289" text-anchor="middle" dominant-baseline="central">krbtgt</text></g>
-<g class="c-coral"><rect x="454" y="252" width="146" height="52" rx="8" stroke-width="0.5"/><text class="th" x="527" y="270" text-anchor="middle" dominant-baseline="central">EXTENDED_KDC</text><text class="ts" x="527" y="288" text-anchor="middle" dominant-baseline="central">krbtgt</text></g>
-<g class="c-amber"><rect x="88" y="330" width="512" height="74" rx="8" stroke-width="0.5"/><text class="th" x="344" y="352" text-anchor="middle" dominant-baseline="central">Server signature covers the whole PAC</text><text class="ts" x="344" y="372" text-anchor="middle" dominant-baseline="central">with the two checksum fields zeroed</text><text class="ts" x="344" y="390" text-anchor="middle" dominant-baseline="central">krbtgt signatures chain on top of it</text></g>
-</svg>
+![](/assets/img/2026-07-23-PAC_Research/1.png)
 
 ## Why the existing tools do not help here
 
@@ -52,20 +40,7 @@ A single accept-or-reject verdict is not enough, because Windows validates a PAC
 
 So I run every mutation through two oracles and record the pair of verdicts. The signature-only oracle is an SMB service running as Local System. The full-validation oracle is a service running as a plain domain account, `svc-pac`, with no `SeTcbPrivilege`, which I confirm on every single run because a privileged context would silently invalidate the result.
 
-<svg width="100%" viewBox="0 0 680 430" role="img"><title>The differential method: one mutation, two oracles, four outcomes</title><desc>A single mutated ticket is sent to a signature-only service and a full-validation service; the pair of verdicts classifies the mutation.</desc>
-<defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
-<g class="c-purple"><rect x="250" y="30" width="180" height="52" rx="8" stroke-width="0.5"/><text class="th" x="340" y="51" text-anchor="middle" dominant-baseline="central">Mutated ticket</text><text class="ts" x="340" y="67" text-anchor="middle" dominant-baseline="central">One field changed</text></g>
-<line x1="300" y1="82" x2="180" y2="120" class="arr" marker-end="url(#arrow)"/>
-<line x1="380" y1="82" x2="500" y2="120" class="arr" marker-end="url(#arrow)"/>
-<g class="c-blue"><rect x="60" y="122" width="230" height="56" rx="8" stroke-width="0.5"/><text class="th" x="175" y="143" text-anchor="middle" dominant-baseline="central">Signature-only oracle</text><text class="ts" x="175" y="161" text-anchor="middle" dominant-baseline="central">Local System, no DC round trip</text></g>
-<g class="c-teal"><rect x="390" y="122" width="230" height="56" rx="8" stroke-width="0.5"/><text class="th" x="505" y="143" text-anchor="middle" dominant-baseline="central">Full-validation oracle</text><text class="ts" x="505" y="161" text-anchor="middle" dominant-baseline="central">svc-pac, forces DC check</text></g>
-<g class="c-gray"><rect x="60" y="230" width="560" height="170" rx="12" stroke-width="0.5"/><text class="th" x="80" y="256">Verdict pair classifies the mutation</text></g>
-<g class="c-green"><rect x="84" y="276" width="512" height="30" rx="6" stroke-width="0.5"/><text class="ts" x="100" y="291" dominant-baseline="central">accept, accept: forgery full validation missed (the finding)</text></g>
-<g class="c-amber"><rect x="84" y="312" width="512" height="30" rx="6" stroke-width="0.5"/><text class="ts" x="100" y="327" dominant-baseline="central">accept, reject: works only against Local System services</text></g>
-<g class="c-gray"><rect x="84" y="348" width="512" height="30" rx="6" stroke-width="0.5"/><text class="ts" x="100" y="363" dominant-baseline="central">reject, reject: dead end, both paths catch it</text></g>
-<line x1="175" y1="178" x2="175" y2="228" class="arr" marker-end="url(#arrow)"/>
-<line x1="505" y1="178" x2="505" y2="228" class="arr" marker-end="url(#arrow)"/>
-</svg>
+![](/assets/img/2026-07-23-PAC_Research/2.png)
 
 The pair is the whole point. A mutation both paths reject is a dead end. A mutation the signature-only path accepts but full validation rejects maps the exploitability of the Silver-Ticket-adjacent surface: it works against Local System services and dies at a real domain controller. The prize is the mutation that both accept, because that is a forgery full validation failed to catch. Reducing the entire hunt to "find the accept-accept cell" is what makes the method tractable.
 
