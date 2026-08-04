@@ -3,7 +3,7 @@ title: "Forging a Device Claim to Beat a Tier-0 Silo"
 date: 2026-08-03
 categories: [Personal, Research]
 tags: [Windows, Active Directory, Kerberos, Claims, DAC, Silos, Research]
-published: false
+published: true
 ---
 
 ## How claims and silos work
