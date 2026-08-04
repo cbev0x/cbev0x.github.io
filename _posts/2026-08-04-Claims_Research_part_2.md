@@ -1,6 +1,6 @@
 ---
 title: "Cross-Forest DAC Claims: What AllowAll Actually Allows"
-date: 2026-08-04
+date: 2026-08-03
 categories: [Personal, Research]
 tags: [Windows, Active Directory, Kerberos, Claims, DAC, Silos, Research]
 published: true
