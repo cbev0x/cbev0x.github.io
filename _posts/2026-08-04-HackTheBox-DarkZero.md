@@ -231,9 +231,9 @@ There aren't any other users on this DC and we don't seem to have any particular
 
 ![](/assets/img/2026-08-04-DarkZero/10.png)
 
-Displaying it hints that our current user might have access to SeServiceLogonRight. Synacktiv's [post](https://www.synacktiv.com/en/publications/beyond-acls-mapping-windows-privilege-escalation-paths-with-bloodhound#access-token-privileges) describes this token privilege as the following:
+Displaying it hints that our current user might have access to `SeServiceLogonRight`. Synacktiv's [post](https://www.synacktiv.com/en/publications/beyond-acls-mapping-windows-privilege-escalation-paths-with-bloodhound#access-token-privileges) describes this token privilege as the following:
 
-"This allows an account to log on as a service, this is vital for service accounts as it allows them to run as background services. This does not mean the account can create nor start services."
+> "This allows an account to log on as a service, this is vital for service accounts as it allows them to run as background services. This does not mean the account can create nor start services."
 
 ```
 PS> type C:\Policy_Backup.inf
@@ -241,9 +241,9 @@ PS> type C:\Policy_Backup.inf
 
 ![](/assets/img/2026-08-04-DarkZero/11.png)
 
-An interesting thing to note is that service accounts in general- think IIS app pools, SQL Server, scheduled tasks - are almost universally granted SeImpersonatePrivilege by design, since they need to impersonate client principals as part of normal operation, which is exactly why potato-class attacks work so reliably against them. If we land a shell as one of these accounts and whoami /priv comes back anemic - no SeImpersonatePrivilege, no SeAssignPrimaryTokenPrivilege, and logon rights like SeServiceLogonRight nowhere in sight - that's a strong signal we're not holding a full, interactive token. 
+An interesting thing to note is that service accounts in general- think IIS app pools, SQL Server, scheduled tasks - are almost universally granted `SeImpersonatePrivilege` by design, since they need to impersonate client principals as part of normal operation, which is exactly why potato-class attacks work so reliably against them. If we land a shell as one of these accounts and `whoami /priv` comes back anemic - no `SeImpersonatePrivilege`, no `SeAssignPrimaryTokenPrivilege`, and logon rights like `SeServiceLogonRight` nowhere in sight - that's a strong signal we're not holding a full, interactive token. 
 
-What we're likely looking at is a restricted token: Windows (or the application hosting us) has deliberately stripped the token down, either through UAC filtering, a job object with JOB_OBJECT_UILIMIT_* constraints, or the process being spawned under CreateRestrictedToken with privileges explicitly removed. This happens because high-privilege service processes often intentionally sandbox their worker threads or child processes, handing them a neutered copy of the token so that a compromise of the subprocess doesn't immediately equal a compromise of the full service identity. The practical implication for us is that potato escalation paths are dead in this context - we need to find a way to migrate into a process holding a full impersonation-capable token, or abuse a different primitive that doesn't depend on token privileges at all.
+What we're likely looking at is a restricted token: Windows (or the application hosting us) has deliberately stripped the token down, either through UAC filtering, a job object with `JOB_OBJECT_UILIMIT_*` constraints, or the process being spawned under `CreateRestrictedToken` with privileges explicitly removed. This happens because high-privilege service processes often intentionally sandbox their worker threads or child processes, handing them a neutered copy of the token so that a compromise of the subprocess doesn't immediately equal a compromise of the full service identity. The practical implication for us is that potato escalation paths are dead in this context - we need to find a way to migrate into a process holding a full impersonation-capable token, or abuse a different primitive that doesn't depend on token privileges at all.
 
 ### Logon Type 5 Attack Chain
 With that in mind, there are a few ways to regain full token privileges as the svc_sql user on DC02. Ultimately, they require us to somehow obtain a new session with logon type 5 (Service Logon). After some thought, I came up with a way to do this. First we'll abuse Active Directory Certificate Services to obtain a PFX as our current user, then UnPAC-The-Hash in order to get their NTLM hash, and then finally use it change our password and pass it into a RunasCs command which I know supports different logon types.
