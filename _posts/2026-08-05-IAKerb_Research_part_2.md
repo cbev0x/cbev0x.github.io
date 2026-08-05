@@ -28,6 +28,8 @@ The first thing to establish is that the relay works and the KDC is unaware of i
 
 Requesting IAKerb from an empty cache, the exchange walks the full mechanism. The initiator wraps its AS request in an IAKERB proxy token, the acceptor unwraps it and sends an ordinary AS request to the KDC, and the reply comes back the same way. Then the same pattern for the TGS exchange, and finally a normal AP exchange between the initiator and the acceptor. On the wire to the Samba DC I see exactly what a direct client would produce: an AS exchange that falls back from UDP to TCP to carry the PAC-bearing reply, and a TGS exchange, both for `iaktest` against `host/app.samba.lab`, all in realm `SAMBA.LAB`. Nothing in those requests says IAKerb. The KDC issues tickets as it always would.
 
+![](/assets/img/2026-08-05-IAKerb_Research/iakerb_relay_flow.png)
+
 The token structure is legible in the headers. The AS and TGS legs are IAKERB proxy messages carrying token-id `0x0501`. The final AP request is token-id `0x0100`, and its reply `0x0200`, all still under the IAKERB OID. A useful side observation for triggering: when the initiator already holds the service ticket, the envelope stays IAKerb but the token-id jumps straight to `0x0100` and the proxy legs are skipped entirely. The skip is a one-byte difference, `0x0501` versus `0x0100`, and it is the same reason IAKerb quietly does nothing when a ticket is cached.
 
 The load-bearing conclusion is simple. The KDC is stack-neutral. It services a relayed request as ordinary Kerberos, so Samba sits on the KDC side of the line and IAKerb itself is entirely an initiator-and-acceptor concern. That is why the rest of this post is about what the relay can and cannot do, and what the KDC can and cannot see.
@@ -45,6 +47,8 @@ It is not one check, it is a stack of them.
 | AP-REQ outer framing, request | nothing | context completed |
 | realm in the IAKerb header, response | the finished binding | AP step fails, bad-integrity |
 
+![](/assets/img/2026-08-05-IAKerb_Research/iakerb_integrity_tier_map.png)
+
 The top two tiers are unsurprising. Corrupt the realm in the request header and the relay cannot find a KDC for the garbage realm, so it fails before any KDC contact. Corrupt the inner AS request and the KDC rejects the mangled message. The third row is a genuine data point: a byte in the AP request's outer framing was tolerated and the context completed, so not every byte is integrity-covered.
 
 The fourth row is the one I was after. I corrupted a byte in the acceptor's response that the initiator receives, in the outer header rather than the inner reply, so the initiator still decrypted its ticket and finished the AS and TGS legs normally. The context then died at the AP step with a decrypt integrity failure. The two ends had built their finished checksums over different views of the conversation, because the man in the middle altered one of them, and the AP step refused the mismatch.
@@ -52,6 +56,8 @@ The fourth row is the one I was after. I corrupted a byte in the acceptor's resp
 What lets me attribute that specifically to the conversation binding, and not to generic AP integrity, is the contrast between the third and fourth rows. Tampering the AP request itself was tolerated. Tampering the conversation so the two sides disagreed was rejected. The failure is not "the AP request changed," it is "the two parties saw different exchanges," which is precisely the finished binding doing its job. So the picture is defense in depth: relay routing, KDC message integrity, AP encryption, and a finished checksum over the whole relayed conversation as the backstop.
 
 ## Can a rogue relay retarget you
+
+![](/assets/img/2026-08-05-IAKerb_Research/iak3_relay_can_cannot.png)
 
 This is the sharp question, because the relay sits in the middle of the client's ticket requests. The requested service name is in cleartext in the TGS request, so a rogue relay can plainly read which service you are asking for. Observation is trivial. The question is whether it can change it.
 
@@ -70,6 +76,8 @@ Heimdal does not participate. I pointed the MIT initiator at a Heimdal acceptor 
 And on MIT, IAKerb is opt-in. Running the initiator under SPNEGO instead of an explicit request, the negotiation settled on krb5 and completed, and the IAKerb OID appeared zero times anywhere in the exchange. MIT never puts IAKerb in its SPNEGO mechanism list, so it is reachable only by a caller naming its OID directly.
 
 Those two facts point the same way. IAKerb is an initiator-side concern of MIT and Windows, and on MIT there is nothing to downgrade, strip, or force through negotiation, because the mechanism is not on the table until someone asks for it. That is the contrast to keep in mind for Windows, where the client auto-invokes IAKerb the moment it decides it cannot reach a domain controller. On Windows the attack surface is that decision, the DC-locator state, not the mechanism list.
+
+![](/assets/img/2026-08-05-IAKerb_Research/iakerb_cross_stack_boundary.png)
 
 ## What the KDC can and cannot see
 
