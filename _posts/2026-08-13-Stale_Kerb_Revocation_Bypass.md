@@ -520,16 +520,16 @@ This research was reported to Microsoft Security Response Center before publicat
 
 ### Disclosure Timeline
 
-- **[DATE]**: Initial behavior identified during Authentication Policy and Kerberos FAST research.
-- **[DATE]**: Core issue reproduced with group-based device restrictions.
-- **[DATE]**: Claim-based restriction persistence confirmed.
-- **[DATE]**: Machine-TGT renewal persistence confirmed.
-- **[DATE]**: TGS-stage Authentication Policy impact confirmed.
-- **[DATE]**: Cross-KDC validation completed.
-- **[DATE]**: Remediation and lifecycle testing completed.
-- **[DATE]**: Report submitted to MSRC.
-- **[DATE]**: MSRC requested additional proof-of-concept evidence.
-- **[DATE]**: Video PoC and supporting evidence provided to MSRC.
+- **[08/11/2026]**: Initial behavior identified during Authentication Policy and Kerberos FAST research.
+- **[08/11/2026]**: Core issue reproduced with group-based device restrictions.
+- **[08/11/2026]**: Claim-based restriction persistence confirmed.
+- **[08/11/2026]**: Machine-TGT renewal persistence confirmed.
+- **[08/21/2026]**: TGS-stage Authentication Policy impact confirmed.
+- **[08/12/2026]**: Cross-KDC validation completed.
+- **[08/13/2026]**: Remediation and lifecycle testing completed.
+- **[08/13/2026]**: Report submitted to MSRC.
+- **[08/14/2026]**: MSRC requested additional proof-of-concept evidence.
+- **[08/14/2026]**: Video PoC and supporting evidence provided to MSRC.
 - **[DATE]**: MSRC final response pending.
 
 ---
