@@ -49,6 +49,8 @@ ATTESTATION bit set                              ->  S-1-18-6
 
 Two things jumped out of that. Clearing the MFA bit gets you the MFA SID, and leaving the whole `CustomKeyInformation` entry out gets it for you too, because the KDC reads a missing flag as a quiet confirmation that MFA happened, so the default is fail-open and the only way to not receive `S-1-18-5` is to explicitly declare that you skipped MFA. Attestation behaves the same way, so if you set the attestation bit on a plain software RSA key, one I generated with openssl that never went anywhere near a TPM, the KDC turns around and stamps `S-1-18-6`.
 
+![](/assets/img/2026-09-05-KeyCredLink-Research/keycredlink_flag_to_sid_mapping.png)
+
 So I can make the KDC swear that a key did MFA and that it's hardware-backed while using a key that lives in a `.pem` file on a Linux box, which bothered me enough to keep going, though a SID in a ticket is only worth anything if something actually reads it, and that's where I spent the rest of my time.
 
 ## Does anything read them
