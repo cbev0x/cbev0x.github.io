@@ -39,6 +39,8 @@ The obvious hardening move is to require a client certificate. Operators reach f
 ```
 netsh http show sslcert
 ...
+(snipped)
+...
     Negotiate Client Certificate : Enabled
 ```
 
