@@ -1,5 +1,5 @@
 ---
-title: "The Call Is Coming From Inside the House: unauthenticated Kerberos relay and IP laundering in the Windows KDC Proxy"
+title: "The Call Is Coming From Inside the House: Unauthenticated Kerberos relay and IP laundering in the Windows KDC Proxy"
 date: 2026-09-20
 categories: [Personal, Research]
 tags: [Windows, Active Directory, KDC Proxy, Red Teaming, AD CS, PKINIT, OPSEC, Research]
