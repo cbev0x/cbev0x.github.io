@@ -29,7 +29,7 @@ KDC-PROXY-MESSAGE ::= SEQUENCE {
 When KPSSVC receives one of these, it reads the target-domain field, calls DsGetDcName to locate a domain controller for that realm, opens a connection to whatever it finds, relays the inner Kerberos bytes, and hands the KDC's reply back to you inside another KDC-PROXY-MESSAGE. The client never talks to the domain controller and the domain controller never sees the client, which is the entire point, and it is also why the domain controller has no idea who it is really talking to.
 
 ![Request flow through the KDC Proxy](/assets/img/2026-09-20-KDC_Proxy_research/request-flow.png){: .align-center}
-*Figure 1. An unauthenticated client POSTs a wrapped Kerberos message and the proxy routes it by the target-domain field, with no check on who is asking.*
+> *Figure 1. An unauthenticated client POSTs a wrapped Kerberos message and the proxy routes it by the target-domain field, with no check on who is asking.*
 
 I built a small client called kkdcp to speak this protocol on its own, and then I did something more useful, which was to write a routing shim that monkeypatches the send functions inside impacket and minikerberos so that any Kerberos exchange those libraries can construct gets wrapped in the KKDCP envelope and pushed through the proxy instead of going to port 88 directly. That shim is the reason the rest of this research moved quickly, because it let me take well tested Kerberos code and aim all of it at the proxy without reimplementing Kerberos from scratch.
 
@@ -44,7 +44,7 @@ That the surface is real is not really up for debate, since Microsoft shipped a 
 The behavior I want to lead with is that KPSSVC will relay Kerberos to any domain that DsGetDcName can locate, including a domain that has no trust relationship with the proxy's own forest, and it will do this for a completely unauthenticated caller. A KDC Proxy conceptually belongs to a domain and exists to proxy for that domain's clients, so the intuitive expectation is that it would only service its own realm, and that expectation is simply wrong, because the routing decision is made entirely from the attacker-supplied target-domain field with no check that the named realm is trusted or that the requester has any business asking about it.
 
 ![The no-trust-check relay](/assets/img/2026-09-20-KDC_Proxy_research/no-trust-relay.png){: .align-center}
-*Figure 2. The proxy relays to any locatable domain, including a forged realm whose domain controller the attacker runs.*
+> *Figure 2. The proxy relays to any locatable domain, including a forged realm whose domain controller the attacker runs.*
 
 I proved this the clean way by standing up a domain that does not exist in any trust graph. I created a forged realm called evil.lab, gave it DNS records that pointed a KDC hostname at a box I controlled, ran a listener there that logged the inbound Kerberos, and then sent the proxy a KDC-PROXY-MESSAGE with target-domain set to evil.lab, and the proxy located my fake domain controller and relayed the request to it on the first try. The same tooling reaches a genuinely trusted foreign forest just as easily, but evil.lab is the important result because samba.lab was already trusted in my lab and would not have proven the point, whereas evil.lab had no relationship to the proxy's forest at all and the proxy relayed to it anyway.
 
@@ -66,7 +66,7 @@ While I was mapping the routing I found that the whole decision hangs on the tar
 The consequence that runs through everything else is that the domain controller attributes every proxied request to the proxy's own IP address and never to the real client, and I confirmed this on every event type I could generate, so the authentication successes showed up on the domain controller as coming from `::ffff:10.10.20.12`, which is the proxy, and so did the failures, the password resets, and the certificate logons. From the domain controller's point of view the attacker does not have an IP address at all, because the only address it ever sees is that of a trusted internal server.
 
 ![IP laundering and the telemetry gap](/assets/img/2026-09-20-KDC_Proxy_research/ip-laundering.png){: .align-center}
-*Figure 3. The attacker's TLS connection ends at the proxy, so the domain controller only ever records the proxy address.*
+> *Figure 3. The attacker's TLS connection ends at the proxy, so the domain controller only ever records the proxy address.*
 
 ```text
 # domain controller Security event, Network Information
@@ -133,7 +133,7 @@ The invalid-versus-valid distinction is itself an oracle, since a valid combinat
 The finding that ties this surface to the rest of my work is that PKINIT travels through the proxy cleanly, so a client certificate is enough to obtain a ticket-granting ticket end to end over the internet-facing endpoint with no domain password and no line of sight to a domain controller. This matters because certificate based logon is exactly the scenario Microsoft is pushing the KDC Proxy for, and it means any Active Directory Certificate Services misconfiguration that yields a certificate, which is the entire ESC family that my other tooling already chases, becomes a remote and IP-laundered domain foothold through the one exposed box.
 
 ![Certificate to ticket to service through the proxy](/assets/img/2026-09-20-KDC_Proxy_research/pkinit-chain.png){: .align-center}
-*Figure 4. A certificate becomes a ticket-granting ticket and then a service ticket, every hop sent through the proxy and attributed to it.*
+> *Figure 4. A certificate becomes a ticket-granting ticket and then a service ticket, every hop sent through the proxy and attributed to it.*
 
 Building the PKINIT client honestly was most of the work, because the standard library path in minikerberos depends on oscrypto, which fails against modern OpenSSL, so I wrote kkpkinit to do the certificate handling and RSA signing with the cryptography library, the CMS SignedData construction with asn1crypto, and the final symmetric decryption with the minikerberos enctype tables, which sidesteps the broken dependency entirely and runs on a current Kali box. The interesting part is that Windows Server 2025 walked me through its PKINIT hardening one rejection at a time, and I will cover that in its own section, but once I satisfied it the result was unambiguous, because I minted a certificate for a test user with certipy, pushed the PA-PK-AS-REQ through the proxy, and got a ticket-granting ticket back, and the domain controller logged a 4768 with pre-authentication type 16, a result code of zero, the certificate issuer and serial and thumbprint filled in, and a client address that was the proxy.
 
