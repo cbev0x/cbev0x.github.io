@@ -39,6 +39,35 @@ $code-background-color-dark: #f4f0e9;
   margin-right: auto;
 }
 
+// ---- post meta: one clean line, no icons ----
+.page__meta,
+.archive__item .page__meta {
+  font-size: 0.8em;
+  color: $muted-text-color;
+}
+.page__meta i { display: none; }        // drop calendar/clock glyphs
+
+// ---- archive post titles: black (links elsewhere stay red) ----
+.archive__item-title,
+.archive__item-title a {
+  color: $text-color;
+}
+.archive__item-title a:hover {
+  color: $primary-color;    // red on hover; delete this rule for static black
+}
+
+// ---- post blocks: red accent bar + hairline divider per entry ----
+.archive__item {
+  border-left: 3px solid $primary-color;
+  padding-left: 14px;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid $border-color;
+}
+.archive__item:last-child {
+  border-bottom: 0;        // no divider after the last post
+}
+
 // ---- terminal-style code blocks ----
 .code-term {
   position: relative;
