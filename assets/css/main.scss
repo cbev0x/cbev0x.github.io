@@ -27,6 +27,9 @@ body {
 @media (max-width: 63.99em) {         // below MM's $large: no gutter, hide it
   body { background-image: none; }
 }
+@media (min-width: 64em) {
+  #main { padding-left: 2.5rem; }   // push content right, off the overlay
+}
 
 // ---- no sidebar: let content fill the freed space, centered ----
 @media (min-width: 64em) {         // MM's $large breakpoint
