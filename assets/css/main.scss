@@ -18,6 +18,16 @@ $code-background-color-dark: #f4f0e9;
 @import "minimal-mistakes/skins/default";
 @import "minimal-mistakes";
 
+// ---- faint hex pattern down the left gutter (desktop only) ----
+body {
+  background-image: url("/assets/img/hexpattern.svg");
+  background-repeat: repeat-y;        // tiles straight down, full page height
+  background-position: top left;
+}
+@media (max-width: 63.99em) {         // below MM's $large: no gutter, hide it
+  body { background-image: none; }
+}
+
 // ---- no sidebar: let content fill the freed space, centered ----
 @media (min-width: 64em) {         // MM's $large breakpoint
   .page,            // single posts
