@@ -47,26 +47,33 @@ $code-background-color-dark: #f4f0e9;
 }
 .page__meta i { display: none; }        // drop calendar/clock glyphs
 
-// ---- archive post titles: black (links elsewhere stay red) ----
+// ---- archive post titles: black, no underline (links elsewhere stay red) ----
 .archive__item-title,
 .archive__item-title a {
   color: $text-color;
+  text-decoration: none;
 }
 .archive__item-title a:hover {
   color: $primary-color;    // red on hover; delete this rule for static black
 }
 
-// ---- post blocks: red accent bar + hairline divider per entry ----
+// ---- post blocks: red accent bar per entry ----
 .archive__item {
   border-left: 3px solid $primary-color;
   padding-left: 14px;
-  padding-bottom: 16px;
-  margin-bottom: 16px;
-  border-bottom: 1px solid $border-color;
 }
-.archive__item:last-child {
-  border-bottom: 0;        // no divider after the last post
+
+// ---- "read more" link under each excerpt ----
+.archive__item-excerpt .read-more,
+.archive__item .read-more {
+  display: inline-block;
+  margin-top: 8px;
+  color: $primary-color;
+  font-weight: 600;
+  font-size: 0.85em;
+  text-decoration: none;
 }
+.archive__item .read-more:hover { color: $link-color-hover; }
 
 // ---- terminal-style code blocks ----
 .code-term {
