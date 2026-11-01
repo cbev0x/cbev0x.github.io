@@ -1,6 +1,6 @@
 # Site Settings
 title: cbev
-subtitle: "offensive security writeups"
+subtitle: "Offensive Security Writeups"
 description: >-
   Offensive security writeups covering Active Directory, Kerberos abuse,
   web application exploitation, and HackTheBox walkthroughs.
