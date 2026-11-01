@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="260" height="1440">
+  <g font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12"
+     fill="#a89e88" opacity="0.42">
+    <text x="12" y="24">0040  4b 44 43 50  |KDCP|</text>
+    <text x="12" y="48">0044  5a 1c 6b 0f  |Z.k.|</text>
+    <text x="12" y="72">0048  a2 e3 88 d1  |....|</text>
+    <text x="12" y="96">004c  6e 6f 20 68  |no h|</text>
+    <text x="12" y="120">0050  75 6e 74 69  |unti|</text>
+    <text x="12" y="144">0054  6e 67 20 68  |ng h|</text>
+    <text x="12" y="168">0058  65 72 65 2c  |ere,|</text>
+    <text x="12" y="192">005c  20 6b 65 65  | kee|</text>
+    <text x="12" y="216">0060  70 20 73 63  |p sc|</text>
+    <text x="12" y="240">0064  72 6f 6c 6c  |roll|</text>
+    <text x="12" y="264">0068  69 6e 67 20  |ing |</text>
+    <text x="12" y="288">006c  2c 77 9b af  |,w..|</text>
+    <text x="12" y="312">0070  10 55 d1 3e  |.U.>|</text>
+    <text x="12" y="336">0074  0c 5a 90 ff  |.Z..|</text>
+    <text x="12" y="360">0078  1c 42 7e 4b  |.B~K|</text>
+    <text x="12" y="384">007c  44 43 50 5a  |DCPZ|</text>
+    <text x="12" y="408">0080  1c 6b 0f a2  |.k..|</text>
+    <text x="12" y="432">0084  e3 88 d1 2c  |...,|</text>
+    <text x="12" y="456">0088  77 9b af 10  |w...|</text>
+    <text x="12" y="480">008c  55 d1 3e 0c  |U.>.|</text>
+    <text x="12" y="504">0090  5a 90 ff 1c  |Z...|</text>
+    <text x="12" y="528">0094  4b 44 43 50  |KDCP|</text>
+    <text x="12" y="552">0098  5a 1c 6b 0f  |Z.k.|</text>
+    <text x="12" y="576">009c  a2 e3 88 d1  |....|</text>
+    <text x="12" y="600">00a0  2c 77 9b af  |,w..|</text>
+    <text x="12" y="624">00a4  6e 6f 20 68  |no h|</text>
+    <text x="12" y="648">00a8  75 6e 74 69  |unti|</text>
+    <text x="12" y="672">00ac  6e 67 20 68  |ng h|</text>
+    <text x="12" y="696">00b0  65 72 65 2c  |ere,|</text>
+    <text x="12" y="720">00b4  20 6b 65 65  | kee|</text>
+    <text x="12" y="744">00b8  70 20 73 63  |p sc|</text>
+    <text x="12" y="768">00bc  72 6f 6c 6c  |roll|</text>
+    <text x="12" y="792">00c0  69 6e 67 20  |ing |</text>
+    <text x="12" y="816">00c4  10 55 d1 3e  |.U.>|</text>
+    <text x="12" y="840">00c8  0c 5a 90 ff  |.Z..|</text>
+    <text x="12" y="864">00cc  1c 42 7e 4b  |.B~K|</text>
+    <text x="12" y="888">00d0  44 43 50 5a  |DCPZ|</text>
+    <text x="12" y="912">00d4  1c 6b 0f a2  |.k..|</text>
+    <text x="12" y="936">00d8  e3 88 d1 2c  |...,|</text>
+    <text x="12" y="960">00dc  77 9b af 10  |w...|</text>
+    <text x="12" y="984">00e0  55 d1 3e 0c  |U.>.|</text>
+    <text x="12" y="1008">00e4  5a 90 ff 1c  |Z...|</text>
+    <text x="12" y="1032">00e8  4b 44 43 50  |KDCP|</text>
+    <text x="12" y="1056">00ec  6e 6f 20 68  |no h|</text>
+    <text x="12" y="1080">00f0  75 6e 74 69  |unti|</text>
+    <text x="12" y="1104">00f4  6e 67 20 68  |ng h|</text>
+    <text x="12" y="1128">00f8  65 72 65 2c  |ere,|</text>
+    <text x="12" y="1152">00fc  20 6b 65 65  | kee|</text>
+    <text x="12" y="1176">0100  70 20 73 63  |p sc|</text>
+    <text x="12" y="1200">0104  72 6f 6c 6c  |roll|</text>
+    <text x="12" y="1224">0108  69 6e 67 20  |ing |</text>
+    <text x="12" y="1248">010c  2c 77 9b af  |,w..|</text>
+    <text x="12" y="1272">0110  10 55 d1 3e  |.U.>|</text>
+    <text x="12" y="1296">0114  0c 5a 90 ff  |.Z..|</text>
+    <text x="12" y="1320">0118  1c 42 7e 4b  |.B~K|</text>
+    <text x="12" y="1344">011c  44 43 50 5a  |DCPZ|</text>
+    <text x="12" y="1368">0120  a2 e3 88 d1  |....|</text>
+    <text x="12" y="1392">0124  2c 77 9b af  |,w..|</text>
+    <text x="12" y="1416">0128  55 d1 3e 0c  |U.>.|</text>
+  </g>
+</svg>
