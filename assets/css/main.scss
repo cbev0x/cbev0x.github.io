@@ -18,6 +18,27 @@ $code-background-color-dark: #f4f0e9;
 @import "minimal-mistakes/skins/default";
 @import "minimal-mistakes";
 
+// ---- no sidebar: let content fill the freed space, centered ----
+@media (min-width: 64em) {         // MM's $large breakpoint
+  .page,            // single posts
+  .archive {        // home / listing
+    float: none;
+    width: 100%;
+    padding-right: 0;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+// optional reading-measure cap: keep body lines from getting too long
+// even though the column is now wide. Delete this block if you want the
+// text to run the full width.
+.page__content {
+  max-width: 46em;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 // ---- terminal-style code blocks ----
 .code-term {
   position: relative;
