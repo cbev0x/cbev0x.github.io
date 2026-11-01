@@ -15,6 +15,9 @@ google_site_verification: "4WjVA99rHPRNOxBjk98rg5g9E8DHO0sE7g0ZjIpbRuY"
 remote_theme: "mmistakes/minimal-mistakes@4.28.0"
 minimal_mistakes_skin: "default"
 
+after_footer_scripts:
+  - /assets/js/code-terminal.js
+
 # Plugins
 plugins:
   - jekyll-paginate
