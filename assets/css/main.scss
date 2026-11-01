@@ -18,6 +18,63 @@ $code-background-color-dark: #f4f0e9;
 @import "minimal-mistakes/skins/default";
 @import "minimal-mistakes";
 
+// ---- terminal-style code blocks ----
+.code-term {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #15171c;
+  box-shadow: 0 1px 3px rgba(0,0,0,.2);
+  margin: 1.5em 0;
+}
+.code-term__bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: #22262e;
+  border-bottom: 1px solid #2c313a;
+  padding: 9px 12px;
+}
+.code-term__dot { width: 11px; height: 11px; border-radius: 50%; }
+.code-term__dot--r { background: #ff5f56; }
+.code-term__dot--y { background: #ffbd2e; }
+.code-term__dot--g { background: #27c93f; }
+.code-term__lang { color: #8b929e; font-size: 11px; margin-left: 6px; }
+.code-term__copy {
+  margin-left: auto; background: none; border: 0; cursor: pointer;
+  color: #8b929e; font-size: 11px; font-family: inherit; padding: 2px 6px;
+  border-radius: 5px;
+}
+.code-term__copy:hover { color: #e8e3da; background: #2c313a; }
+
+// body: force dark, kill MM's light code bg inside terminal blocks
+.code-term .highlight,
+.code-term pre.highlight,
+.code-term div.highlight { background: #15171c; margin: 0; }
+.code-term pre {
+  background: transparent; color: #d6dbe3;
+  font-family: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.82em; line-height: 1.6;
+}
+.code-term .rouge-gutter .lineno { color: #454b55; }   // dim line numbers
+.code-term .rouge-gutter { border-right: 1px solid #262a32; }
+
+// dark rouge token palette (scoped to terminal blocks)
+.code-term .highlight {
+  .c, .cm, .c1, .cs, .cd { color: #6b7280; font-style: italic; }  // comments
+  .k, .kc, .kd, .kn, .kp, .kr, .kt { color: #e0795f; }            // keywords
+  .s, .s1, .s2, .sb, .sc, .sd, .se, .sh, .si, .sx, .sr, .ss, .dl { color: #8fbf73; } // strings
+  .m, .mi, .mf, .mh, .mo, .mb, .il { color: #d6a35c; }            // numbers
+  .nf, .fm { color: #7fb0e0; }                                    // functions
+  .nb, .bp { color: #e0795f; }                                    // builtins
+  .nv, .vc, .vg, .vi, .nn, .nc { color: #d6dbe3; }
+  .o, .ow, .p { color: #aeb4bd; }                                 // operators/punct
+  .gp { color: #c0503f; }                                         // shell $ prompt
+  .go { color: #6b7280; }                                         // command output
+  .gi { color: #8fbf73; } .gd { color: #e26d6a; }                 // diff +/-
+  .err { color: #e26d6a; background: transparent; }
+}
+
 // ---- dark header bar on the light page ----
 $header-bg: #201e1b;
 $header-fg: #e8e3da;
