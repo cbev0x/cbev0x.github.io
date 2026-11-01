@@ -3,131 +3,49 @@
 
 @charset "utf-8";
 
-@import "minimal-mistakes/skins/dark-contrast";
+// ---- palette: warm paper, dark ink, brick-red accent ----
+$background-color:        #faf8f4;   // warm paper
+$text-color:              #2b2926;   // warm near-black ink
+$muted-text-color:        #6b6760;   // meta / dates / excerpts
+$primary-color:           #a1392b;   // brick red: links + accents
+$link-color:              $primary-color;
+$link-color-hover:        #c0503f;
+$border-color:            #e6e1d8;   // warm hairline
+$footer-background-color: #f1ede6;   // slightly deeper paper
+$code-background-color:    #f4f0e9;  // warm code block bg
+$code-background-color-dark: #f4f0e9;
+
+@import "minimal-mistakes/skins/default";
 @import "minimal-mistakes";
 
-/* ============================================================
-   cbev — typography + badge additions only
-   Does not override any contrast skin colors
-   ============================================================ */
+// ---- dark header bar on the light page ----
+$header-bg: #201e1b;
+$header-fg: #e8e3da;
 
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap');
-
-/* Body copy → DM Sans */
-body {
-  font-family: 'DM Sans', sans-serif !important;
-  -webkit-font-smoothing: antialiased;
+.masthead {
+  background-color: $header-bg;
+  border-bottom: 1px solid $header-bg;
 }
 
-/* Monospace elements → IBM Plex Mono */
-.site-title,
-.greedy-nav a,
-.page__meta,
-.page__date,
-time,
-code,
-pre,
-kbd,
-samp,
-.highlight,
-.author__bio,
-.toc__menu a {
-  font-family: 'IBM Plex Mono', monospace !important;
+.greedy-nav {
+  background: $header-bg;
+
+  .site-title        { color: #faf8f4; }
+  .site-title:hover  { color: #ffffff; }
+  .site-subtitle     { color: #b4ad9f; }
+
+  a                  { color: $header-fg; }
+  a:hover            { color: #ffffff; }
+
+  // hover underline on nav items = the red accent
+  .visible-links a:before { background: #c0503f; }
+
+  button, .search__toggle { color: $header-fg; }
 }
 
-.author__bio {
-  font-size: 0.72rem !important;
-  letter-spacing: 0.02em !important;
-}
-
-.masthead__inner-wrap .site-title {
-  font-size: 1rem !important;
-  letter-spacing: 0.06em !important;
-}
-
-.page__meta,
-.page__date {
-  font-size: 0.72rem !important;
-  letter-spacing: 0.04em !important;
-}
-
-/* Inline code — dark background, light text */
-code.highlighter-rouge {
-  background: #2d2d2d !important;
-  color: #e8e9eb !important;
-  border: 1px solid rgba(255,255,255,0.1) !important;
-  font-size: 0.82em !important;
-  padding: 1px 5px !important;
-  border-radius: 3px !important;
-}
-
-/* Text selection highlight */
-::selection {
-  background: rgba(204, 0, 0, 0.4) !important;
-  color: #e8e9eb !important;
-}
-
-/* Difficulty badges */
-.badge {
-  display: inline-block;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.6rem;
-  font-weight: 500;
-  padding: 2px 7px;
-  border-radius: 3px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  border: 1px solid;
-  vertical-align: middle;
-  margin-left: 4px;
-}
-
-.badge--easy   { color: #4ade80; background: rgba(74,222,128,0.12);  border-color: rgba(74,222,128,0.3);  }
-.badge--medium { color: #d4a017; background: rgba(212,160,23,0.12);  border-color: rgba(212,160,23,0.3);  }
-.badge--hard   { color: #fb923c; background: rgba(251,146,60,0.12);  border-color: rgba(251,146,60,0.3);  }
-.badge--insane { color: #f87171; background: rgba(248,113,113,0.12); border-color: rgba(248,113,113,0.3); }
-.badge--tool   { color: #a78bfa; background: rgba(167,139,250,0.12); border-color: rgba(167,139,250,0.3); }
-
-/* Footer disclaimer */
-.page__footer-copyright::before {
-  content: '// for educational purposes only — never test without explicit permission · ';
-  opacity: 0.5;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.7em;
-}
-
-.highlight pre,
-.highlight code,
-pre.highlight,
-div.highlight {
-  font-size: 0.75rem !important;
-  line-height: 1.5 !important;
-}
-
-
-
-
-.sidebar {
-  width: 200px !important;
-}
-
-@include breakpoint($large) {
-  .sidebar {
-    width: 200px !important;
-  }
-
-  #main {
-    float: right;
-    width: calc(100% - 230px) !important;
-  }
-
-  .page__content {
-    padding-right: 150px !important;
-  }
-}
-
-@include breakpoint($x-large) {
-  #main {
-    max-width: calc(100% - 230px) !important;
-  }
+// mobile "menu" dropdown, so it stays dark too
+.greedy-nav .hidden-links {
+  background: $header-bg;
+  a:hover { color: #ffffff; background: #2c2925; }
+  &:before { border-bottom-color: $header-bg; }
 }
