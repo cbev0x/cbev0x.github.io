@@ -63,11 +63,12 @@ $code-background-color-dark: #f4f0e9;
   padding-left: 14px;
 }
 
-// ---- "read more" link under each excerpt ----
+// ---- "read more" link, tight under the excerpt ----
+.archive__item-excerpt { margin-bottom: 0.25em; }
 .archive__item-excerpt .read-more,
 .archive__item .read-more {
   display: inline-block;
-  margin-top: 8px;
+  margin-top: 2px;
   color: $primary-color;
   font-weight: 600;
   font-size: 0.85em;
