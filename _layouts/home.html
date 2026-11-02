@@ -8,7 +8,7 @@ layout: default
   <div class="home-margins" aria-hidden="true">
 
     <!-- ① top-left: duplicate-reports tally note (pushpin) -->
-    <div class="hm-note" style="top:330px; left:-190px; transform:rotate(3deg);">
+    <div class="hm-note" style="top:330px; left:-215px; transform:rotate(3deg);">
       <span class="hm-pin"></span>
       <div class="hm-note__label">duplicate<br>reports:</div>
       <svg class="hm-tally" width="128" height="150" viewBox="0 0 128 150">
@@ -47,8 +47,8 @@ layout: default
       </svg>
     </div>
 
-    <!-- ② right, upper-mid: bloodhound trail (Option B) -->
-    <div class="hm-doodle" style="top:840px; right:-172px;">
+    <!-- ② right, upper-mid: bloodhound trail, tilted ~16deg clockwise -->
+    <div class="hm-doodle" style="top:840px; right:-200px; transform:rotate(16deg);">
       <svg width="150" height="330" viewBox="0 0 150 330">
         <defs>
           <filter id="hmRoughB" x="-40%" y="-40%" width="180%" height="180%">
@@ -73,15 +73,9 @@ layout: default
       <div class="hm-cap">bloodhound<br>was here</div>
     </div>
 
-    <!-- ③ left, lower: "Authenticator? I hardly know her." (washi tape) -->
-    <div class="hm-note hm-note--alt" style="top:1600px; left:-190px; transform:rotate(-4deg);">
-      <span class="hm-tape"></span>
-      Authenticator?<br>I hardly<br>know her.
-    </div>
-
-    <!-- ④ right, lower-mid: forged KRBTGT ticket (no caption) -->
-    <div class="hm-doodle" style="top:1420px; right:-172px;">
-      <svg width="150" height="94" viewBox="0 0 190 118">
+    <!-- ③ left, lower: forged KRBTGT ticket, ~1.5x bigger + tilted CCW -->
+    <div class="hm-doodle" style="top:1720px; left:-234px; width:220px; transform:rotate(-8deg);">
+      <svg width="220" height="137" viewBox="0 0 190 118">
         <defs>
           <filter id="hmRoughTk" x="-20%" y="-20%" width="140%" height="140%">
             <feTurbulence type="fractalNoise" baseFrequency="0.1" numOctaves="2" seed="3" result="n"/>
@@ -105,6 +99,12 @@ layout: default
         <path d="M78,30 q5,18 0,44" stroke="#a1392b" stroke-width="2" fill="none" stroke-linecap="round"/>
         <path d="M72,68 l6,8 l7,-7" stroke="#a1392b" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
+    </div>
+
+    <!-- ④ right, lower: "Authenticator? I hardly know her." (washi tape), wider so it fits -->
+    <div class="hm-note hm-note--alt" style="top:1900px; right:-215px; width:210px; font-size:1.35rem; transform:rotate(-4deg);">
+      <span class="hm-tape"></span>
+      Authenticator?<br>I hardly<br>know her.
     </div>
 
   </div>
