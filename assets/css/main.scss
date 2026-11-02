@@ -207,6 +207,36 @@ $code-background-color-dark: #f4f0e9;
   .err { color: #e26d6a; background: transparent; }
 }
 
+// ---- slimmer, cleaner horizontal scrollbar on terminal blocks ----
+.code-term pre,
+.code-term .highlight,
+.code-term div.highlight {
+  padding-bottom: 8px;                 // gap so the bar sits below the last line
+  scrollbar-width: thin;               // Firefox
+  scrollbar-color: #3a4049 #15171c;    // thumb / track (Firefox)
+}
+
+// WebKit (Chrome, Edge, Safari)
+.code-term pre::-webkit-scrollbar,
+.code-term .highlight::-webkit-scrollbar {
+  height: 8px;                         // was the default ~15px
+}
+.code-term pre::-webkit-scrollbar-track,
+.code-term .highlight::-webkit-scrollbar-track {
+  background: #15171c;                 // blends into the terminal bg
+  border-radius: 0 0 10px 10px;
+}
+.code-term pre::-webkit-scrollbar-thumb,
+.code-term .highlight::-webkit-scrollbar-thumb {
+  background: #3a4049;
+  border-radius: 4px;
+  border: 2px solid #15171c;           // inset padding around the thumb
+}
+.code-term pre::-webkit-scrollbar-thumb:hover,
+.code-term .highlight::-webkit-scrollbar-thumb:hover {
+  background: #4a515b;
+}
+
 // ---- dark header bar on the light page ----
 $header-bg: #201e1b;
 $header-fg: #e8e3da;
