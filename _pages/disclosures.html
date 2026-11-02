@@ -1,0 +1,118 @@
+---
+layout: single
+title: "Disclosures"
+permalink: /disclosures/
+author_profile: false
+classes: wide
+---
+
+<style>
+  .disc-list { max-width: 48em; }
+
+  .disc-intro {
+    color: #6b6760;
+    font-size: 0.95em;
+    margin-bottom: 2em;
+  }
+
+  .disc-item {
+    border-left: 3px solid #a1392b;
+    padding: 0.25em 0 0.5em 16px;
+    margin-bottom: 1.75em;
+  }
+
+  .disc-item__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 0.35em;
+  }
+  .disc-item__id {
+    font-weight: 600;
+    font-size: 1.05em;
+    color: #2b2926;
+    letter-spacing: 0.01em;
+  }
+  .disc-item__id a { color: #a1392b; text-decoration: none; }
+  .disc-item__id a:hover { color: #c0503f; text-decoration: underline; }
+
+  .disc-item__date {
+    margin-left: auto;
+    color: #8b857b;
+    font-size: 0.82em;
+  }
+
+  .disc-badge {
+    font-size: 0.68em;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 3px;
+    border: 1px solid transparent;
+  }
+  .disc-badge--critical { background: #f5e3e0; color: #8f2a1e; border-color: #e6c6c0; }
+  .disc-badge--high     { background: #f6ebdf; color: #9a5a1c; border-color: #e8d4bd; }
+  .disc-badge--medium   { background: #f4f0df; color: #86701f; border-color: #e5dcbd; }
+  .disc-badge--low      { background: #eeece7; color: #6b6760; border-color: #ddd8ce; }
+
+  .disc-status {
+    font-size: 0.8em;
+    font-weight: 600;
+    color: #4a7c59;              /* fixed = green */
+  }
+  .disc-status--reported  { color: #9a5a1c; }
+  .disc-status--disclosed { color: #3a6ea5; }
+  .disc-status--disputed  { color: #a1392b; }
+  .disc-status--wontfix   { color: #8b857b; }
+
+  .disc-item__meta {
+    color: #6b6760;
+    font-size: 0.88em;
+    margin-bottom: 0.3em;
+  }
+  .disc-item__meta .sep { color: #cfc8bc; margin: 0 8px; }
+  .disc-item__meta b { color: #2b2926; font-weight: 600; }
+
+  .disc-item__summary {
+    color: #2b2926;
+    line-height: 1.55;
+  }
+
+  .disc-foot {
+    color: #8b857b;
+    font-size: 0.85em;
+    border-top: 1px solid #e6e1d8;
+    padding-top: 1em;
+    margin-top: 2.5em;
+  }
+</style>
+
+<div class="disc-list">
+  <p class="disc-intro">
+    Security issues I've researched and reported through coordinated disclosure.
+    Advisories are published after a fix ships or the disclosure window closes.
+  </p>
+
+  {% for d in site.data.disclosures %}
+  <div class="disc-item">
+    <div class="disc-item__head">
+      <span class="disc-item__id">
+        {% if d.url and d.url != "" %}<a href="{{ d.url }}">{{ d.id }}</a>{% else %}{{ d.id }}{% endif %}
+      </span>
+      <span class="disc-badge disc-badge--{{ d.severity }}">{{ d.severity }}</span>
+      <span class="disc-status disc-status--{{ d.status }}">{{ d.status }}</span>
+      <span class="disc-item__date">{{ d.date }}</span>
+    </div>
+    <div class="disc-item__meta">
+      <b>{{ d.target }}</b><span class="sep">/</span>{{ d.class }}
+    </div>
+    <div class="disc-item__summary">{{ d.summary }}</div>
+  </div>
+  {% endfor %}
+
+  <p class="disc-foot">
+    {{ site.data.disclosures | size }} advisor{% if site.data.disclosures.size == 1 %}y{% else %}ies{% endif %} on record. Responsible disclosure only.
+  </p>
+</div>
