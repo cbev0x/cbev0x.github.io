@@ -1,0 +1,93 @@
+---
+layout: single
+title: "404"
+permalink: /404.html
+author_profile: false
+classes: wide
+---
+
+<style>
+  .fourofour {
+    background: #15171c;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,.2);
+    margin: 1.5em 0;
+    max-width: 46em;
+  }
+  .fourofour__bar {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: #22262e;
+    border-bottom: 1px solid #2c313a;
+    padding: 9px 12px;
+  }
+  .fourofour__dot { width: 11px; height: 11px; border-radius: 50%; }
+  .fourofour__dot--r { background: #ff5f56; }
+  .fourofour__dot--y { background: #ffbd2e; }
+  .fourofour__dot--g { background: #27c93f; }
+  .fourofour__lang { color: #8b929e; font-size: 11px; margin-left: 6px; }
+  .fourofour pre {
+    background: transparent;
+    color: #d6dbe3;
+    font-family: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.9em;
+    line-height: 1.55;
+    padding: 16px 18px;
+    margin: 0;
+    white-space: pre;
+    overflow-x: auto;
+  }
+  .fourofour .c  { color: #6b7280; }          /* dim / comments */
+  .fourofour .g  { color: #27c93f; }          /* green */
+  .fourofour .r  { color: #e26d6a; }          /* red / 404 */
+  .fourofour .p  { color: #c0503f; font-weight: 600; }  /* prompt $ */
+  .fourofour .b  { color: #7fb0e0; }          /* banner */
+  .fourofour__home {
+    display: inline-block;
+    margin-top: 0.5em;
+    color: #a1392b;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .fourofour__home:hover { color: #c0503f; }
+</style>
+
+<div class="fourofour">
+  <div class="fourofour__bar">
+    <span class="fourofour__dot fourofour__dot--r"></span>
+    <span class="fourofour__dot fourofour__dot--y"></span>
+    <span class="fourofour__dot fourofour__dot--g"></span>
+    <span class="fourofour__lang">zsh — 404</span>
+  </div>
+<pre><span class="p">$</span> ffuf -w common.txt -u https://cbev0x.github.io/FUZZ -mc 200
+
+<span class="b">        /'___\  /'___\           /'___\
+       /\ \__/ /\ \__/  __  __  /\ \__/
+       \ \ ,__\\ \ ,__\/\ \/\ \ \ \ ,__\
+        \ \ \_/ \ \ \_/\ \ \_\ \ \ \ \_/
+         \ \_\   \ \_\  \ \____/  \ \_\
+          \/_/    \/_/   \/___/    \/_/</span>
+       <span class="c">v2.1.0 — the-page-you-wanted edition</span>
+________________________________________________
+
+ :: Method           : GET
+ :: URL              : https://cbev0x.github.io/FUZZ
+ :: Matcher          : Response status: 200
+________________________________________________
+
+[Status: <span class="r">404</span>] you fuzzed your way to a page
+            that was never here.
+
+:: Progress: [4294967295/4294967296] :: <span class="r">0 hits</span>
+:: Errors: 1 :: wordlist exhausted, ego intact
+
+<span class="c"># this is a dead end, not a backdoor.</span>
+<span class="c"># the loot you're looking for is back at base.</span>
+
+<span class="p">$</span> <span class="g">cd /</span>
+</pre>
+</div>
+
+<a class="fourofour__home" href="{{ '/' | relative_url }}">&larr; return to base</a>
