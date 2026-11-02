@@ -104,15 +104,6 @@ $code-background-color-dark: #f4f0e9;
   margin-right: auto;
 }
 
-// optional reading-measure cap: keep body lines from getting too long
-// even though the column is now wide. Delete this block if you want the
-// text to run the full width.
-.page__content {
-  max-width: 46em;
-  margin-left: auto;
-  margin-right: auto;
-}
-
 // ---- post meta: one clean line, no icons ----
 .page__meta,
 .archive__item .page__meta {
@@ -211,10 +202,14 @@ $code-background-color-dark: #f4f0e9;
 .code-term pre,
 .code-term .highlight,
 .code-term div.highlight {
-  padding-bottom: 8px;                 // gap so the bar sits below the last line
   scrollbar-width: thin;               // Firefox
   scrollbar-color: #3a4049 #15171c;    // thumb / track (Firefox)
 }
+
+// bottom gap lives only between the last line and the scrollbar; no dead space below it
+.code-term .highlight,
+.code-term div.highlight { padding-bottom: 0; margin-bottom: 0; }
+.code-term pre { padding-bottom: 5px; margin-bottom: 0; }   // the one knob for the gap
 
 // WebKit (Chrome, Edge, Safari)
 .code-term pre::-webkit-scrollbar,
