@@ -242,9 +242,14 @@ $code-background-color-dark: #f4f0e9;
   color: #ffffff;
 }
 
-// ---- home intro block (Option 1: clean editorial) ----
+// ---- home intro block (Option 1 + Outline D: red top rule card) ----
 .home-intro {
-  margin: 0.25em 0 2.25em;
+  margin: 0.5em 0 2.5em;
+  padding: 28px 32px;
+  background: #fff;
+  border: 1px solid $border-color;
+  border-top: 3px solid $primary-color;   // red top rule
+  border-radius: 0 0 12px 12px;
 }
 .home-intro__name {
   font-size: 2rem;
@@ -300,6 +305,14 @@ $header-fg: #e8e3da;
 .masthead {
   background-color: $header-bg;
   border-bottom: 1px solid $header-bg;
+}
+
+// full-width masthead: brand to the far-left corner, nav to the far right,
+// so the brand no longer sits directly above the intro block
+.masthead__inner-wrap {
+  max-width: none;
+  padding-left: 1.5em;
+  padding-right: 1.5em;
 }
 
 .greedy-nav {
