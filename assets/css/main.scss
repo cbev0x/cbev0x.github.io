@@ -297,6 +297,7 @@ $code-background-color-dark: #f4f0e9;
   max-width: 1200px;
   margin: 0 auto;
   padding: 2em 1.5em;
+  position: relative;        // anchor for the margin easter eggs
 }
 .home-shell {
   display: grid;
@@ -367,6 +368,56 @@ $code-background-color-dark: #f4f0e9;
   font-size: 0.9rem;
 }
 .home-rail .elsewhere a:last-child { margin-bottom: 0; }
+
+// ---- notebook margin easter eggs (home only, wide desktop only) ----
+// hidden until the gutters are genuinely wide enough to hold them cleanly
+.home-margins { display: none; }
+@media (min-width: 104em) {               // ~1664px+, where the gutters are wide enough
+  .home-margins { display: block; }
+}
+.home-margins {
+  pointer-events: none;                   // never block clicks on real content
+}
+.home-margins > * {
+  position: absolute;                     // top/left/right set inline per element
+}
+
+// sticky notes
+.hm-note {
+  width: 158px;
+  padding: 15px 15px 20px;
+  background: #e9ddc4;                     // manila
+  box-shadow: 2px 5px 11px rgba(60, 50, 30, .2);
+  color: #544d42;                         // graphite ink
+  font-family: "Gochi Hand", cursive;
+  font-size: 1.3rem;
+  line-height: 1.2;
+}
+.hm-note--alt { background: #e0d2b4; }
+.hm-note u { text-decoration-thickness: 2px; }
+.hm-note__label { margin-bottom: 8px; }
+.hm-pin {
+  position: absolute; top: -9px; left: 50%; transform: translateX(-50%);
+  width: 15px; height: 15px; border-radius: 50%;
+  background: $primary-color; border: 2px solid #c0503f;
+  box-shadow: 0 2px 3px rgba(0, 0, 0, .3);
+}
+.hm-tape {
+  position: absolute; top: -11px; left: 50%; transform: translateX(-50%) rotate(-4deg);
+  width: 66px; height: 22px;
+  background: rgba(200, 180, 140, .5); border: 1px solid rgba(150, 130, 90, .3);
+}
+
+// pencil doodles
+.hm-doodle { width: 158px; text-align: center; }
+.hm-ink {
+  stroke: #4a443c; stroke-width: 2.2; fill: none;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.hm-cap {
+  font-family: "Gochi Hand", cursive;
+  color: #4a443c; font-size: 1.15rem; line-height: 1.1; margin-top: 2px;
+}
 
 // ---- dark header bar on the light page ----
 $header-bg: #201e1b;
