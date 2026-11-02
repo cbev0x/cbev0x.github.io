@@ -25,12 +25,12 @@ body {
     url("/assets/img/gauntlet-right.png");
   background-repeat: no-repeat, no-repeat;
   background-position:
-    left 25%,     // skull: flush left edge, ~quarter down
-    right 85%;    // gauntlet: flush right edge, ~three-quarters down
-  background-attachment: fixed, fixed;
+    left 160px,     // skull: flush left, near the top of the page
+    right 620px;    // gauntlet: flush right, lower down
+  background-attachment: scroll, scroll;   // anchored to the page, scrolls away
   background-size:
-    auto 42vh,    // skull
-    auto 45vh;    // gauntlet (same height; bump this if it should be bigger/smaller)
+    auto 42vh,      // skull
+    auto 42vh;      // gauntlet
 }
 @media (max-width: 63.99em) {
   body { background-image: none; }
