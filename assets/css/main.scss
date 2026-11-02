@@ -19,22 +19,22 @@ $code-background-color-dark: #f4f0e9;
 @import "minimal-mistakes";
 
 // ---- red-team / blue-team gutter art (desktop only) ----
-body {
-  background-image:
-    url("/assets/img/skull-left.png"),
-    url("/assets/img/gauntlet-right.png");
-  background-repeat: no-repeat, no-repeat;
-  background-position:
-    left 160px,     // skull: flush left, near the top of the page
-    right 620px;    // gauntlet: flush right, lower down
-  background-attachment: scroll, scroll;   // anchored to the page, scrolls away
-  background-size:
-    auto 42vh,      // skull
-    auto 45vh;      // gauntlet
-}
-@media (max-width: 63.99em) {
-  body { background-image: none; }
-}
+//body {
+//  background-image:
+//    url("/assets/img/skull-left.png"),
+//    url("/assets/img/gauntlet-right.png");
+//  background-repeat: no-repeat, no-repeat;
+//  background-position:
+//    left 160px,     // skull: flush left, near the top of the page
+//    right 620px;    // gauntlet: flush right, lower down
+//  background-attachment: scroll, scroll;   // anchored to the page, scrolls away
+//  background-size:
+//    auto 42vh,      // skull
+//    auto 45vh;      // gauntlet
+//}
+//@media (max-width: 63.99em) {
+//  body { background-image: none; }
+//}
 
 // ---- no sidebar anywhere: hide author profile + let content fill the width ----
 .sidebar.sticky,
