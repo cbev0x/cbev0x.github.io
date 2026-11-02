@@ -237,6 +237,16 @@ $code-background-color-dark: #f4f0e9;
   background: #4a515b;
 }
 
+// ---- visible text selection inside terminal blocks ----
+.code-term ::selection {
+  background: #3b6fb5;   // muted blue, readable on the dark bg
+  color: #ffffff;
+}
+.code-term ::-moz-selection {
+  background: #3b6fb5;
+  color: #ffffff;
+}
+
 // ---- dark header bar on the light page ----
 $header-bg: #201e1b;
 $header-fg: #e8e3da;
