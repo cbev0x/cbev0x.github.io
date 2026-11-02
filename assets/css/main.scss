@@ -26,26 +26,41 @@ body {
   background-repeat: no-repeat, no-repeat;
   background-position:
     left 25%,     // skull: flush left edge, ~quarter down
-    right 75%;    // gauntlet: flush right edge, ~three-quarters down
+    right 85%;    // gauntlet: flush right edge, ~three-quarters down
   background-attachment: fixed, fixed;
   background-size:
     auto 42vh,    // skull
-    auto 42vh;    // gauntlet (same height; bump this if it should be bigger/smaller)
+    auto 45vh;    // gauntlet (same height; bump this if it should be bigger/smaller)
 }
 @media (max-width: 63.99em) {
   body { background-image: none; }
 }
 
-// ---- no sidebar: let content fill the freed space, centered ----
+// ---- no sidebar anywhere: hide author profile + let content fill the width ----
+.sidebar.sticky,
+.sidebar .author__avatar,
+.sidebar .author__content,
+.sidebar .author__urls-wrapper {
+  display: none;            // kill the author profile on every layout (about, tags, etc.)
+}
+
 @media (min-width: 64em) {         // MM's $large breakpoint
-  .page,            // single posts
-  .archive {        // home / listing
+  .page,            // single posts + about/pages
+  .archive {        // home / listing / tags
     float: none;
     width: 100%;
     padding-right: 0;
+    padding-left: 0;
     margin-left: auto;
     margin-right: auto;
   }
+}
+
+// reading-measure cap: keep lines from getting too long on the wide column
+.page__content {
+  max-width: 46em;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 // optional reading-measure cap: keep body lines from getting too long
