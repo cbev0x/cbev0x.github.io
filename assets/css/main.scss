@@ -20,11 +20,17 @@ $code-background-color-dark: #f4f0e9;
 
 // ---- red-team / blue-team gutter art (desktop only) ----
 body {
-  background-image: url("/assets/img/skull-left.png");
-  background-repeat: no-repeat;
-  background-position: left 25%;    // flush to left edge, ~quarter down the page
-  background-attachment: fixed;
-  background-size: auto 42vh;       // was 60vh — a touch smaller
+  background-image:
+    url("/assets/img/skull-left.png"),
+    url("/assets/img/gauntlet-right.png");
+  background-repeat: no-repeat, no-repeat;
+  background-position:
+    left 25%,     // skull: flush left edge, ~quarter down
+    right 75%;    // gauntlet: flush right edge, ~three-quarters down
+  background-attachment: fixed, fixed;
+  background-size:
+    auto 42vh,    // skull
+    auto 42vh;    // gauntlet (same height; bump this if it should be bigger/smaller)
 }
 @media (max-width: 63.99em) {
   body { background-image: none; }
