@@ -242,6 +242,57 @@ $code-background-color-dark: #f4f0e9;
   color: #ffffff;
 }
 
+// ---- home intro block (Option 1: clean editorial) ----
+.home-intro {
+  margin: 0.25em 0 2.25em;
+}
+.home-intro__name {
+  font-size: 2rem;
+  font-weight: 700;
+  color: $text-color;
+  margin: 0 0 0.1em;
+  line-height: 1.15;
+}
+.home-intro__handle {
+  color: $muted-text-color;
+  font-weight: 500;
+  font-size: 1rem;
+  margin-left: 8px;
+}
+.home-intro__tag {
+  color: $text-color;
+  font-size: 1.02rem;
+  margin: 0.5em 0 1em;
+  max-width: 58ch;        // keep the line from running too long
+}
+.home-intro__links a {
+  font-weight: 600;
+  font-size: 0.9em;
+}
+.home-intro__links .sep { color: #cfc8bc; margin: 0 10px; }
+
+// ---- section header (Treatment C: uppercase mono label + hairline) ----
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 0.75em;
+}
+.section-head__t {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: $primary-color;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.section-head__rule {
+  flex: 1;
+  height: 1px;
+  background: $border-color;
+}
+
 // ---- dark header bar on the light page ----
 $header-bg: #201e1b;
 $header-fg: #e8e3da;
