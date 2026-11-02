@@ -1,0 +1,70 @@
+---
+layout: default
+---
+
+<div class="home-wrap">
+  <div class="home-shell">
+
+    <!-- ===== CONTENT COLUMN ===== -->
+    <div class="home-main">
+      {{ content }}
+
+      <h2 class="home-recent">Recent Posts</h2>
+
+      {% if paginator %}
+        {% assign posts = paginator.posts %}
+      {% else %}
+        {% assign posts = site.posts %}
+      {% endif %}
+
+      <div class="entries-list">
+        {% for post in posts %}
+          {% include archive-single.html type="list" %}
+        {% endfor %}
+      </div>
+
+      {% include paginator.html %}
+    </div>
+
+    <!-- ===== RIGHT RAIL ===== -->
+    <aside class="home-rail">
+
+      <div class="rail-box">
+        <h4>Topics</h4>
+        <ul>
+          {% for cat in site.categories %}
+            {% assign catslug = cat[0] | slugify %}
+            <li>
+              <a href="{{ '/categories/' | relative_url }}#{{ catslug }}">{{ cat[0] }}</a>
+              <span class="ct">{{ cat[1] | size }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <div class="rail-box">
+        <h4>Recent Disclosures</h4>
+        {% for d in site.data.disclosures limit:3 %}
+          <div class="disc">
+            {% if d.url and d.url != "" %}
+              <a href="{{ d.url }}" class="id">{{ d.id }}</a>
+            {% else %}
+              <span class="id">{{ d.id }}</span>
+            {% endif %}
+            <div class="d">{{ d.target }} &middot; {{ d.class }}</div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <div class="rail-box elsewhere">
+        <h4>Find Me</h4>
+        <a href="https://github.com/cbev0x">GitHub &#8599;</a>
+        <a href="https://www.linkedin.com/in/chase-bevan-thomas-59b105363">LinkedIn &#8599;</a>
+        <a href="https://hackerone.com/cbev?type=user">HackerOne &#8599;</a>
+        <a href="https://app.hackthebox.com/users/2669350">HackTheBox &#8599;</a>
+      </div>
+
+    </aside>
+
+  </div>
+</div>
