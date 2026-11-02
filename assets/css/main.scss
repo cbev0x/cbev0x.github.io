@@ -206,10 +206,26 @@ $code-background-color-dark: #f4f0e9;
   scrollbar-color: #3a4049 #15171c;    // thumb / track (Firefox)
 }
 
-// bottom gap lives only between the last line and the scrollbar; no dead space below it
+// tighten the bottom: kill the dead band under the scrollbar.
+// these selectors are specific enough to beat Minimal Mistakes' default 1em pre padding.
+.code-term figure.highlight pre,
+.code-term div.highlighter-rouge pre,
+.code-term pre.highlight,
+.code-term .rouge-code pre,
+.code-term .rouge-gutter pre,
+.code-term pre {
+  padding-bottom: 4px;        // the one knob: gap between last line and the scrollbar
+  margin-bottom: 0;
+}
+.code-term figure.highlight,
+.code-term div.highlighter-rouge,
 .code-term .highlight,
-.code-term div.highlight { padding-bottom: 0; margin-bottom: 0; }
-.code-term pre { padding-bottom: 5px; margin-bottom: 0; }   // the one knob for the gap
+.code-term div.highlight,
+.code-term .rouge-table,
+.code-term .rouge-table td {
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
 
 // WebKit (Chrome, Edge, Safari)
 .code-term pre::-webkit-scrollbar,
