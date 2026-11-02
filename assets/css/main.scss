@@ -36,6 +36,47 @@ $code-background-color-dark: #f4f0e9;
 //  body { background-image: none; }
 //}
 
+// ---- terminal-style search ----
+.search-content {
+  background: #15171c;
+}
+.search-content__form { background: transparent; }
+
+.search-content .search-input {
+  background: #15171c;
+  color: #d6dbe3;
+  font-family: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  font-size: 1.4em;
+  border: 0;
+  border-bottom: 1px solid #2c313a;
+  caret-color: #27c93f;      // green cursor
+  padding-left: 1.4em;       // room for the $ prompt
+}
+.search-content .search-input::placeholder { color: #4a5159; }
+
+// the "$" prompt sitting in front of the field
+.search-content__form {
+  position: relative;
+}
+.search-content__form::before {
+  content: "$";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #c0503f;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 1.4em;
+  font-weight: 600;
+}
+
+// results styled to match
+.search-content {
+  .archive__item-title { color: #d6dbe3; }
+  .archive__item-title a { color: #7fb0e0; }
+  .archive__item-excerpt { color: #8b929e; }
+}
+
 // ---- no sidebar anywhere: hide author profile + let content fill the width ----
 .sidebar.sticky,
 .sidebar .author__avatar,
