@@ -24,7 +24,7 @@ body {
   background-repeat: no-repeat;
   background-position: left 25%;    // flush to left edge, ~quarter down the page
   background-attachment: fixed;
-  background-size: auto 50vh;       // was 60vh — a touch smaller
+  background-size: auto 42vh;       // was 60vh — a touch smaller
 }
 @media (max-width: 63.99em) {
   body { background-image: none; }
