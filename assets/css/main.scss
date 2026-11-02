@@ -297,8 +297,12 @@ $code-background-color-dark: #f4f0e9;
   max-width: 1200px;
   margin: 0 auto;
   padding: 2em 1.5em;
-  position: relative;        // anchor for the margin easter eggs
+  position: relative;                        // anchor for the margin easter eggs
+  --gut: calc((100vw - 1216px) / 2);         // one gutter's width; drives margin placement
 }
+
+// never let a far-out gutter doodle cause a horizontal scrollbar (home only; posts unaffected)
+body.layout--home { overflow-x: hidden; }
 .home-shell {
   display: grid;
   grid-template-columns: 1fr 280px;
