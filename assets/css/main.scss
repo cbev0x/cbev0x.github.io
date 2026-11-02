@@ -30,7 +30,7 @@ body {
   background-attachment: scroll, scroll;   // anchored to the page, scrolls away
   background-size:
     auto 42vh,      // skull
-    auto 42vh;      // gauntlet
+    auto 45vh;      // gauntlet
 }
 @media (max-width: 63.99em) {
   body { background-image: none; }
