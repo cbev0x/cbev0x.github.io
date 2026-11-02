@@ -18,6 +18,20 @@ $code-background-color-dark: #f4f0e9;
 @import "minimal-mistakes/skins/default";
 @import "minimal-mistakes";
 
+// ---- red-team / blue-team gutter art (desktop only) ----
+body {
+  background-image:
+    url("/assets/img/skull-left.png");
+    // , url("/assets/img/shield-right.png");   ← uncomment when the shield's ready
+  background-repeat: no-repeat;                // , no-repeat;
+  background-position: left center;            // , right center;
+  background-attachment: fixed;                // , fixed;
+  background-size: auto 60vh;                  // , auto 60vh;
+}
+@media (max-width: 63.99em) {
+  body { background-image: none; }
+}
+
 // ---- faint hex pattern down the left gutter (desktop only) ----
 body {
   background-image: url("/assets/img/hexpattern.svg");
