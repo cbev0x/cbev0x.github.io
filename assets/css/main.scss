@@ -372,7 +372,7 @@ $code-background-color-dark: #f4f0e9;
 // ---- notebook margin easter eggs (home only, wide desktop only) ----
 // hidden until the gutters are genuinely wide enough to hold them cleanly
 .home-margins { display: none; }
-@media (min-width: 104em) {               // ~1664px+, where the gutters are wide enough
+@media (min-width: 107em) {               // ~1712px+, where the gutters are wide enough
   .home-margins { display: block; }
 }
 .home-margins {
