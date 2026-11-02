@@ -304,6 +304,8 @@ $code-background-color-dark: #f4f0e9;
 }
 
 // ---- right rail ----
+.home-rail a { text-decoration: none; }          // no persistent underline on rail links
+.home-rail a:hover { text-decoration: underline; }
 .home-rail .rail-box {
   border: 1px solid $border-color;
   border-radius: 10px;
