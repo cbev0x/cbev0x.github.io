@@ -6,29 +6,38 @@
 # url:       link to the advisory / writeup / CVE (optional; omit if none)
 # ---------------------------------------------------------------------------
 
+- id: CVE-2026-69744
+  target: Windows
+  class: Unauthenticated DoS
+  severity: High
+  status: Fixed
+  date: 2026-09-08
+  url: https://msrc.microsoft.com/update-guide/vulnerability/CVE-2026-69744
+  summary: Unauthenticated attackers can craft special Kerberos requests causing a fatal crash in LSASS.exe, forcing the system to reboot.
+
 - id: CVE-2026-91926
   target: gss-ntlmssp
   class: Memory Leak DoS
   severity: Low
-  status: fixed
+  status: Fixed
   date: 2026-09-15
   url: https://nvd.nist.gov/vuln/detail/cve-2026-91926
   summary: A memory leak flaw in gss-ntlmssp that allows attackers to cause denial of service through crafted NTLM messages.
 
 - id: GHSA-963m-r92r-qm7c
-  target: samlify
-  class: Privilege Escalation/Impersonation
-  severity: high
-  status: fixed
+  target: Samlify
+  class: Privilege Escalation
+  severity: High
+  status: Fixed
   date: 2026-10-20
   url: https://github.com/tngan/samlify/security/advisories/GHSA-963m-r92r-qm7c
   summary: Service-Provider assertion extraction is vulnerable to XML-comment node-splitting allowing user impersonation.
 
-- id: pending
-  target: Third Target
-  class: unauth RCE chain
-  severity: critical
-  status: disclosed
+- id: Pending
+  target: [REDACTED]
+  class: Unauth RCE chain
+  severity: Critical
+  status: Disclosed
   date: 2026-10-27
   url:
   summary: Unauthenticated Stored XSS allows control of admin browsers and a MIME type bypass allows code execution on affected servers.
