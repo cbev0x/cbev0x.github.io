@@ -9,7 +9,7 @@
 - id: CVE-2026-69744
   target: Windows
   class: Unauthenticated DoS
-  severity: High
+  severity: high
   status: Fixed
   date: 2026-09-08
   url: https://msrc.microsoft.com/update-guide/vulnerability/CVE-2026-69744
@@ -18,7 +18,7 @@
 - id: CVE-2026-91926
   target: gss-ntlmssp
   class: Memory Leak DoS
-  severity: Low
+  severity: low
   status: Fixed
   date: 2026-09-15
   url: https://nvd.nist.gov/vuln/detail/cve-2026-91926
@@ -27,7 +27,7 @@
 - id: GHSA-963m-r92r-qm7c
   target: Samlify
   class: Privilege Escalation
-  severity: High
+  severity: high
   status: Fixed
   date: 2026-10-20
   url: https://github.com/tngan/samlify/security/advisories/GHSA-963m-r92r-qm7c
@@ -35,9 +35,9 @@
 
 - id: GHSA-c5vw-gpq8-wq2q
   target: groupoffice
-  class: Unauthenticated XSS/DoS
-  severity: Critical
-  status: Fixes
+  class: Unauthenticated XSS & DoS
+  severity: critical
+  status: Fixed
   date: 2026-11-09
   url: https://github.com/Intermesh/groupoffice/security/advisories/GHSA-c5vw-gpq8-wq2q
   summary: Unauthenticated arbitrary static-method invocation in the site module enables reflected XSS and sync-state destruction
@@ -45,7 +45,7 @@
 - id: Pending
   target: [REDACTED]
   class: Unauthenticated RCE chain
-  severity: Critical
+  severity: critical
   status: Disclosed
   date: 2026-10-27
   url:
