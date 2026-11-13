@@ -33,15 +33,6 @@
   url: https://github.com/tngan/samlify/security/advisories/GHSA-963m-r92r-qm7c
   summary: Service-Provider assertion extraction is vulnerable to XML-comment node-splitting allowing user impersonation.
 
-- id: GHSA-c5vw-gpq8-wq2q
-  target: groupoffice
-  class: Unauthenticated XSS & DoS
-  severity: critical
-  status: Fixed
-  date: 2026-11-09
-  url: https://github.com/Intermesh/groupoffice/security/advisories/GHSA-c5vw-gpq8-wq2q
-  summary: Unauthenticated arbitrary static-method invocation in the site module enables reflected XSS and sync-state destruction
-
 - id: Pending
   target: [REDACTED]
   class: Unauthenticated RCE chain
@@ -50,3 +41,21 @@
   date: 2026-10-27
   url:
   summary: Unauthenticated Stored XSS allows control of admin browsers and a MIME type bypass allows code execution on affected servers.
+
+- id: GHSA-c5vw-gpq8-wq2q
+  target: groupoffice
+  class: Unauthenticated XSS & DoS
+  severity: critical
+  status: Fixed
+  date: 2026-11-09
+  url: https://github.com/Intermesh/groupoffice/security/advisories/GHSA-c5vw-gpq8-wq2q
+  summary: Unauthenticated arbitrary static-method invocation in the site module enables reflected XSS and sync-state destruction.
+
+- id: CVE-2026-128100
+  target: Hashicorp
+  class: ACL Deny Bypass
+  severity: medium
+  status: Fixed
+  date: 2026-11-13
+  url: https://www.cve.org/CVERecord?id=CVE-2026-128100
+  summary: Vault vulnerable to ACL deny bypass via case-variant auth method user and group names.
